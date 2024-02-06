@@ -7,3 +7,17 @@ Automated end-to-end test framework for the Atlas search algorithm - see the [ma
 ```dotnet user-secrets set "NameOfSecret" "ValueOfSecret"```
   - Or, in the Visual Studio IDE, right-click the project name, and select the context menu option: "Manage User Secrets".
 - All settings that must be overridden have the placeholder value of `"override-this"`.
+
+## Test Pipeline
+- `test-pipeline.yml` is a template file for tests to be run in Azure DevOps.
+- A new pipeline should be created for each instance of the Atlas API under test, e.g., Dev, UAT, PR, etc.
+- The template file does not have any triggers or schedules: this should be set as needed for each copy of the pipeline.
+- Each copy must also have pipeline variables that match those within `appsettings.json`.
+  - Use `.` to set nested settings, e.g., var name `DonorImport.ApiKey` would be used to fetch setting:
+	```json
+	{
+		"DonorImport": { 
+			"ApiKey": "value" 
+		}
+	}
+	```
