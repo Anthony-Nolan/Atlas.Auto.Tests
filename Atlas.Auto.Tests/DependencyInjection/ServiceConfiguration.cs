@@ -1,8 +1,6 @@
 ﻿using System.Reflection;
 using Atlas.Debug.Client;
-using Atlas.Debug.Client.Models.DonorImport;
-using Atlas.Debug.Client.Models.MatchingAlgorithm;
-using Atlas.Debug.Client.Models.SupportMessages;
+using Atlas.Debug.Client.Models.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using static Atlas.Auto.Tests.DependencyInjection.Utils;
@@ -21,7 +19,7 @@ namespace Atlas.Auto.Tests.DependencyInjection
             services.RegisterDebugClients(
                 OptionsReaderFor<DonorImportHttpFunctionSettings>(),
                 OptionsReaderFor<MatchingAlgorithmHttpFunctionSettings>(),
-                OptionsReaderFor<SupportMessageHttpFunctionSettings>());
+                OptionsReaderFor<TopLevelHttpFunctionSettings>());
 
             return services.BuildServiceProvider();
         }
@@ -41,7 +39,7 @@ namespace Atlas.Auto.Tests.DependencyInjection
         {
             services.RegisterAsOptions<DonorImportHttpFunctionSettings>("DonorImport");
             services.RegisterAsOptions<MatchingAlgorithmHttpFunctionSettings>("MatchingAlgorithm");
-            services.RegisterAsOptions<SupportMessageHttpFunctionSettings>("SupportMessages");
+            services.RegisterAsOptions<TopLevelHttpFunctionSettings>("TopLevel");
         }
     }
 }

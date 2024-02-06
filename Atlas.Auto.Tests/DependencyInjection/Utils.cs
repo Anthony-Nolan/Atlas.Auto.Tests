@@ -36,10 +36,22 @@ namespace Atlas.Auto.Tests.DependencyInjection
         /// Resolves the service from the <paramref name="provider"/> else throws an error if the service is not found.
         /// </summary>
         /// <exception cref="InvalidOperationException"></exception>
+        /// <returns>The resolved service as type {T}</returns>
         public static T ResolveServiceOrThrow<T>(this IServiceProvider provider) where T : class
         {
             var service = provider.GetService<T>();
             return service ?? throw new InvalidOperationException($"Unable to resolve {typeof(T).Name} from the service provider. Make sure it's registered correctly.");
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="ResolveServiceOrThrow{T}"/>
+        /// </summary>
+        /// <returns>The resolved service as an object</returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public static object ResolveServiceOrThrow(this IServiceProvider provider, Type type)
+        {
+            var service = provider.GetService(type);
+            return service ?? throw new InvalidOperationException($"Unable to resolve {type.Name} from the service provider. Make sure it's registered correctly.");
         }
     }
 }
