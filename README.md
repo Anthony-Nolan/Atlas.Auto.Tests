@@ -21,3 +21,12 @@ Automated end-to-end test framework for the Atlas search algorithm - see the [ma
 		}
 	}
 	```
+
+## Contributing
+Please refer to the [contribution guidelines on the main Atlas repository](https://github.com/Anthony-Nolan/Atlas/blob/master/README_Contribution_Versioning.md).
+
+## Versioning
+The E2E test project does not have its own version at present.
+
+## Dependencies
+- `Atlas.Debug.Client` and `Atlas.Debug.Client.Models` are used to interact with the Atlas API.
