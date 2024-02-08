@@ -13,6 +13,7 @@
   <ItemGroup>
     <PackageReference Include="Atlas.Debug.Client" Version="1.0.0-ci-46026" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="LochNessBuilder" Version="4.1.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
@@ -23,6 +24,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Polly" Version="8.3.0" />
   </ItemGroup>
 
   <ItemGroup>
