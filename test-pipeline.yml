@@ -33,6 +33,16 @@ stages:
           path: '$(NUGET_PACKAGES)'
           cacheHitVar: 'CACHE_RESTORED'
 
+      - task: FileTransform@2
+        # Pipeline must have variables that match those in appsettings.json.
+        # Use `.` to retrieve nested values, e.g., var name `DonorImport.ApiKey` would be used to fetch setting:`{ "DonorImport": { "ApiKey": "value" } }`
+        displayName: 'Set environment variables'
+        inputs:
+          folderPath: '$(System.DefaultWorkingDirectory)'
+          xmlTransformationRules: '' # Prevents task error: "Unable to apply transformation for the given package - Changes are already present in the package."
+          jsonTargetFiles: '**/appsettings.json'
+        continueOnError: false
+
       - task: DotNetCoreCLI@2
         displayName: 'Restore'
         condition: ne(variables.CACHE_RESTORED, true)
