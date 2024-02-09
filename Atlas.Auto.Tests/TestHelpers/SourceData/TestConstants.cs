@@ -8,6 +8,7 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
     internal class TestConstants
     {
         public const string AutoTestTag = "AutoTest";
+        public const string DonorImportTestTag = "DonorImport";
 
         public static string RecordIdPrefix => $"{AutoTestTag}Donor";
         public static string DefaultRegistryCode => $"{AutoTestTag}Registry";

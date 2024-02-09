@@ -21,6 +21,7 @@ Automated end-to-end test framework for the Atlas search algorithm - see the [ma
 		}
 	}
 	```
+- Make sure to extend the list of `testCategoryJobs` whenever a new Category of tests is added.
 
 ## Contributing
 Please refer to the [contribution guidelines on the main Atlas repository](https://github.com/Anthony-Nolan/Atlas/blob/master/README_Contribution_Versioning.md).
