@@ -1,0 +1,30 @@
+parameters: 
+- name: testCategoryJobs
+  type: jobList
+  default: []
+
+jobs:
+- ${{ each testCategoryJob in parameters.testCategoryJobs }}:
+  - job:
+    displayName: 'Tests run - ${{testCategoryJob.job}}'
+    timeoutInMinutes: 20
+    steps: 
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download artifact'
+        inputs: 
+          buildType: 'current'
+          targetPath: '$(Pipeline.Workspace)'
+
+      - task: DotNetCoreCLI@2
+        displayName: 'Run Tests for ${{testCategoryJob.job}}'
+        inputs:
+          command: 'test'
+          arguments: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net8.0/Atlas.Auto.Tests.dll --no-restore --filter TestCategory=${{testCategoryJob.job}}'
+
+      - task: PublishPipelineArtifact@1
+        continueOnError: true
+        condition: always()
+        inputs:
+          targetPath: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/TestReport'
+          artifact: '${{testCategoryJob.job}}-$(System.JobAttempt)'
+          publishLocation: 'pipeline'

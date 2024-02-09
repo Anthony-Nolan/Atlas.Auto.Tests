@@ -4,10 +4,11 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <IsPublishable>True</IsPublishable>
+	<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+	<DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
     <UserSecretsId>a5186e9d-765c-48fe-9425-7069702595d0</UserSecretsId>
   </PropertyGroup>
 
