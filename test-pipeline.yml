@@ -23,16 +23,6 @@ stages:
           packageType: 'sdk'
           version: 8.0.x
 
-      - task: Cache@2
-        displayName: Cache
-        inputs:
-          key: 'nuget | "$(Agent.OS)" | **/packages.lock.json,!**/bin/**,!**/obj/**'
-          restoreKeys: |
-            nuget | "$(Agent.OS)"
-            nuget
-          path: '$(NUGET_PACKAGES)'
-          cacheHitVar: 'CACHE_RESTORED'
-
       - task: FileTransform@2
         # Pipeline must have variables that match those in appsettings.json.
         # Use `.` to retrieve nested values, e.g., var name `DonorImport.ApiKey` would be used to fetch setting:`{ "DonorImport": { "ApiKey": "value" } }`
@@ -45,7 +35,6 @@ stages:
 
       - task: DotNetCoreCLI@2
         displayName: 'Restore'
-        condition: ne(variables.CACHE_RESTORED, true)
         inputs:
           command: 'restore'
           projects: "**/Atlas.Auto.Tests.csproj"
