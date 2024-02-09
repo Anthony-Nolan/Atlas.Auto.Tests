@@ -2,31 +2,66 @@
 trigger: none
 pr: none
 
-jobs: 
-- job: Run_Tests
-  pool:
-    vmImage: 'windows-latest'
-  steps:
-    - task: FileTransform@2
-      # Pipeline must have variables that match those in appsettings.json.
-      # Use `.` to retrieve nested values, e.g., var name `DonorImport.ApiKey` would be used to fetch setting:`{ "DonorImport": { "ApiKey": "value" } }`
-      displayName: 'Set environment variables'
-      inputs:
-        folderPath: '$(System.DefaultWorkingDirectory)'
-        xmlTransformationRules: '' # Prevents task error: "Unable to apply transformation for the given package - Changes are already present in the package."
-        jsonTargetFiles: '**/appsettings.json'
-      continueOnError: false
+pool:
+  vmImage: 'windows-latest'
 
-    - task: DotNetCoreCLI@2
-      displayName: 'Nuget Restore'
-      inputs:
-        command: 'restore'
-        feedsToUse: 'config'
-        nugetConfigPath: '$(System.DefaultWorkingDirectory)/nuget.config'
-    
-    - task: DotNetCoreCLI@2
-      displayName: 'Run Atlas.Auto.Tests'
-      inputs:
-        command: test
-        projects: '$(System.DefaultWorkingDirectory)/Atlas.Auto.Tests/Atlas.Auto.Tests.csproj'
-        arguments: '--no-restore -v d'
+variables:
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
+  
+stages: 
+- stage: build
+  displayName: "Build"
+  jobs:
+  - job:
+    displayName: 'Restore Cache and Build'
+    steps: 
+      - task: UseDotNet@2
+        displayName: 'Install .NET Core SDK'
+        inputs:
+          packageType: 'sdk'
+          version: 8.0.x
+
+      - task: FileTransform@2
+        # Pipeline must have variables that match those in appsettings.json.
+        # Use `.` to retrieve nested values, e.g., var name `DonorImport.ApiKey` would be used to fetch setting:`{ "DonorImport": { "ApiKey": "value" } }`
+        displayName: 'Set environment variables'
+        inputs:
+          folderPath: '$(System.DefaultWorkingDirectory)'
+          xmlTransformationRules: '' # Prevents task error: "Unable to apply transformation for the given package - Changes are already present in the package."
+          jsonTargetFiles: '**/appsettings.json'
+        continueOnError: false
+
+      - task: DotNetCoreCLI@2
+        displayName: 'Restore'
+        inputs:
+          command: 'restore'
+          projects: "**/Atlas.Auto.Tests.csproj"
+          feedsToUse: 'config'
+          nugetConfigPath: 'nuget.config'
+          
+      - task: DotNetCoreCLI@2
+        displayName: 'Build'
+        inputs:
+          command: 'build'
+          projects: '**/Atlas.Auto.Tests.csproj'
+          arguments: '--configuration $(buildConfiguration) --no-restore'
+
+      - task: CopyFiles@2
+        displayName: 'Copy Test artifacts for later use in the pipeline'
+        inputs:
+          contents: 'Atlas.Auto.Tests/bin/Release/net8.0/**'
+          targetFolder: '$(Build.ArtifactStagingDirectory)'
+
+      - publish: '$(Build.ArtifactStagingDirectory)'
+        displayName: 'Publish Test artifacts for later use in the pipeline'
+        artifact: dropTestSuite
+        
+- stage: runTests
+  displayName: "Run Tests"
+  jobs:
+  - template: azure-test-run-template.yml
+    parameters:
+      testCategoryJobs:
+      - job: HealthCheck

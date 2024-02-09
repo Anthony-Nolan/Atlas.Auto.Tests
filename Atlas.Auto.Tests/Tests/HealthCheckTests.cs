@@ -24,6 +24,7 @@ internal class HealthCheckTests
         provider = ServiceConfiguration.CreateProvider();
     }
 
+    [Category("HealthCheck")]
     [TestCaseSource(nameof(_clientsToTest))]
     public async Task HealthCheck(Type clientType)
     {
