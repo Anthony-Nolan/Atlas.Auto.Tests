@@ -2,6 +2,7 @@
 using Atlas.Auto.Tests.TestHelpers.Assertions;
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
+using Atlas.Auto.Tests.TestHelpers.SourceData;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
@@ -12,6 +13,7 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 /// Tests that cover happy paths of Atlas donor import when in diff mode.
 /// </summary>
 [TestFixture]
+[Category($"{TestConstants.DonorImportTestTag}_{nameof(DiffMode_HappyPathTests)}")]
 // ReSharper disable once InconsistentNaming
 internal class DiffMode_HappyPathTests
 {

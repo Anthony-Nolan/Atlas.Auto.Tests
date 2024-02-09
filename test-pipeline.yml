@@ -65,3 +65,4 @@ stages:
     parameters:
       testCategoryJobs:
       - job: HealthCheck
+      - job: DonorImport_DiffMode_HappyPathTests

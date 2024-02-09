@@ -6,13 +6,18 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E0536079-3EA3-421F-B0E1-E83D0F788530}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
-		azure-test-run-template.yml = azure-test-run-template.yml
 		LICENSE = LICENSE
+		nuget.config = nuget.config
 		README.md = README.md
-		test-pipeline.yml = test-pipeline.yml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Atlas.Auto.Tests", "Atlas.Auto.Tests\Atlas.Auto.Tests.csproj", "{C7E94F32-D3D6-4DDA-A62E-F91EC63576E5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pipelines", "pipelines", "{F71E10B9-4AA1-4B28-9E24-856202F3B28B}"
+	ProjectSection(SolutionItems) = preProject
+		azure-test-run-template.yml = azure-test-run-template.yml
+		test-pipeline.yml = test-pipeline.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +32,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F71E10B9-4AA1-4B28-9E24-856202F3B28B} = {E0536079-3EA3-421F-B0E1-E83D0F788530}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E9956597-1A6D-41D3-9321-D09CC65DCBC0}
