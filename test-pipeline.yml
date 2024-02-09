@@ -57,7 +57,7 @@ stages:
         inputs:
           command: 'build'
           projects: '**/Atlas.Auto.Tests.csproj'
-          arguments: '--configuration $(buildConfiguration)'
+          arguments: '--configuration $(buildConfiguration) --no-restore'
 
       - task: CopyFiles@2
         displayName: 'Copy Test artifacts for later use in the pipeline'
