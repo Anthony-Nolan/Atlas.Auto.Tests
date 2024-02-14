@@ -13,7 +13,6 @@ internal interface IActiveMatchingDbChecker
 
     /// <summary>
     /// Use when checking the outcome of donor deletion.
-    /// todo Atlas-#1221: success of this method depends on completion of https://github.com/Anthony-Nolan/Atlas/issues/1221
     /// </summary>
     Task<DebugResponse<DebugDonorsResult>> CheckAllDonorsAreAbsent(IEnumerable<string> externalDonorCodes);
 }
