@@ -57,19 +57,18 @@ internal class DiffMode_HappyPathTests
         importResultMessage?.ShouldHaveFailedDonorCount(0);
 
         var externalDonorCodes = updates.GetExternalDonorCodes();
+        var expectedDonorInfo = updates.ToDonorDebugInfo().ToList();
 
         var donorStoreCheckResponse = await donorImportWorkflow.CheckDonorsInDonorStore(externalDonorCodes);
         donorStoreCheckResponse.ShouldBeSuccessful();
 
         var donorStoreCheckResult = donorStoreCheckResponse.DebugResult;
-        donorStoreCheckResult?.ShouldHaveAllExpectedDonors(externalDonorCodes);
-        // todo #9: assert that info for present donors is correct
+        donorStoreCheckResult?.ShouldHaveAllExpectedDonors(expectedDonorInfo);
 
         var matchingDbCheckResponse = await donorImportWorkflow.CheckAllDonorsArePresent(externalDonorCodes);
         matchingDbCheckResponse.ShouldBeSuccessful();
 
         var matchingDbCheckResult = matchingDbCheckResponse.DebugResult;
-        matchingDbCheckResult?.ShouldHaveAllExpectedDonors(externalDonorCodes);
-        // todo #9: assert that info for present donors is correct
+        matchingDbCheckResult?.ShouldHaveAllExpectedDonors(expectedDonorInfo);
     }
 }
