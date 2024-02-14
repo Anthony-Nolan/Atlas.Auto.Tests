@@ -16,12 +16,12 @@ namespace Atlas.Auto.Tests.TestHelpers.Assertions
 
         public static void ShouldHaveImportedDonorCount(this DonorImportMessage message, int expectedCount)
         {
-            message.SuccessfulImportInfo?.ImportedDonorCount.Should().Be(expectedCount, $"Imported donor count should be {expectedCount}");
+            message.SuccessfulImportInfo?.ImportedDonorCount.Should().Be(expectedCount, $"imported donor count should be {expectedCount}");
         }
 
         public static void ShouldHaveFailedDonorCount(this DonorImportMessage message, int expectedCount)
         {
-            message.SuccessfulImportInfo?.FailedDonorCount.Should().Be(expectedCount, $"Failed donor count should be {expectedCount}");
+            message.SuccessfulImportInfo?.FailedDonorCount.Should().Be(expectedCount, $"failed donor count should be {expectedCount}");
         }
     }
 }
