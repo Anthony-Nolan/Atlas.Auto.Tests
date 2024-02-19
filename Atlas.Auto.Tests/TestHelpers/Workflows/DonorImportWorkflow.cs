@@ -1,5 +1,6 @@
 ﻿using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.Services.DonorImport;
+using Atlas.Client.Models.SupportMessages;
 using Atlas.Debug.Client.Models.DonorImport;
 using Atlas.DonorImport.FileSchema.Models;
 
@@ -13,6 +14,7 @@ internal interface IDonorImportWorkflow
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreAvailableForSearch(IEnumerable<string> externalDonorCodes);
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes);
     Task<DebugResponse<bool>> IsFullModeImportAllowed();
+    Task<DebugResponse<Alert>> FetchAlert(string fileName);
 }
 
 internal class DonorImportWorkflow : IDonorImportWorkflow
@@ -22,19 +24,22 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     private readonly IDonorStoreChecker donorStoreChecker;
     private readonly IActiveMatchingDbChecker activeMatchingDbChecker;
     private readonly IFullModeChecker fullModeChecker;
+    private readonly IFailedFileAlertFetcher alertFetcher;
 
     public DonorImportWorkflow(
         IFileImporter fileImporter,
         IImportResultFetcher importResultFetcher,
         IDonorStoreChecker donorStoreChecker,
         IActiveMatchingDbChecker activeMatchingDbChecker,
-        IFullModeChecker fullModeChecker)
+        IFullModeChecker fullModeChecker,
+        IFailedFileAlertFetcher alertFetcher)
     {
         this.fileImporter = fileImporter;
         this.importResultFetcher = importResultFetcher;
         this.donorStoreChecker = donorStoreChecker;
         this.activeMatchingDbChecker = activeMatchingDbChecker;
         this.fullModeChecker = fullModeChecker;
+        this.alertFetcher = alertFetcher;
     }
 
     public async Task<bool> ImportDonorFile(DonorImportRequest request)
@@ -65,5 +70,10 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     public async Task<DebugResponse<bool>> IsFullModeImportAllowed()
     {
         return await fullModeChecker.IsFullModeImportAllowed();
+    }
+
+    public async Task<DebugResponse<Alert>> FetchAlert(string fileName)
+    {
+        return await alertFetcher.FetchAlertMessage(fileName);
     }
 }

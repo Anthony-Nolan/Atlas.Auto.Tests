@@ -14,9 +14,20 @@ internal static class DonorImportRequestBuilder
         this Builder<DonorImportRequest> builder,
         IEnumerable<DonorUpdate> donorUpdates)
     {
-        var contents = DonorImportFileContentsBuilder.DiffMode.WithDonorUpdates(donorUpdates).Build();
-
-        return builder
-            .WithFactory(m => m.FileContents, () => contents);
+        var contentBuilder = DonorImportFileContentsBuilder.DiffMode.WithDonorUpdates(donorUpdates);
+        return builder.WithContents(contentBuilder);
     }
+
+    public static Builder<DonorImportRequest> WithFullModeFile(
+        this Builder<DonorImportRequest> builder,
+        IEnumerable<DonorUpdate> donorUpdates)
+    {
+        var contentBuilder = DonorImportFileContentsBuilder.FullMode.WithDonorUpdates(donorUpdates);
+        return builder.WithContents(contentBuilder);
+    }
+
+    private static Builder<DonorImportRequest> WithContents(
+        this Builder<DonorImportRequest> builder,
+        Builder<DonorImportFileContents> contentBuilder)
+        => builder.WithFactory(m => m.FileContents, contentBuilder.Build);
 }
