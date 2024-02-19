@@ -43,7 +43,7 @@ internal class FullMode_ExceptionPathTests
     }
 
     [Test]
-    public async Task DonorImport_FullMode_Create_FailedEntireImport()
+    public async Task DonorImport_FullMode_Create_FailsEntireImport()
     {
         const int donorCount = 1;
         const ImportDonorChangeType changeType = ImportDonorChangeType.Create;

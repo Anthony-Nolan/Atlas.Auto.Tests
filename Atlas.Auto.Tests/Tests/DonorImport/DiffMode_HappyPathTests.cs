@@ -31,7 +31,7 @@ internal class DiffMode_HappyPathTests
     }
 
     [Test]
-    public async Task DonorImport_DiffMode_Create_CreatedDonorsSuccessfully()
+    public async Task DonorImport_DiffMode_Create_CreatesDonors()
     {
         const int donorCount = 2;
         const ImportDonorChangeType changeType = ImportDonorChangeType.Create;
@@ -50,7 +50,7 @@ internal class DiffMode_HappyPathTests
     }
 
     [Test]
-    public async Task DonorImport_DiffMode_Delete_DeletedDonorsSuccessfully()
+    public async Task DonorImport_DiffMode_Delete_DeletesDonor()
     {
         const int updateCount = 1;
 

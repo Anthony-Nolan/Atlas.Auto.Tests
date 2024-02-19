@@ -31,7 +31,7 @@ internal class DiffMode_ExceptionPathTests
     }
 
     [Test]
-    public async Task DonorImport_DiffMode_CreateExistingDonor_FailedTheUpdate()
+    public async Task DonorImport_DiffMode_CreateExistingDonor_FailsTheInvalidUpdate()
     {
         const int donorCount = 1;
         const ImportDonorChangeType changeType = ImportDonorChangeType.Create;
