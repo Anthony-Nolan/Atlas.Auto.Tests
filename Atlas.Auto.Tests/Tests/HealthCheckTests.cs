@@ -8,6 +8,7 @@ namespace Atlas.Auto.Tests.Tests;
 /// This fixture is confirmation that the instance of Atlas under test can be reached for E2E testing.
 /// </summary>
 [TestFixture]
+[Parallelizable]
 internal class HealthCheckTests
 {
     private static object[] _clientsToTest = {

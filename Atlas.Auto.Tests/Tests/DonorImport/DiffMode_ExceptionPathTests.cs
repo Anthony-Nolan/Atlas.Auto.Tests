@@ -11,6 +11,7 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 /// Tests that cover exception paths of Atlas donor import when in diff mode.
 /// </summary>
 [TestFixture]
+[Parallelizable]
 [Category($"{TestConstants.DonorImportTestTag}_{nameof(DiffMode_ExceptionPathTests)}")]
 // ReSharper disable once InconsistentNaming
 internal class DiffMode_ExceptionPathTests
