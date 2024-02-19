@@ -10,7 +10,8 @@ internal interface IDonorImportWorkflow
     Task<bool> ImportDonorFile(DonorImportRequest request);
     Task<DebugResponse<DonorImportMessage>> FetchResultMessage(string fileName);
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsInDonorStore(IEnumerable<string> externalDonorCodes);
-    Task<DebugResponse<DebugDonorsResult>> CheckAllDonorsArePresent(IEnumerable<string> externalDonorCodes);
+    Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreAvailableForSearch(IEnumerable<string> externalDonorCodes);
+    Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes);
 }
 
 internal class DonorImportWorkflow : IDonorImportWorkflow
@@ -47,8 +48,13 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
         return await donorStoreChecker.Check(externalDonorCodes);
     }
 
-    public async Task<DebugResponse<DebugDonorsResult>> CheckAllDonorsArePresent(IEnumerable<string> externalDonorCodes)
+    public async Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreAvailableForSearch(IEnumerable<string> externalDonorCodes)
     {
-        return await activeMatchingDbChecker.CheckAllDonorsArePresent(externalDonorCodes);
+        return await activeMatchingDbChecker.CheckDonorsAreAvailableForSearch(externalDonorCodes);
+    }
+
+    public async Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes)
+    {
+        return await activeMatchingDbChecker.CheckDonorsAreNotAvailableForSearch(externalDonorCodes);
     }
 }

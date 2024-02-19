@@ -24,5 +24,8 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
 
         public static Builder<DonorUpdate> WithChangeType(this Builder<DonorUpdate> builder, ImportDonorChangeType changeType) =>
             builder.With(d => d.ChangeType, changeType);
+
+        public static Builder<DonorUpdate> WithRecordId(this Builder<DonorUpdate> builder, string recordId) =>
+            builder.With(d => d.RecordId, recordId);
     }
 }

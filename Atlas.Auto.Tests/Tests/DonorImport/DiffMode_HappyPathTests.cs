@@ -1,11 +1,9 @@
 ﻿using Atlas.Auto.Tests.DependencyInjection;
-using Atlas.Auto.Tests.TestHelpers.Assertions;
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.SourceData;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.DonorImport.FileSchema.Models;
-using FluentAssertions;
 
 namespace Atlas.Auto.Tests.Tests.DonorImport;
 
@@ -43,32 +41,43 @@ internal class DiffMode_HappyPathTests
             .WithChangeType(changeType)
             .Build(donorCount);
 
-        var request = DonorImportRequestBuilder.New.WithDiffModeFile(updates).Build();
+        var request = await donorImportWorkflow.ImportDiffDonorFile(updates);
+        await donorImportWorkflow.DonorImportWasSuccessful(request.FileName, donorCount, 0);
 
-        var importResponse = await donorImportWorkflow.ImportDonorFile(request);
-        importResponse.Should().BeTrue("the file should have been sent to Atlas");
-
-        var fetchResultResponse = await donorImportWorkflow.FetchResultMessage(request.FileName);
-        fetchResultResponse.ShouldBeSuccessful();
-
-        var importResultMessage = fetchResultResponse.DebugResult;
-        importResultMessage?.ImportWasSuccessful();
-        importResultMessage?.ShouldHaveImportedDonorCount(donorCount);
-        importResultMessage?.ShouldHaveFailedDonorCount(0);
-
-        var externalDonorCodes = updates.GetExternalDonorCodes();
         var expectedDonorInfo = updates.ToDonorDebugInfo().ToList();
+        await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(expectedDonorInfo);
+        await donorImportWorkflow.DonorsShouldBeAvailableForSearch(expectedDonorInfo);
+    }
 
-        var donorStoreCheckResponse = await donorImportWorkflow.CheckDonorsInDonorStore(externalDonorCodes);
-        donorStoreCheckResponse.ShouldBeSuccessful();
+    [Test]
+    public async Task DonorImport_DiffMode_Delete_DeletedDonorsSuccessfully()
+    {
+        const int updateCount = 1;
 
-        var donorStoreCheckResult = donorStoreCheckResponse.DebugResult;
-        donorStoreCheckResult?.ShouldHaveAllExpectedDonors(expectedDonorInfo);
+        // First have to create donor before it can be deleted
+        var creationUpdate = DonorUpdateBuilder.Default
+            .WithValidDnaAtAllLoci()
+            .WithChangeType(ImportDonorChangeType.Create)
+            .Build(updateCount);
 
-        var matchingDbCheckResponse = await donorImportWorkflow.CheckAllDonorsArePresent(externalDonorCodes);
-        matchingDbCheckResponse.ShouldBeSuccessful();
+        var creationRequest = await donorImportWorkflow.ImportDiffDonorFile(creationUpdate);
+        await donorImportWorkflow.DonorImportWasSuccessful(creationRequest.FileName, updateCount, 0);
 
-        var matchingDbCheckResult = matchingDbCheckResponse.DebugResult;
-        matchingDbCheckResult?.ShouldHaveAllExpectedDonors(expectedDonorInfo);
+        var expectedDonorInfo = creationUpdate.ToDonorDebugInfo().ToList();
+        await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(expectedDonorInfo);
+        await donorImportWorkflow.DonorsShouldBeAvailableForSearch(expectedDonorInfo);
+
+        // Now delete the existing donor
+        var donorCode = creationUpdate.Select(d => d.RecordId).ToList();
+
+        var deletionUpdate = DonorUpdateBuilder.New
+            .WithRecordId(donorCode.Single())
+            .WithChangeType(ImportDonorChangeType.Delete)
+            .Build(updateCount);
+
+        var deletionRequest = await donorImportWorkflow.ImportDiffDonorFile(deletionUpdate);
+        await donorImportWorkflow.DonorImportWasSuccessful(deletionRequest.FileName, updateCount, 0);
+        await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(donorCode);
+        await donorImportWorkflow.DonorsShouldNotBeAvailableForSearch(donorCode);
     }
 }

@@ -9,12 +9,12 @@ internal interface IActiveMatchingDbChecker
     /// <summary>
     /// Use when checking the outcome of donor creation/update.
     /// </summary>
-    Task<DebugResponse<DebugDonorsResult>> CheckAllDonorsArePresent(IEnumerable<string> externalDonorCodes);
+    Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreAvailableForSearch(IEnumerable<string> externalDonorCodes);
 
     /// <summary>
     /// Use when checking the outcome of donor deletion.
     /// </summary>
-    Task<DebugResponse<DebugDonorsResult>> CheckAllDonorsAreAbsent(IEnumerable<string> externalDonorCodes);
+    Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes);
 }
 
 internal class ActiveMatchingDbChecker : IActiveMatchingDbChecker
@@ -34,7 +34,7 @@ internal class ActiveMatchingDbChecker : IActiveMatchingDbChecker
     }
 
     /// <inheritdoc />
-    public async Task<DebugResponse<DebugDonorsResult>> CheckAllDonorsArePresent(IEnumerable<string> externalDonorCodes)
+    public async Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreAvailableForSearch(IEnumerable<string> externalDonorCodes)
     {
         return await ExecuteDebugRequestWithWaitAndRetry(
             externalDonorCodes,
@@ -42,7 +42,7 @@ internal class ActiveMatchingDbChecker : IActiveMatchingDbChecker
     }
 
     /// <inheritdoc />
-    public async Task<DebugResponse<DebugDonorsResult>> CheckAllDonorsAreAbsent(IEnumerable<string> externalDonorCodes)
+    public async Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes)
     {
         return await ExecuteDebugRequestWithWaitAndRetry(
             externalDonorCodes,
