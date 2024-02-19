@@ -13,5 +13,8 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
             .WithFactory(h => h.DPB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaForLocusDpb1))
             .WithFactory(h => h.DQB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaForLocusDqb1))
             .WithFactory(h => h.DRB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaForLocusDrb1));
+
+        public static Builder<ImportedHla> WithAlternativeHlaAtLocusA(this Builder<ImportedHla> builder) 
+            => builder.WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.AlternativeValidDnaForLocusA));
     }
 }

@@ -13,6 +13,9 @@
         public const string ValidDnaForLocusDpb1 = "*03:01";
         public const string ValidDnaForLocusDqb1 = "*02:01";
         public const string ValidDnaForLocusDrb1 = "*04:01";
+
+        // Use for testing donor edits
+        public const string AlternativeValidDnaForLocusA = "*11:11";
         #endregion
     }
 }

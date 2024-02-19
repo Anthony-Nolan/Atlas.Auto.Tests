@@ -31,53 +31,50 @@ internal class DiffMode_HappyPathTests
     }
 
     [Test]
-    public async Task DonorImport_DiffMode_Create_CreatesDonors()
+    public async Task DonorImport_DiffMode_CreateEditDelete_AppliesUpdates()
     {
         const int donorCount = 2;
-        const ImportDonorChangeType changeType = ImportDonorChangeType.Create;
 
-        var updates = DonorUpdateBuilder.Default
+        // Create donors via Create and Upsert
+        var creationUpdates = DonorUpdateBuilder.Default
             .WithValidDnaAtAllLoci()
-            .WithChangeType(changeType)
+            .WithChangeTypes(new[] { ImportDonorChangeType.Create, ImportDonorChangeType.Upsert })
             .Build(donorCount);
 
-        var request = await donorImportWorkflow.ImportDiffDonorFile(updates);
-        await donorImportWorkflow.DonorImportWasSuccessful(request.FileName, donorCount, 0);
+        var creationRequest = await donorImportWorkflow.ImportDiffDonorFile(creationUpdates);
+        await donorImportWorkflow.DonorImportWasSuccessful(creationRequest.FileName, donorCount, 0);
 
-        var expectedDonorInfo = updates.ToDonorDebugInfo().ToList();
-        await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(expectedDonorInfo);
-        await donorImportWorkflow.DonorsShouldBeAvailableForSearch(expectedDonorInfo);
-    }
+        var createdDonorInfo = creationUpdates.ToDonorDebugInfo().ToList();
+        await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(createdDonorInfo);
+        await donorImportWorkflow.DonorsShouldBeAvailableForSearch(createdDonorInfo);
 
-    [Test]
-    public async Task DonorImport_DiffMode_Delete_DeletesDonor()
-    {
-        const int updateCount = 1;
+        var donorCodes = creationUpdates.GetExternalDonorCodes();
 
-        // First have to create donor before it can be deleted
-        var creationUpdate = DonorUpdateBuilder.Default
-            .WithValidDnaAtAllLoci()
-            .WithChangeType(ImportDonorChangeType.Create)
-            .Build(updateCount);
+        // Update donors via Edit and Upsert
+        var editUpdates = DonorUpdateBuilder.Default
+            .WithAlternativeDnaAtLocusA()
+            .WithChangeTypes(new[] { ImportDonorChangeType.Edit, ImportDonorChangeType.Upsert })
+            .WithRecordIds(donorCodes)
+            .Build(donorCount);
 
-        var creationRequest = await donorImportWorkflow.ImportDiffDonorFile(creationUpdate);
-        await donorImportWorkflow.DonorImportWasSuccessful(creationRequest.FileName, updateCount, 0);
+        var editRequest = await donorImportWorkflow.ImportDiffDonorFile(editUpdates);
+        await donorImportWorkflow.DonorImportWasSuccessful(editRequest.FileName, donorCount, 0);
 
-        var expectedDonorInfo = creationUpdate.ToDonorDebugInfo().ToList();
-        await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(expectedDonorInfo);
-        await donorImportWorkflow.DonorsShouldBeAvailableForSearch(expectedDonorInfo);
+        var editedDonorInfo = editUpdates.ToDonorDebugInfo().ToList();
+        await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(editedDonorInfo);
+        // Purposefully not checking if donors are available for search, as only changed the HLA,
+        // and current approach depends on change in donor availability to determine when matching algorithm has caught up with donor updates.
+        // todo #17: extend active matching db checker logic to check for changes in HLA.
 
-        // Now delete the existing donor
-        var donorCode = creationUpdate.Select(d => d.RecordId).ToList();
-
-        var deletionUpdate = DonorUpdateBuilder.New
-            .WithRecordId(donorCode.Single())
+        // Delete donors
+        var deletionUpdates = DonorUpdateBuilder.New
+            .WithRecordIds(donorCodes)
             .WithChangeType(ImportDonorChangeType.Delete)
-            .Build(updateCount);
+            .Build(donorCount);
 
-        var deletionRequest = await donorImportWorkflow.ImportDiffDonorFile(deletionUpdate);
-        await donorImportWorkflow.DonorImportWasSuccessful(deletionRequest.FileName, updateCount, 0);
-        await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(donorCode);
-        await donorImportWorkflow.DonorsShouldNotBeAvailableForSearch(donorCode);
+        var deletionRequest = await donorImportWorkflow.ImportDiffDonorFile(deletionUpdates);
+        await donorImportWorkflow.DonorImportWasSuccessful(deletionRequest.FileName, donorCount, 0);
+        await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(donorCodes);
+        await donorImportWorkflow.DonorsShouldNotBeAvailableForSearch(donorCodes);
     }
 }
