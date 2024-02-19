@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Atlas.Debug.Client" Version="1.0.0-ci-46375" />
+    <PackageReference Include="Atlas.Debug.Client" Version="1.0.0-ci-46505" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="LochNessBuilder" Version="4.1.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />

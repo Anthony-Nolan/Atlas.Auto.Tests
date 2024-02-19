@@ -12,7 +12,7 @@ public interface IDebugRequester
     /// </summary>
     /// <returns></returns>
     Task<DebugResponse<TResult>> ExecuteDebugRequestWithWaitAndRetry<TResult>(
-        int retryCount, int retryIntervalInSeconds, Func<Task<DebugResponse<TResult>>> debugRequest) where TResult : class;
+        int retryCount, int retryIntervalInSeconds, Func<Task<DebugResponse<TResult>>> debugRequest);
 
     /// <summary>
     /// <inheritdoc cref="ExecuteDebugRequestWithWaitAndRetry{T}"/>
@@ -29,7 +29,7 @@ internal class DebugRequester : IDebugRequester
     public async Task<DebugResponse<TResult>> ExecuteDebugRequestWithWaitAndRetry<TResult>(
         int retryCount,
         int retryIntervalInSeconds,
-        Func<Task<DebugResponse<TResult>>> debugRequest) where TResult : class
+        Func<Task<DebugResponse<TResult>>> debugRequest)
     {
         return await ExecuteDebugRequestWithWaitAndRetry(
             retryCount,

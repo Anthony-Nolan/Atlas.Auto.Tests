@@ -12,6 +12,7 @@ internal interface IDonorImportWorkflow
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsInDonorStore(IEnumerable<string> externalDonorCodes);
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreAvailableForSearch(IEnumerable<string> externalDonorCodes);
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes);
+    Task<DebugResponse<bool>> IsFullModeImportAllowed();
 }
 
 internal class DonorImportWorkflow : IDonorImportWorkflow
@@ -20,17 +21,20 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     private readonly IImportResultFetcher importResultFetcher;
     private readonly IDonorStoreChecker donorStoreChecker;
     private readonly IActiveMatchingDbChecker activeMatchingDbChecker;
+    private readonly IFullModeChecker fullModeChecker;
 
     public DonorImportWorkflow(
         IFileImporter fileImporter,
         IImportResultFetcher importResultFetcher,
         IDonorStoreChecker donorStoreChecker,
-        IActiveMatchingDbChecker activeMatchingDbChecker)
+        IActiveMatchingDbChecker activeMatchingDbChecker,
+        IFullModeChecker fullModeChecker)
     {
         this.fileImporter = fileImporter;
         this.importResultFetcher = importResultFetcher;
         this.donorStoreChecker = donorStoreChecker;
         this.activeMatchingDbChecker = activeMatchingDbChecker;
+        this.fullModeChecker = fullModeChecker;
     }
 
     public async Task<bool> ImportDonorFile(DonorImportRequest request)
@@ -56,5 +60,10 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     public async Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes)
     {
         return await activeMatchingDbChecker.CheckDonorsAreNotAvailableForSearch(externalDonorCodes);
+    }
+
+    public async Task<DebugResponse<bool>> IsFullModeImportAllowed()
+    {
+        return await fullModeChecker.IsFullModeImportAllowed();
     }
 }

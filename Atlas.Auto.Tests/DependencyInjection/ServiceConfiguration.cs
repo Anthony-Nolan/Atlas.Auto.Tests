@@ -58,5 +58,6 @@ internal static class ServiceConfiguration
         services.AddTransient<IImportResultFetcher, ImportResultFetcher>();
         services.AddTransient<IDonorStoreChecker, DonorStoreChecker>();
         services.AddTransient<IActiveMatchingDbChecker, ActiveMatchingDbChecker>();
+        services.AddTransient<IFullModeChecker, FullModeChecker>();
     }
 }
