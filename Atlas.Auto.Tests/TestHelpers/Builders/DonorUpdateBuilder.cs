@@ -22,10 +22,16 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
         public static Builder<DonorUpdate> WithValidDnaAtAllLoci(this Builder<DonorUpdate> builder) =>
             builder.WithFactory(d => d.Hla, ImportedHlaBuilder.ValidHlaAtAllLoci.Build);
 
+        public static Builder<DonorUpdate> WithAlternativeDnaAtLocusA(this Builder<DonorUpdate> builder) =>
+            builder.WithFactory(d => d.Hla, ImportedHlaBuilder.ValidHlaAtAllLoci.WithAlternativeHlaAtLocusA().Build);
+
         public static Builder<DonorUpdate> WithChangeType(this Builder<DonorUpdate> builder, ImportDonorChangeType changeType) =>
             builder.With(d => d.ChangeType, changeType);
 
-        public static Builder<DonorUpdate> WithRecordId(this Builder<DonorUpdate> builder, string recordId) =>
-            builder.With(d => d.RecordId, recordId);
+        public static Builder<DonorUpdate> WithChangeTypes(this Builder<DonorUpdate> builder, IEnumerable<ImportDonorChangeType> changeTypes) =>
+            builder.WithSequentialFrom(d => d.ChangeType, changeTypes);
+
+        public static Builder<DonorUpdate> WithRecordIds(this Builder<DonorUpdate> builder, IEnumerable<string> recordIds) =>
+            builder.WithSequentialFrom(d => d.RecordId, recordIds);
     }
 }
