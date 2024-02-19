@@ -66,4 +66,5 @@ stages:
       testCategoryJobs:
       - job: HealthCheck
       - job: DonorImport_DiffMode_HappyPathTests
+      - job: DonorImport_DiffMode_ExceptionPathTests  
       - job: DonorImport_FullMode_ExceptionPathTests
