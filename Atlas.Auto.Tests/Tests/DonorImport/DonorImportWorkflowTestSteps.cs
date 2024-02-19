@@ -22,6 +22,18 @@ namespace Atlas.Auto.Tests.Tests.DonorImport
             return request;
         }
 
+        public static async Task<DonorImportRequest> ImportFullDonorFile(
+            this IDonorImportWorkflow workflow,
+            IEnumerable<DonorUpdate> updates)
+        {
+            var request = DonorImportRequestBuilder.New.WithFullModeFile(updates).Build();
+
+            var importResponse = await workflow.ImportDonorFile(request);
+            importResponse.Should().BeTrue("the file should have been sent to Atlas");
+
+            return request;
+        }
+
         public static async Task DonorImportWasSuccessful(
             this IDonorImportWorkflow workflow,
             string fileName,
@@ -79,6 +91,24 @@ namespace Atlas.Auto.Tests.Tests.DonorImport
 
             var matchingDbCheckResult = matchingDbCheckResponse.DebugResult;
             matchingDbCheckResult?.ShouldNotHaveTheseDonors(externalDonorCodes);
+        }
+
+        public static async Task DonorImportShouldHaveFailed(
+            this IDonorImportWorkflow workflow,
+            string fileName)
+        {
+            var fetchResultResponse = await workflow.FetchResultMessage(fileName);
+            fetchResultResponse.ShouldBeSuccessful();
+            fetchResultResponse.DebugResult?.ImportFailed();
+        }
+
+        public static async Task ShouldHaveRaisedAlertForFullModeImport(
+            this IDonorImportWorkflow workflow,
+            string fileName)
+        {
+            var fetchAlertResponse = await workflow.FetchAlert(fileName);
+            fetchAlertResponse.ShouldBeSuccessful();
+            fetchAlertResponse.DebugResult?.ShouldSayFullModeImportNotAllowed();
         }
     }
 }

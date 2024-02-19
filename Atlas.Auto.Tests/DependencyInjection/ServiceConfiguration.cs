@@ -59,5 +59,6 @@ internal static class ServiceConfiguration
         services.AddTransient<IDonorStoreChecker, DonorStoreChecker>();
         services.AddTransient<IActiveMatchingDbChecker, ActiveMatchingDbChecker>();
         services.AddTransient<IFullModeChecker, FullModeChecker>();
+        services.AddTransient<IFailedFileAlertFetcher, FailedFileAlertFetcher>();
     }
 }
