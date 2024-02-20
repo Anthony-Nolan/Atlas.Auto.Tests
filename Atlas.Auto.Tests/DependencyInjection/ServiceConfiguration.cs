@@ -61,5 +61,6 @@ internal static class ServiceConfiguration
         services.AddTransient<IFullModeChecker, FullModeChecker>();
         services.AddTransient<IFailedFileAlertFetcher, FailedFileAlertFetcher>();
         services.AddTransient<IHlaExpansionFailureAlertFetcher, HlaExpansionFailureAlertFetcher>();
+        services.AddTransient<IDonorImportFailureInfoFetcher, DonorImportFailureInfoFetcher>();
     }
 }

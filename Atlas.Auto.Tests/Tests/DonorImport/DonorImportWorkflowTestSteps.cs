@@ -117,5 +117,15 @@ namespace Atlas.Auto.Tests.Tests.DonorImport
             fetchAlertResponse.ShouldBeSuccessful();
             // no need to assert on the alert message contents, as it doesn't contain any data specific to our test
         }
+
+        public static async Task ShouldHaveFailureInfo(
+            this IDonorImportWorkflow workflow,
+            string fileName,
+            IEnumerable<FailedDonorUpdate> expectedFailedDonorInfo)
+        {
+            var fetchInfoResponse = await workflow.FetchDonorImportFailureInfo(fileName);
+            fetchInfoResponse.ShouldBeSuccessful();
+            fetchInfoResponse.DebugResult?.ShouldBeEquivalentTo(fileName, expectedFailedDonorInfo.ToList());
+        }
     }
 }
