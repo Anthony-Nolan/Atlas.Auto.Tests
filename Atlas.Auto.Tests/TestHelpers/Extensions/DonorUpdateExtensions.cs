@@ -26,5 +26,26 @@ namespace Atlas.Auto.Tests.TestHelpers.Extensions
                 Hla = update.Hla.ToPhenotypeInfoTransfer()
             };
         }
+
+        public static IEnumerable<FailedDonorUpdate> ToFailureInfo(
+            this IEnumerable<DonorUpdate> updates,
+            string failedPropertyName, 
+            string failureReason)
+        {
+            return updates.Select(u => u.ToFailureInfo(failedPropertyName, failureReason));
+        }
+
+        public static FailedDonorUpdate ToFailureInfo(this DonorUpdate update, string failedPropertyName, string failureReason)
+        {
+            return new FailedDonorUpdate
+            {
+                ExternalDonorCode = update.RecordId,
+                DonorType = update.DonorType.ToString(),
+                RegistryCode = update.RegistryCode,
+                EthnicityCode = update.Ethnicity,
+                PropertyName = failedPropertyName,
+                FailureReason = failureReason
+            };
+        }
     }
 }

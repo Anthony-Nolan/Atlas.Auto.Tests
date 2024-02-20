@@ -16,6 +16,10 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 // ReSharper disable once InconsistentNaming
 internal class DiffMode_ExceptionPathTests
 {
+    private const string RecordIdProp = "RecordId";
+    private const string Drb1DnaProp = "Hla.DRB1.Dna";
+    private const string Drb1FailureReason = "Required locus Drb1: minimum HLA typing has not been provided";
+
     private IServiceProvider serviceProvider;
     private IDonorImportWorkflow donorImportWorkflow;
 
@@ -55,6 +59,9 @@ internal class DiffMode_ExceptionPathTests
         // second time: the import should succeed, but the update should fail validation
         var secondImportRequest = await donorImportWorkflow.ImportDiffDonorFile(creationUpdate);
         await donorImportWorkflow.DonorImportWasSuccessful(secondImportRequest.FileName, 0, donorCount);
+        await donorImportWorkflow.ShouldHaveFailureInfo(
+            secondImportRequest.FileName,
+            creationUpdate.ToFailureInfo(RecordIdProp, "Donor is already present in the database."));
     }
 
     [Test]
@@ -70,6 +77,9 @@ internal class DiffMode_ExceptionPathTests
         var request = await donorImportWorkflow.ImportDiffDonorFile(update);
         await donorImportWorkflow.DonorImportWasSuccessful(request.FileName, 0, donorCount);
         await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(update.GetExternalDonorCodes());
+        await donorImportWorkflow.ShouldHaveFailureInfo(
+            request.FileName,
+            update.ToFailureInfo(RecordIdProp, "Donor is not present in the database."));
     }
 
     [Test]
@@ -85,6 +95,9 @@ internal class DiffMode_ExceptionPathTests
         var request = await donorImportWorkflow.ImportDiffDonorFile(update);
         await donorImportWorkflow.DonorImportWasSuccessful(request.FileName, 0, donorCount);
         await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(update.GetExternalDonorCodes());
+        await donorImportWorkflow.ShouldHaveFailureInfo(
+            request.FileName,
+            update.ToFailureInfo(Drb1DnaProp, Drb1FailureReason));
     }
 
     [Test]
@@ -132,5 +145,8 @@ internal class DiffMode_ExceptionPathTests
         await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(expectValidInfo);
         await donorImportWorkflow.DonorsShouldBeAvailableForSearch(expectValidInfo);
         await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(invalidUpdate.GetExternalDonorCodes());
+        await donorImportWorkflow.ShouldHaveFailureInfo(
+            request.FileName,
+            invalidUpdate.ToFailureInfo(Drb1DnaProp, Drb1FailureReason));
     }
 }

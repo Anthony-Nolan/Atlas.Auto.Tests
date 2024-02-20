@@ -16,6 +16,7 @@ internal interface IDonorImportWorkflow
     Task<DebugResponse<bool>> IsFullModeImportAllowed();
     Task<DebugResponse<Alert>> FetchFailedFileAlert(string fileName);
     Task<DebugResponse<Alert>> FetchHlaExpansionFailureAlert();
+    Task<DebugResponse<DonorImportFailureInfo>> FetchDonorImportFailureInfo(string fileName);
 }
 
 internal class DonorImportWorkflow : IDonorImportWorkflow
@@ -27,6 +28,7 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     private readonly IFullModeChecker fullModeChecker;
     private readonly IFailedFileAlertFetcher failedFileAlertFetcher;
     private readonly IHlaExpansionFailureAlertFetcher hlaExpansionFailureAlertFetcher;
+    private readonly IDonorImportFailureInfoFetcher donorImportFailureInfoFetcher;
 
     public DonorImportWorkflow(
         IFileImporter fileImporter,
@@ -35,7 +37,8 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
         IActiveMatchingDbChecker activeMatchingDbChecker,
         IFullModeChecker fullModeChecker,
         IFailedFileAlertFetcher failedFileAlertFetcher,
-        IHlaExpansionFailureAlertFetcher hlaExpansionFailureAlertFetcher)
+        IHlaExpansionFailureAlertFetcher hlaExpansionFailureAlertFetcher,
+        IDonorImportFailureInfoFetcher donorImportFailureInfoFetcher)
     {
         this.fileImporter = fileImporter;
         this.importResultFetcher = importResultFetcher;
@@ -44,6 +47,7 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
         this.fullModeChecker = fullModeChecker;
         this.failedFileAlertFetcher = failedFileAlertFetcher;
         this.hlaExpansionFailureAlertFetcher = hlaExpansionFailureAlertFetcher;
+        this.donorImportFailureInfoFetcher = donorImportFailureInfoFetcher;
     }
 
     public async Task<bool> ImportDonorFile(DonorImportRequest request)
@@ -84,5 +88,10 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     public async Task<DebugResponse<Alert>> FetchHlaExpansionFailureAlert()
     {
         return await hlaExpansionFailureAlertFetcher.FetchAlertMessage();
+    }
+
+    public async Task<DebugResponse<DonorImportFailureInfo>> FetchDonorImportFailureInfo(string fileName)
+    {
+        return await donorImportFailureInfoFetcher.FetchFailureInfo(fileName);
     }
 }
