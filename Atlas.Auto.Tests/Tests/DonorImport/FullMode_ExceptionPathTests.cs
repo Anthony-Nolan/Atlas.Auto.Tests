@@ -12,7 +12,7 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 /// Tests that cover exception paths of Atlas donor import when in Full mode.
 /// </summary>
 [TestFixture]
-[Parallelizable]
+[Parallelizable(scope: ParallelScope.All)]
 [Category($"{TestConstants.DonorImportTestTag}_{nameof(FullMode_ExceptionPathTests)}")]
 // ReSharper disable once InconsistentNaming
 internal class FullMode_ExceptionPathTests

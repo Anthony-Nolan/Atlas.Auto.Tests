@@ -11,7 +11,7 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 /// Tests that cover exception paths of Atlas donor import when in diff mode.
 /// </summary>
 [TestFixture]
-[Parallelizable]
+[Parallelizable(scope: ParallelScope.All)]
 [Category($"{TestConstants.DonorImportTestTag}_{nameof(DiffMode_ExceptionPathTests)}")]
 // ReSharper disable once InconsistentNaming
 internal class DiffMode_ExceptionPathTests
@@ -58,6 +58,36 @@ internal class DiffMode_ExceptionPathTests
     }
 
     [Test]
+    public async Task DonorImport_DiffMode_EditNonExistingDonor_FailsTheInvalidUpdate()
+    {
+        const int donorCount = 1;
+
+        var update = DonorUpdateBuilder.Default
+            .WithValidDnaAtAllLoci()
+            .WithChangeType(ImportDonorChangeType.Edit)
+            .Build(donorCount);
+
+        var request = await donorImportWorkflow.ImportDiffDonorFile(update);
+        await donorImportWorkflow.DonorImportWasSuccessful(request.FileName, 0, donorCount);
+        await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(update.GetExternalDonorCodes());
+    }
+
+    [Test]
+    public async Task DonorImport_DiffMode_CreateWithMissingRequiredHla_FailsTheInvalidUpdate()
+    {
+        const int donorCount = 2;
+
+        var update = DonorUpdateBuilder.Default
+            .WithHlaAtEveryLocusExceptDrb1()
+            .WithChangeTypes(new[] { ImportDonorChangeType.Create, ImportDonorChangeType.Upsert })
+            .Build(donorCount);
+
+        var request = await donorImportWorkflow.ImportDiffDonorFile(update);
+        await donorImportWorkflow.DonorImportWasSuccessful(request.FileName, 0, donorCount);
+        await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(update.GetExternalDonorCodes());
+    }
+
+    [Test]
     public async Task DonorImport_DiffMode_CreateWithInvalidHla_DoesNotMakeDonorAvailableForSearch()
     {
         const int donorCount = 1;
@@ -77,5 +107,30 @@ internal class DiffMode_ExceptionPathTests
         await donorImportWorkflow.ShouldHaveRaisedAlertForHlaExpansionFailure();
         await donorImportWorkflow.DonorsShouldNotBeAvailableForSearch(expectedDonorInfo.GetExternalDonorCodes().ToList());
         //todo #19: this test is prone to false positive outcome until we can query application insights for the exact HLA expansion failure custom event
+    }
+
+    [Test]
+    public async Task DonorImport_DiffMode_MixOfValidAndInvalidUpdates_AppliesTheValidAndFailsTheInvalidUpdates()
+    {
+        const int validDonorCount = 1;
+        const int invalidDonorCount = 1;
+
+        var validUpdate = DonorUpdateBuilder.Default
+            .WithValidDnaAtAllLoci()
+            .WithChangeType(ImportDonorChangeType.Create)
+            .Build(validDonorCount);
+
+        var invalidUpdate = DonorUpdateBuilder.Default
+            .WithHlaAtEveryLocusExceptDrb1()
+            .WithChangeType(ImportDonorChangeType.Create)
+            .Build(invalidDonorCount);
+
+        var request = await donorImportWorkflow.ImportDiffDonorFile(validUpdate.Concat(invalidUpdate));
+        await donorImportWorkflow.DonorImportWasSuccessful(request.FileName, validDonorCount, invalidDonorCount);
+
+        var expectValidInfo = validUpdate.ToDonorDebugInfo().ToList();
+        await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(expectValidInfo);
+        await donorImportWorkflow.DonorsShouldBeAvailableForSearch(expectValidInfo);
+        await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(invalidUpdate.GetExternalDonorCodes());
     }
 }

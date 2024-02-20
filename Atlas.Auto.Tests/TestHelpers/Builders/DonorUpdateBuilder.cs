@@ -28,6 +28,9 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
         public static Builder<DonorUpdate> WithInvalidDnaAtAllLoci(this Builder<DonorUpdate> builder) =>
             builder.WithFactory(d => d.Hla, ImportedHlaBuilder.InvalidHlaAtAllLoci.Build);
 
+        public static Builder<DonorUpdate> WithHlaAtEveryLocusExceptDrb1(this Builder<DonorUpdate> builder) =>
+            builder.WithFactory(d => d.Hla, ImportedHlaBuilder.ValidHlaAtAllLoci.WithNoHlaAtDrb1().Build);
+
         public static Builder<DonorUpdate> WithChangeType(this Builder<DonorUpdate> builder, ImportDonorChangeType changeType) =>
             builder.With(d => d.ChangeType, changeType);
 

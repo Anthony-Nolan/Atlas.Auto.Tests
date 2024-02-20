@@ -11,7 +11,7 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 /// Tests that cover happy paths of Atlas donor import when in diff mode.
 /// </summary>
 [TestFixture]
-[Parallelizable]
+[Parallelizable(scope: ParallelScope.All)]
 [Category($"{TestConstants.DonorImportTestTag}_{nameof(DiffMode_HappyPathTests)}")]
 // ReSharper disable once InconsistentNaming
 internal class DiffMode_HappyPathTests
@@ -80,5 +80,21 @@ internal class DiffMode_HappyPathTests
         await donorImportWorkflow.DonorImportWasSuccessful(deletionRequest.FileName, donorCount, 0);
         await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(donorCodes);
         await donorImportWorkflow.DonorsShouldNotBeAvailableForSearch(donorCodes);
+    }
+
+    /// <summary>
+    /// Deleting a non-existing donor is not considered an exception path, as the final state is correct.
+    /// </summary>
+    [Test]
+    public async Task DonorImport_DiffMode_DeleteNonExistingDonor_DoesNotFailTheUpdate()
+    {
+        const int donorCount = 1;
+
+        var update = DonorUpdateBuilder.New
+            .WithChangeType(ImportDonorChangeType.Delete)
+            .Build(donorCount);
+
+        var request = await donorImportWorkflow.ImportDiffDonorFile(update);
+        await donorImportWorkflow.DonorImportWasSuccessful(request.FileName, donorCount, 0);
     }
 }
