@@ -106,9 +106,16 @@ namespace Atlas.Auto.Tests.Tests.DonorImport
             this IDonorImportWorkflow workflow,
             string fileName)
         {
-            var fetchAlertResponse = await workflow.FetchAlert(fileName);
+            var fetchAlertResponse = await workflow.FetchFailedFileAlert(fileName);
             fetchAlertResponse.ShouldBeSuccessful();
             fetchAlertResponse.DebugResult?.ShouldSayFullModeImportNotAllowed();
+        }
+
+        public static async Task ShouldHaveRaisedAlertForHlaExpansionFailure(this IDonorImportWorkflow workflow)
+        {
+            var fetchAlertResponse = await workflow.FetchHlaExpansionFailureAlert();
+            fetchAlertResponse.ShouldBeSuccessful();
+            // no need to assert on the alert message contents, as it doesn't contain any data specific to our test
         }
     }
 }

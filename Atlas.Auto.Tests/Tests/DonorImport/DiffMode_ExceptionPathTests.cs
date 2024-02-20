@@ -56,4 +56,26 @@ internal class DiffMode_ExceptionPathTests
         var secondImportRequest = await donorImportWorkflow.ImportDiffDonorFile(creationUpdate);
         await donorImportWorkflow.DonorImportWasSuccessful(secondImportRequest.FileName, 0, donorCount);
     }
+
+    [Test]
+    public async Task DonorImport_DiffMode_CreateWithInvalidHla_DoesNotMakeDonorAvailableForSearch()
+    {
+        const int donorCount = 1;
+
+        var creationUpdate = DonorUpdateBuilder.Default
+            .WithInvalidDnaAtAllLoci()
+            .WithChangeType(ImportDonorChangeType.Create)
+            .Build(donorCount);
+
+        var creationRequest = await donorImportWorkflow.ImportDiffDonorFile(creationUpdate);
+        await donorImportWorkflow.DonorImportWasSuccessful(creationRequest.FileName, donorCount, 0);
+
+        // donor should have been created in donor store, but then failed to be made available for search
+        // order of asserts matters: need to first check for the alert, and then check for search availability
+        var expectedDonorInfo = creationUpdate.ToDonorDebugInfo().ToList();
+        await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(expectedDonorInfo);
+        await donorImportWorkflow.ShouldHaveRaisedAlertForHlaExpansionFailure();
+        await donorImportWorkflow.DonorsShouldNotBeAvailableForSearch(expectedDonorInfo.GetExternalDonorCodes().ToList());
+        //todo #19: this test is prone to false positive outcome until we can query application insights for the exact HLA expansion failure custom event
+    }
 }

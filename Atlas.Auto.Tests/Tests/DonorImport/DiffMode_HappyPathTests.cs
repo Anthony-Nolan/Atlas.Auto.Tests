@@ -31,6 +31,9 @@ internal class DiffMode_HappyPathTests
         donorImportWorkflow = serviceProvider.ResolveServiceOrThrow<IDonorImportWorkflow>();
     }
 
+    /// <summary>
+    /// Merged the various update types into a single test to reduce test execution time.
+    /// </summary>
     [Test]
     public async Task DonorImport_DiffMode_CreateEditDelete_AppliesUpdates()
     {
