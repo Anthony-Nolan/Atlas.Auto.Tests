@@ -46,17 +46,15 @@ internal class FullMode_ExceptionPathTests
     [Test]
     public async Task DonorImport_FullMode_Create_FailsEntireImport()
     {
-        const int donorCount = 1;
-        const ImportDonorChangeType changeType = ImportDonorChangeType.Create;
-
-        var update = DonorUpdateBuilder.Default
+        const int donorCount = 2;
+        var updates = DonorUpdateBuilder.Default
             .WithValidDnaAtAllLoci()
-            .WithChangeType(changeType)
+            .WithChangeTypes(new[] { ImportDonorChangeType.Create, ImportDonorChangeType.Upsert })
             .Build(donorCount);
 
-        var request = await donorImportWorkflow.ImportFullDonorFile(update);
+        var request = await donorImportWorkflow.ImportFullDonorFile(updates);
         await donorImportWorkflow.DonorImportShouldHaveFailed(request.FileName);
         await donorImportWorkflow.ShouldHaveRaisedAlertForFullModeImport(request.FileName);
-        await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(update.GetExternalDonorCodes());
+        await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(updates.GetExternalDonorCodes());
     }
 }

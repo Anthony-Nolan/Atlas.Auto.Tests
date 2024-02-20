@@ -17,5 +17,8 @@
         // Use for testing donor edits
         public const string AlternativeValidDnaForLocusA = "*11:11";
         #endregion
+
+        // This typing fits the pattern of a valid MAC but does not actually exist.
+        public const string InvalidDnaForAnyLocus = "*999:INVALIDHLA";
     }
 }
