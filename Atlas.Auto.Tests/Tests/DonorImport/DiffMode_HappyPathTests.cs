@@ -2,7 +2,7 @@
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.SourceData;
-using Atlas.Auto.Tests.TestHelpers.Workflows;
+using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.DonorImport.FileSchema.Models;
 
 namespace Atlas.Auto.Tests.Tests.DonorImport;
@@ -17,18 +17,11 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 internal class DiffMode_HappyPathTests
 {
     private IServiceProvider serviceProvider;
-    private IDonorImportWorkflow donorImportWorkflow;
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
     {
         serviceProvider = ServiceConfiguration.CreateProvider();
-    }
-
-    [SetUp]
-    public void SetUp()
-    {
-        donorImportWorkflow = serviceProvider.ResolveServiceOrThrow<IDonorImportWorkflow>();
     }
 
     /// <summary>
@@ -38,6 +31,7 @@ internal class DiffMode_HappyPathTests
     public async Task DonorImport_DiffMode_CreateEditDelete_AppliesUpdates()
     {
         const int donorCount = 2;
+        var testSteps = serviceProvider.ResolveServiceOrThrow<IDonorImportTestSteps>();
 
         // Create donors via Create and Upsert
         var creationUpdates = DonorUpdateBuilder.Default
@@ -45,12 +39,12 @@ internal class DiffMode_HappyPathTests
             .WithChangeTypes(new[] { ImportDonorChangeType.Create, ImportDonorChangeType.Upsert })
             .Build(donorCount);
 
-        var creationRequest = await donorImportWorkflow.ImportDiffDonorFile(creationUpdates);
-        await donorImportWorkflow.DonorImportWasSuccessful(creationRequest.FileName, donorCount, 0);
+        var creationRequest = await testSteps.ImportDiffDonorFile(creationUpdates);
+        await testSteps.DonorImportShouldHaveBeenSuccessful(creationRequest.FileName, donorCount, 0);
 
         var createdDonorInfo = creationUpdates.ToDonorDebugInfo().ToList();
-        await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(createdDonorInfo);
-        await donorImportWorkflow.DonorsShouldBeAvailableForSearch(createdDonorInfo);
+        await testSteps.DonorStoreShouldHaveExpectedDonors(createdDonorInfo);
+        await testSteps.DonorsShouldBeAvailableForSearch(createdDonorInfo);
 
         var donorCodes = creationUpdates.GetExternalDonorCodes();
 
@@ -61,11 +55,11 @@ internal class DiffMode_HappyPathTests
             .WithRecordIds(donorCodes)
             .Build(donorCount);
 
-        var editRequest = await donorImportWorkflow.ImportDiffDonorFile(editUpdates);
-        await donorImportWorkflow.DonorImportWasSuccessful(editRequest.FileName, donorCount, 0);
+        var editRequest = await testSteps.ImportDiffDonorFile(editUpdates);
+        await testSteps.DonorImportShouldHaveBeenSuccessful(editRequest.FileName, donorCount, 0);
 
         var editedDonorInfo = editUpdates.ToDonorDebugInfo().ToList();
-        await donorImportWorkflow.DonorStoreShouldHaveExpectedDonors(editedDonorInfo);
+        await testSteps.DonorStoreShouldHaveExpectedDonors(editedDonorInfo);
         // Purposefully not checking if donors are available for search, as only changed the HLA,
         // and current approach depends on change in donor availability to determine when matching algorithm has caught up with donor updates.
         // todo #17: extend active matching db checker logic to check for changes in HLA.
@@ -76,10 +70,10 @@ internal class DiffMode_HappyPathTests
             .WithChangeType(ImportDonorChangeType.Delete)
             .Build(donorCount);
 
-        var deletionRequest = await donorImportWorkflow.ImportDiffDonorFile(deletionUpdates);
-        await donorImportWorkflow.DonorImportWasSuccessful(deletionRequest.FileName, donorCount, 0);
-        await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(donorCodes);
-        await donorImportWorkflow.DonorsShouldNotBeAvailableForSearch(donorCodes);
+        var deletionRequest = await testSteps.ImportDiffDonorFile(deletionUpdates);
+        await testSteps.DonorImportShouldHaveBeenSuccessful(deletionRequest.FileName, donorCount, 0);
+        await testSteps.DonorStoreShouldNotHaveTheseDonors(donorCodes);
+        await testSteps.DonorsShouldNotBeAvailableForSearch(donorCodes);
     }
 
     /// <summary>
@@ -89,12 +83,13 @@ internal class DiffMode_HappyPathTests
     public async Task DonorImport_DiffMode_DeleteNonExistingDonor_DoesNotFailTheUpdate()
     {
         const int donorCount = 1;
+        var testSteps = serviceProvider.ResolveServiceOrThrow<IDonorImportTestSteps>();
 
         var update = DonorUpdateBuilder.New
             .WithChangeType(ImportDonorChangeType.Delete)
             .Build(donorCount);
 
-        var request = await donorImportWorkflow.ImportDiffDonorFile(update);
-        await donorImportWorkflow.DonorImportWasSuccessful(request.FileName, donorCount, 0);
+        var request = await testSteps.ImportDiffDonorFile(update);
+        await testSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
     }
 }

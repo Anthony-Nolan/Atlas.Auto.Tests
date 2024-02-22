@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Services.DonorImport;
+using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Debug.Client;
 using Atlas.Debug.Client.Models.Settings;
@@ -53,6 +54,7 @@ internal static class ServiceConfiguration
         services.AddTransient<IDebugRequester, DebugRequester>();
         services.AddTransient<IMessageFetcher, MessageFetcher>();
 
+        services.AddTransient<IDonorImportTestSteps, DonorImportTestSteps>();
         services.AddTransient<IDonorImportWorkflow, DonorImportWorkflow>();
         services.AddTransient<IFileImporter, FileImporter>();
         services.AddTransient<IImportResultFetcher, ImportResultFetcher>();

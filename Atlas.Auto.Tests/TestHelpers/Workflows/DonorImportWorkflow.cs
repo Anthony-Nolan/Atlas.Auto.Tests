@@ -6,14 +6,17 @@ using Atlas.DonorImport.FileSchema.Models;
 
 namespace Atlas.Auto.Tests.TestHelpers.Workflows;
 
+/// <summary>
+/// Workflow to import a donor file and determine the outcome of import.
+/// </summary>
 internal interface IDonorImportWorkflow
 {
+    Task<DebugResponse<bool>> IsFullModeImportAllowed();
     Task<bool> ImportDonorFile(DonorImportRequest request);
     Task<DebugResponse<DonorImportMessage>> FetchResultMessage(string fileName);
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsInDonorStore(IEnumerable<string> externalDonorCodes);
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreAvailableForSearch(IEnumerable<string> externalDonorCodes);
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes);
-    Task<DebugResponse<bool>> IsFullModeImportAllowed();
     Task<DebugResponse<Alert>> FetchFailedFileAlert(string fileName);
     Task<DebugResponse<Alert>> FetchHlaExpansionFailureAlert();
     Task<DebugResponse<DonorImportFailureInfo>> FetchDonorImportFailureInfo(string fileName);
@@ -31,23 +34,28 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     private readonly IDonorImportFailureInfoFetcher donorImportFailureInfoFetcher;
 
     public DonorImportWorkflow(
+        IFullModeChecker fullModeChecker,
         IFileImporter fileImporter,
         IImportResultFetcher importResultFetcher,
         IDonorStoreChecker donorStoreChecker,
         IActiveMatchingDbChecker activeMatchingDbChecker,
-        IFullModeChecker fullModeChecker,
         IFailedFileAlertFetcher failedFileAlertFetcher,
         IHlaExpansionFailureAlertFetcher hlaExpansionFailureAlertFetcher,
         IDonorImportFailureInfoFetcher donorImportFailureInfoFetcher)
     {
+        this.fullModeChecker = fullModeChecker;
         this.fileImporter = fileImporter;
         this.importResultFetcher = importResultFetcher;
         this.donorStoreChecker = donorStoreChecker;
         this.activeMatchingDbChecker = activeMatchingDbChecker;
-        this.fullModeChecker = fullModeChecker;
         this.failedFileAlertFetcher = failedFileAlertFetcher;
         this.hlaExpansionFailureAlertFetcher = hlaExpansionFailureAlertFetcher;
         this.donorImportFailureInfoFetcher = donorImportFailureInfoFetcher;
+    }
+
+    public async Task<DebugResponse<bool>> IsFullModeImportAllowed()
+    {
+        return await fullModeChecker.IsFullModeImportAllowed();
     }
 
     public async Task<bool> ImportDonorFile(DonorImportRequest request)
@@ -73,11 +81,6 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     public async Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes)
     {
         return await activeMatchingDbChecker.CheckDonorsAreNotAvailableForSearch(externalDonorCodes);
-    }
-
-    public async Task<DebugResponse<bool>> IsFullModeImportAllowed()
-    {
-        return await fullModeChecker.IsFullModeImportAllowed();
     }
 
     public async Task<DebugResponse<Alert>> FetchFailedFileAlert(string fileName)

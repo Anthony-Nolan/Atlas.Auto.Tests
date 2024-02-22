@@ -2,9 +2,8 @@
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.SourceData;
-using Atlas.Auto.Tests.TestHelpers.Workflows;
+using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.DonorImport.FileSchema.Models;
-using FluentAssertions;
 
 namespace Atlas.Auto.Tests.Tests.DonorImport;
 
@@ -18,7 +17,6 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 internal class FullMode_ExceptionPathTests
 {
     private IServiceProvider serviceProvider;
-    private IDonorImportWorkflow donorImportWorkflow;
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
@@ -26,35 +24,27 @@ internal class FullMode_ExceptionPathTests
         serviceProvider = ServiceConfiguration.CreateProvider();
     }
 
-    [SetUp]
-    public void SetUp()
-    {
-        donorImportWorkflow = serviceProvider.ResolveServiceOrThrow<IDonorImportWorkflow>();
-    }
-
     [Test]
     public async Task DonorImport_DoesNotAllowFullModeImport()
     {
-        var response = await donorImportWorkflow.IsFullModeImportAllowed();
-
-        // The debug http response should have been successful,
-        // but the embedded result should be false as full mode import should not be allowed.
-        response.WasSuccess.Should().BeTrue();
-        response.DebugResult.Should().BeFalse();
+        var testSteps = serviceProvider.ResolveServiceOrThrow<IDonorImportTestSteps>();
+        await testSteps.FullModeImportShouldNotBeAllowed();
     }
 
     [Test]
     public async Task DonorImport_FullMode_Create_FailsEntireImport()
     {
         const int donorCount = 2;
+        var testSteps = serviceProvider.ResolveServiceOrThrow<IDonorImportTestSteps>();
+
         var updates = DonorUpdateBuilder.Default
             .WithValidDnaAtAllLoci()
             .WithChangeTypes(new[] { ImportDonorChangeType.Create, ImportDonorChangeType.Upsert })
             .Build(donorCount);
 
-        var request = await donorImportWorkflow.ImportFullDonorFile(updates);
-        await donorImportWorkflow.DonorImportShouldHaveFailed(request.FileName);
-        await donorImportWorkflow.ShouldHaveRaisedAlertForFullModeImport(request.FileName);
-        await donorImportWorkflow.DonorStoreShouldNotHaveTheseDonors(updates.GetExternalDonorCodes());
+        var request = await testSteps.ImportFullDonorFile(updates);
+        await testSteps.DonorImportShouldHaveFailed(request.FileName);
+        await testSteps.FullModeImportAlertShouldHaveBeenRaised(request.FileName);
+        await testSteps.DonorStoreShouldNotHaveTheseDonors(updates.GetExternalDonorCodes());
     }
 }
