@@ -11,8 +11,8 @@ namespace Atlas.Auto.Utils.Reporting
 
         private static readonly object syncLock = new object();
 
-        // creates a parent test
-        public static ExtentTest CreateTest(string testName, string description = null)
+        // Creates a parent node in the report for the test fixture
+        public static ExtentTest CreateForFixture(string testName, string description = null)
         {
             lock (syncLock)
             {
@@ -22,10 +22,10 @@ namespace Atlas.Auto.Utils.Reporting
             }
         }
 
-        // creates a node
+        // Creates a node in the report for the individual test
         // node is added to the parent using the parentName
         // if the parent is not available, it will be created
-        public static ExtentTest CreateMethod(string parentName, string testName, string description = null)
+        public static ExtentTest CreateForTest(string parentName, string testName, string description = null)
         {
             lock (syncLock)
             {

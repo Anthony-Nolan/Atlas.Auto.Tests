@@ -7,9 +7,9 @@ namespace Atlas.Auto.Utils.Reporting
     public class ExtentService
     {
         private const string folderName = @"TestReport";
-        private static readonly Lazy<ExtentReports> lazy = new Lazy<ExtentReports>(() => new ExtentReports());
+        private static readonly Lazy<ExtentReports> expentReportsLazy = new Lazy<ExtentReports>(() => new ExtentReports());
 
-        public static ExtentReports Instance { get { return lazy.Value; } }
+        public static ExtentReports Instance { get { return expentReportsLazy.Value; } }
 
         private ExtentService()
         {
@@ -36,7 +36,7 @@ namespace Atlas.Auto.Utils.Reporting
             {
                 Directory.CreateDirectory(path);
             }
-            return path + @"\index.html";
+            return Path.Combine(path, "index.html");
         }
 
         private static string GetProjectRootDirectory()

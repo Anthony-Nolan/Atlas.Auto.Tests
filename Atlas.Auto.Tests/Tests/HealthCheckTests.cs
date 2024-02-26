@@ -19,25 +19,24 @@ internal class HealthCheckTests : TestBase
         typeof(ITopLevelFunctionsClient)
     };
 
-    private static string testName = "Health Check Test";
+    private static string testName = "Health Check Tests";
 
     public HealthCheckTests()
     {
-        ExtentTest = ExtentManager.CreateTest(testName);
+        ExtentTest = ExtentManager.CreateForFixture(testName);
     }
 
     [Category("HealthCheck")]
     [TestCaseSource(nameof(clientsToTest))]
     public async Task HealthCheck(Type clientType)
     {
-        var test = ExtentManager.CreateMethod(testName,
-            $"Health Check Test for {clientType.Name}",
-            $"Health Check Tests for {clientType.Name}");
+        var test = ExtentManager.CreateForTest(testName,
+            $"Health Check Test for {clientType.Name}");
 
-        test.Log(Status.Info, $"Start Health Check Test for client type: {clientType.Name}");
+        test.Log(Status.Info, $"Started health check for client type {clientType.Name}");
         var client = Provider.ResolveServiceOrThrow(clientType) as HttpFunctionClient;
         var result = await client!.HealthCheck();
-        test.Log(Status.Info, $"Health Check Test for client type: {clientType.Name} result: {result}");
+        test.Log(Status.Info, $"Result of health check for client type {clientType.Name}: {result}");
         result.Should().Contain("successful");
     }
 }
