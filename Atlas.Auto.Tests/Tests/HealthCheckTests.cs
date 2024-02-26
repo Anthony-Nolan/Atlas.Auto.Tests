@@ -11,30 +11,26 @@ namespace Atlas.Auto.Tests.Tests;
 /// </summary>
 [TestFixture]
 [Parallelizable(scope: ParallelScope.All)]
-internal class HealthCheckTests
+internal class HealthCheckTests : TestBase
 {
-    private static object[] _clientsToTest = {
+    private static object[] clientsToTest = {
         typeof(IDonorImportFunctionsClient),
         typeof(IMatchingAlgorithmFunctionsClient),
         typeof(ITopLevelFunctionsClient)
     };
 
+    private static string testName = "Health Check Test";
+
     public HealthCheckTests()
     {
-        ExtentTest = ExtentManager.CreateTest("Health Check Tests", "Health Check Tests");
-    }
-
-    [OneTimeSetUp]
-    public void OneTimeSetUp()
-    {
-        Provider = ServiceConfiguration.CreateProvider();
+        ExtentTest = ExtentManager.CreateTest(testName);
     }
 
     [Category("HealthCheck")]
-    [TestCaseSource(nameof(_clientsToTest))]
+    [TestCaseSource(nameof(clientsToTest))]
     public async Task HealthCheck(Type clientType)
     {
-        var test = ExtentManager.CreateMethod($"Health Check Test for {clientType.Name}",
+        var test = ExtentManager.CreateMethod(testName,
             $"Health Check Test for {clientType.Name}",
             $"Health Check Tests for {clientType.Name}");
 
