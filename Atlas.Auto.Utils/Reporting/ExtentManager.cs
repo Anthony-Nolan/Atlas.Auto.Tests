@@ -23,8 +23,6 @@ namespace Atlas.Auto.Utils.Reporting
         }
 
         // Creates a node in the report for the individual test
-        // node is added to the parent using the parentName
-        // if the parent is not available, it will be created
         public static ExtentTest CreateForTest(string parentName, string testName, string description = null)
         {
             lock (syncLock)
