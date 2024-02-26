@@ -28,9 +28,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Atlas.Auto.Utils\Atlas.Auto.Utils.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="TestReport\" />
   </ItemGroup>
 
 </Project>

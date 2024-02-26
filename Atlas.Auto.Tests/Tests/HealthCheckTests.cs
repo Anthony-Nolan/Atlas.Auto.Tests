@@ -1,5 +1,7 @@
 ﻿using Atlas.Auto.Tests.DependencyInjection;
+using Atlas.Auto.Utils.Reporting;
 using Atlas.Debug.Client.Clients;
+using AventStack.ExtentReports;
 using FluentAssertions;
 
 namespace Atlas.Auto.Tests.Tests;
@@ -17,20 +19,29 @@ internal class HealthCheckTests
         typeof(ITopLevelFunctionsClient)
     };
 
-    private IServiceProvider provider;
+    public HealthCheckTests()
+    {
+        ExtentTest = ExtentManager.CreateTest("Health Check Tests", "Health Check Tests");
+    }
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
     {
-        provider = ServiceConfiguration.CreateProvider();
+        Provider = ServiceConfiguration.CreateProvider();
     }
 
     [Category("HealthCheck")]
     [TestCaseSource(nameof(_clientsToTest))]
     public async Task HealthCheck(Type clientType)
     {
-        var client = provider.ResolveServiceOrThrow(clientType) as HttpFunctionClient;
+        var test = ExtentManager.CreateMethod($"Health Check Test for {clientType.Name}",
+            $"Health Check Test for {clientType.Name}",
+            $"Health Check Tests for {clientType.Name}");
+
+        test.Log(Status.Info, $"Start Health Check Test for client type: {clientType.Name}");
+        var client = Provider.ResolveServiceOrThrow(clientType) as HttpFunctionClient;
         var result = await client!.HealthCheck();
+        test.Log(Status.Info, $"Health Check Test for client type: {clientType.Name} result: {result}");
         result.Should().Contain("successful");
     }
 }
