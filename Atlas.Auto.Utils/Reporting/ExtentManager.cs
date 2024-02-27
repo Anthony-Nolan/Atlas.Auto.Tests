@@ -1,47 +1,39 @@
 ﻿using AventStack.ExtentReports;
+using System.Collections.Concurrent;
 
 namespace Atlas.Auto.Utils.Reporting
 {
     public static class ExtentManager
     {
-        private static Dictionary<string, ExtentTest> parentTestMap = new Dictionary<string, ExtentTest>();
-        private static Dictionary<string, ExtentTest> childTestMap = new Dictionary<string, ExtentTest>();
-        private static ThreadLocal<ExtentTest> parentTest = new ThreadLocal<ExtentTest>();
-        private static ThreadLocal<ExtentTest> childTest = new ThreadLocal<ExtentTest>();
-
-        private static readonly object syncLock = new object();
+        private static ConcurrentDictionary<string, ExtentTest> parentTestMap = new ConcurrentDictionary<string, ExtentTest>();
+        private static ConcurrentDictionary<string, ExtentTest> childTestMap = new ConcurrentDictionary<string, ExtentTest>();
 
         // Creates a parent node in the report for the test fixture
-        public static ExtentTest CreateForFixture(string testName, string description = null)
+        public static ExtentTest CreateForFixture(string testFixtureName, string description = null)
         {
-            lock (syncLock)
-            {
-                parentTest.Value = ExtentService.Instance.CreateTest(testName, description);
-                parentTestMap.Add(testName, parentTest.Value);
-                return parentTest.Value;
-            }
+            var parentTest = new ThreadLocal<ExtentTest>();
+            parentTest.Value = ExtentService.Instance.CreateTest(testFixtureName, description);
+            parentTestMap.TryAdd(testFixtureName, parentTest.Value);
+            return parentTest.Value;
         }
 
         // Creates a node in the report for the individual test
         public static ExtentTest CreateForTest(string parentName, string testName, string description = null)
         {
-            lock (syncLock)
+            ExtentTest parentTest = null;
+            if (!parentTestMap.ContainsKey(parentName))
             {
-                ExtentTest parentTest = null;
-                if (!parentTestMap.ContainsKey(parentName))
-                {
-                    parentTest = ExtentService.Instance.CreateTest(testName);
-                    parentTestMap.Add(parentName, parentTest);
-                }
-                else
-                {
-                    parentTest = parentTestMap[parentName];
-                }
-                ExtentManager.parentTest.Value = parentTest;
-                childTest.Value = parentTest.CreateNode(testName, description);
-                childTestMap.Add(testName, childTest.Value);
-                return childTest.Value;
+                parentTest = ExtentService.Instance.CreateTest(testName);
+                parentTestMap.TryAdd(parentName, parentTest);
             }
+            else
+            {
+                parentTest = parentTestMap[parentName];
+            }
+            var childTest = new ThreadLocal<ExtentTest>();
+            childTest.Value = parentTest.CreateNode(testName, description);
+            childTestMap.TryAdd(testName, childTest.Value);
+            return childTest.Value;
         }
     }
 }

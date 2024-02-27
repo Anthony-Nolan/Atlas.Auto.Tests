@@ -7,9 +7,9 @@ namespace Atlas.Auto.Utils.Reporting
     public class ExtentService
     {
         private const string folderName = @"TestReport";
-        private static readonly Lazy<ExtentReports> expentReportsLazy = new Lazy<ExtentReports>(() => new ExtentReports());
+        private static readonly Lazy<ExtentReports> extentReportsLazy = new Lazy<ExtentReports>(() => new ExtentReports());
 
-        public static ExtentReports Instance { get { return expentReportsLazy.Value; } }
+        public static ExtentReports Instance => extentReportsLazy.Value;
 
         private ExtentService()
         {

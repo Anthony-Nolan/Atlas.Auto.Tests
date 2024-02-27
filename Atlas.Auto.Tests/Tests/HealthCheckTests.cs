@@ -19,18 +19,17 @@ internal class HealthCheckTests : TestBase
         typeof(ITopLevelFunctionsClient)
     };
 
-    private static string testName = "Health Check Tests";
+    private static string testFixtureName = "Health Check Tests";
 
-    public HealthCheckTests()
+    public HealthCheckTests() : base(testFixtureName)
     {
-        ExtentTest = ExtentManager.CreateForFixture(testName);
     }
 
     [Category("HealthCheck")]
     [TestCaseSource(nameof(clientsToTest))]
     public async Task HealthCheck(Type clientType)
     {
-        var test = ExtentManager.CreateForTest(testName,
+        var test = ExtentManager.CreateForTest(testFixtureName,
             $"Health Check Test for {clientType.Name}");
 
         test.Log(Status.Info, $"Started health check for client type {clientType.Name}");

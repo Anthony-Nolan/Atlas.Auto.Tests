@@ -1,20 +1,17 @@
 ﻿using Atlas.Auto.Tests.DependencyInjection;
+using Atlas.Auto.Utils.Reporting;
 using AventStack.ExtentReports;
 
 namespace Atlas.Auto.Tests.Tests
 {
-    public class TestBase
+    public abstract class TestBase
     {
-        public static ExtentTest ExtentTest;
-        public IServiceProvider Provider;
+        private static ExtentTest ExtentTestForFixture;
+        protected IServiceProvider Provider;
 
-        static TestBase()
+        protected TestBase(string testFixtureName)
         {
-
-        }
-
-        protected TestBase()
-        {
+            ExtentTestForFixture = ExtentManager.CreateForFixture(testFixtureName);
         }
 
         [OneTimeSetUp]
@@ -22,39 +19,11 @@ namespace Atlas.Auto.Tests.Tests
         {
             Provider = ServiceConfiguration.CreateProvider();
         }
-
-        /// <summary>
-        /// This should be overloaded in derived classes.
-        /// Initialization of state before each test case runs. Equals [SetUp]
-        /// </summary>
-        protected virtual void Initialize()
-        {
-        }
-
-        /// <summary>
-        /// This should be overloaded in derived classes.
-        /// Uninitialization of state before each test case runs. Equals [TearDown]
-        /// </summary>
-        protected virtual void Uninitialize()
-        {
-        }
-
-        [SetUp]
-        public void InitializeBase()
-        {
-            Initialize();
-        }
-
-        [TearDown]
-        public void UninitializeBase()
-        {
-            Uninitialize();
-        }
-
+        
         [OneTimeTearDown]
         public void Cleanup()
         {
-            ExtentTest.Extent.Flush();
+            ExtentTestForFixture.Extent.Flush();
         }
     }
 }
