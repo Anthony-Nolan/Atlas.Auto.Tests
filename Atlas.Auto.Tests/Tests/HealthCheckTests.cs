@@ -1,5 +1,7 @@
 ﻿using Atlas.Auto.Tests.DependencyInjection;
+using Atlas.Auto.Utils.Reporting;
 using Atlas.Debug.Client.Clients;
+using AventStack.ExtentReports;
 using FluentAssertions;
 
 namespace Atlas.Auto.Tests.Tests;
@@ -9,28 +11,31 @@ namespace Atlas.Auto.Tests.Tests;
 /// </summary>
 [TestFixture]
 [Parallelizable(scope: ParallelScope.All)]
-internal class HealthCheckTests
+internal class HealthCheckTests : TestBase
 {
-    private static object[] _clientsToTest = {
+    private static object[] clientsToTest = {
         typeof(IDonorImportFunctionsClient),
         typeof(IMatchingAlgorithmFunctionsClient),
         typeof(ITopLevelFunctionsClient)
     };
 
-    private IServiceProvider provider;
+    private static string testFixtureName = "Health Check Tests";
 
-    [OneTimeSetUp]
-    public void OneTimeSetUp()
+    public HealthCheckTests() : base(testFixtureName)
     {
-        provider = ServiceConfiguration.CreateProvider();
     }
 
     [Category("HealthCheck")]
-    [TestCaseSource(nameof(_clientsToTest))]
+    [TestCaseSource(nameof(clientsToTest))]
     public async Task HealthCheck(Type clientType)
     {
-        var client = provider.ResolveServiceOrThrow(clientType) as HttpFunctionClient;
+        var test = ExtentManager.CreateForTest(testFixtureName,
+            $"Health Check Test for {clientType.Name}");
+
+        test.Log(Status.Info, $"Started health check for client type {clientType.Name}");
+        var client = Provider.ResolveServiceOrThrow(clientType) as HttpFunctionClient;
         var result = await client!.HealthCheck();
+        test.Log(Status.Info, $"Result of health check for client type {clientType.Name}: {result}");
         result.Should().Contain("successful");
     }
 }
