@@ -16,18 +16,18 @@ namespace Atlas.Auto.Utils.Reporting
         // Creates a node in the report for the individual test
         public static ExtentTest CreateForTest(string testFixtureName, string testName, string description = null)
         {
-            ExtentTest parentTest = null;
+            ExtentTest testFixture = null;
             if (!testFixtureMap.ContainsKey(testFixtureName))
             {
-                parentTest = ExtentService.Instance.CreateTest(testName);
-                testFixtureMap.TryAdd(testFixtureName, parentTest);
+                testFixture = ExtentService.Instance.CreateTest(testName);
+                testFixtureMap.TryAdd(testFixtureName, testFixture);
             }
             else
             {
-                parentTest = testFixtureMap[testFixtureName];
+                testFixture = testFixtureMap[testFixtureName];
             }
 
-            return parentTest.CreateNode(testName, description);
+            return testFixture.CreateNode(testName, description);
         }
     }
 }
