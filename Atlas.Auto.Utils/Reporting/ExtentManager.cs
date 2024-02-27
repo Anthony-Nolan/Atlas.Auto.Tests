@@ -19,14 +19,14 @@ namespace Atlas.Auto.Utils.Reporting
             ExtentTest testFixture = null;
             if (!testFixtureMap.ContainsKey(testFixtureName))
             {
-                testFixture = ExtentService.Instance.CreateTest(testName);
+                testFixture = ExtentService.Instance.CreateTest(testFixtureName);
                 testFixtureMap.TryAdd(testFixtureName, testFixture);
             }
             else
             {
                 testFixture = testFixtureMap[testFixtureName];
             }
-
+            
             return testFixture.CreateNode(testName, description);
         }
     }
