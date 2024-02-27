@@ -5,29 +5,18 @@ namespace Atlas.Auto.Utils.Reporting
 {
     public static class ExtentManager
     {
-        private static ConcurrentDictionary<string, ExtentTest> parentTestMap = new ConcurrentDictionary<string, ExtentTest>();
+        private static ConcurrentDictionary<string, ExtentTest> testFixtureMap = new ConcurrentDictionary<string, ExtentTest>();
 
         // Creates a parent node in the report for the test fixture
         public static ExtentTest CreateForFixture(string testFixtureName, string description = null)
         {
-            var parentTest = ExtentService.Instance.CreateTest(testFixtureName, description);
-            parentTestMap.TryAdd(testFixtureName, parentTest);
-            return parentTest;
+            return testFixtureMap.GetOrAdd(testFixtureName, ExtentService.Instance.CreateTest(testFixtureName, description));
         }
 
         // Creates a node in the report for the individual test
-        public static ExtentTest CreateForTest(string parentName, string testName, string description = null)
+        public static ExtentTest CreateForTest(string testFixtureName, string testName, string description = null)
         {
-            ExtentTest parentTest = null;
-            if (!parentTestMap.ContainsKey(parentName))
-            {
-                parentTest = ExtentService.Instance.CreateTest(testName);
-                parentTestMap.TryAdd(parentName, parentTest);
-            }
-            else
-            {
-                parentTest = parentTestMap[parentName];
-            }
+            var parentTest = testFixtureMap.GetOrAdd(testFixtureName, ExtentService.Instance.CreateTest(testFixtureName));
             return parentTest.CreateNode(testName, description);
         }
     }
