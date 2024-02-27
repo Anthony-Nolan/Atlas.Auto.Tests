@@ -2,48 +2,47 @@
 using AventStack.ExtentReports.Reporter;
 using AventStack.ExtentReports.Reporter.Config;
 
-namespace Atlas.Auto.Utils.Reporting
+namespace Atlas.Auto.Utils.Reporting;
+
+public class ExtentService
 {
-    public class ExtentService
+    private const string FolderName = @"TestReport";
+    private static readonly Lazy<ExtentReports> ExtentReportsLazy = new(() => new ExtentReports());
+
+    public static ExtentReports Instance => ExtentReportsLazy.Value;
+
+    private ExtentService()
     {
-        private const string folderName = @"TestReport";
-        private static readonly Lazy<ExtentReports> extentReportsLazy = new Lazy<ExtentReports>(() => new ExtentReports());
+    }
 
-        public static ExtentReports Instance => extentReportsLazy.Value;
-
-        private ExtentService()
+    static ExtentService()
+    {
+        var reporter = new ExtentSparkReporter(GetFilePath())
         {
-        }
-
-        static ExtentService()
-        {
-            var reporter = new ExtentSparkReporter(GetFilePath())
+            Config =
             {
-                Config =
-                {
-                    Theme = Theme.Dark
-                }
-            };
-
-            Instance.AttachReporter(reporter);
-        }
-
-        private static string GetFilePath()
-        {
-            var path = GetProjectRootDirectory();
-            path = Path.Combine(path, folderName);
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
+                Theme = Theme.Dark
             }
-            return Path.Combine(path, "index.html");
-        }
+        };
 
-        private static string GetProjectRootDirectory()
+        Instance.AttachReporter(reporter);
+    }
+
+    private static string GetFilePath()
+    {
+        var path = GetProjectRootDirectory();
+        path = Path.Combine(path, FolderName);
+        if (!Directory.Exists(path))
         {
-            var currentDirectory = Directory.GetCurrentDirectory();
-            var parentDirectoryInfo = Directory.GetParent(currentDirectory);
-            return parentDirectoryInfo.Parent.Parent.FullName;
+            Directory.CreateDirectory(path);
         }
+        return Path.Combine(path, "index.html");
+    }
+
+    private static string GetProjectRootDirectory()
+    {
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var parentDirectoryInfo = Directory.GetParent(currentDirectory);
+        return parentDirectoryInfo?.Parent?.Parent?.FullName ?? string.Empty;
     }
 }

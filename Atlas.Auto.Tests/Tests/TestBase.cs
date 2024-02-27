@@ -2,28 +2,22 @@
 using Atlas.Auto.Utils.Reporting;
 using AventStack.ExtentReports;
 
-namespace Atlas.Auto.Tests.Tests
+namespace Atlas.Auto.Tests.Tests;
+
+public abstract class TestBase
 {
-    public abstract class TestBase
+    private static ExtentTest ExtentTestForFixture;
+    protected IServiceProvider Provider;
+
+    protected TestBase(string testFixtureName)
     {
-        private static ExtentTest ExtentTestForFixture;
-        protected IServiceProvider Provider;
+        ExtentTestForFixture = ExtentManager.CreateForFixture(testFixtureName);
+        Provider = ServiceConfiguration.CreateProvider();
+    }
 
-        protected TestBase(string testFixtureName)
-        {
-            ExtentTestForFixture = ExtentManager.CreateForFixture(testFixtureName);
-        }
-
-        [OneTimeSetUp]
-        public void OneTimeSetUp()
-        {
-            Provider = ServiceConfiguration.CreateProvider();
-        }
-        
-        [OneTimeTearDown]
-        public void Cleanup()
-        {
-            ExtentTestForFixture.Extent.Flush();
-        }
+    [OneTimeTearDown]
+    public void Cleanup()
+    {
+        ExtentTestForFixture.Extent.Flush();
     }
 }
