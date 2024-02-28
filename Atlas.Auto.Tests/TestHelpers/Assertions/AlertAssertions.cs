@@ -7,7 +7,7 @@ namespace Atlas.Auto.Tests.TestHelpers.Assertions
     {
         public static void ShouldSayFullModeImportNotAllowed(this Alert alert)     
         {
-            alert.Should().NotBeNull("the alert should have been fetched");
+            alert.Should().NotBeNull();
             alert.Summary.ToLower().Should().Contain("full mode is not allowed");
         }
     }

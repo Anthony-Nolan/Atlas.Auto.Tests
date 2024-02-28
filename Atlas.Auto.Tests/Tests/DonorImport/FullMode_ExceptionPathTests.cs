@@ -1,8 +1,6 @@
-﻿using Atlas.Auto.Tests.DependencyInjection;
-using Atlas.Auto.Tests.TestHelpers.Builders;
+﻿using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.SourceData;
-using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.DonorImport.FileSchema.Models;
 
 namespace Atlas.Auto.Tests.Tests.DonorImport;
@@ -14,37 +12,38 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 [Parallelizable(scope: ParallelScope.All)]
 [Category($"{TestConstants.DonorImportTestTag}_{nameof(FullMode_ExceptionPathTests)}")]
 // ReSharper disable once InconsistentNaming
-internal class FullMode_ExceptionPathTests
+internal class FullMode_ExceptionPathTests : DonorImportTestBase
 {
-    private IServiceProvider serviceProvider;
-
-    [OneTimeSetUp]
-    public void OneTimeSetUp()
+    public FullMode_ExceptionPathTests() : base(nameof(FullMode_ExceptionPathTests))
     {
-        serviceProvider = ServiceConfiguration.CreateProvider();
     }
 
     [Test]
     public async Task DonorImport_DoesNotAllowFullModeImport()
     {
-        var testSteps = serviceProvider.ResolveServiceOrThrow<IDonorImportTestSteps>();
-        await testSteps.FullModeImportShouldNotBeAllowed();
+        var test = GetTestServices(nameof(DonorImport_DoesNotAllowFullModeImport));
+        await test.Steps.FullModeImportShouldNotBeAllowed();
     }
 
     [Test]
     public async Task DonorImport_FullMode_Create_FailsEntireImport()
     {
+        const string testCase = "attempt to create donors in full mode";
         const int donorCount = 2;
-        var testSteps = serviceProvider.ResolveServiceOrThrow<IDonorImportTestSteps>();
+        var test = GetTestServices(nameof(DonorImport_FullMode_Create_FailsEntireImport));
+
+        test.Logger.LogStart(testCase);
 
         var updates = DonorUpdateBuilder.Default
             .WithValidDnaAtAllLoci()
             .WithChangeTypes(new[] { ImportDonorChangeType.Create, ImportDonorChangeType.Upsert })
             .Build(donorCount);
 
-        var request = await testSteps.ImportFullDonorFile(updates);
-        await testSteps.DonorImportShouldHaveFailed(request.FileName);
-        await testSteps.FullModeImportAlertShouldHaveBeenRaised(request.FileName);
-        await testSteps.DonorStoreShouldNotHaveTheseDonors(updates.GetExternalDonorCodes());
+        var request = await test.Steps.ImportFullDonorFile(updates);
+        await test.Steps.DonorImportShouldHaveFailed(request.FileName);
+        await test.Steps.FullModeImportAlertShouldHaveBeenRaised(request.FileName);
+        await test.Steps.DonorStoreShouldNotHaveTheseDonors(updates.GetExternalDonorCodes());
+
+        test.Logger.LogCompletion(testCase);
     }
 }

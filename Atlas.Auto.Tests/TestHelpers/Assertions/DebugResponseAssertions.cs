@@ -7,7 +7,7 @@ internal static class DebugResponseAssertions
 {
     public static void ShouldBeSuccessful<T>(this DebugResponse<T> response)
     {
-        response.Should().NotBeNull("the debug response should not be null");
-        response.WasSuccess.Should().BeTrue("the debug response should have been successful");
+        response.Should().NotBeNull();
+        response.WasSuccess.Should().BeTrue();
     }
 }
