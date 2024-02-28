@@ -1,4 +1,5 @@
 ﻿using Atlas.Auto.Tests.TestHelpers.InternalModels;
+using Atlas.Debug.Client.Models.Exceptions;
 using Polly;
 
 namespace Atlas.Auto.Tests.TestHelpers.Services;
@@ -60,6 +61,8 @@ internal class DebugRequester : IDebugRequester
         Func<TResponse, bool> failureCheck,
         Func<TResponse> failureResponseFactory)
     {
+        var retryMessage = $"Retrying {debugRequest.Method.Name} in {retryIntervalInSeconds}s.";
+
         var policy = Policy
             .HandleResult(failureCheck)
             .WaitAndRetryAsync(retryCount, attempt => TimeSpan.FromSeconds(retryIntervalInSeconds));
@@ -68,16 +71,31 @@ internal class DebugRequester : IDebugRequester
         {
             try
             {
-                //todo #1: log request attempt
+                await TestContext.Out.WriteLineAsync($"Executing debug request: {debugRequest.Method.Name}");
                 return await debugRequest();
             }
-            catch (Exception)
+            catch (HttpFunctionException ex)
             {
-                //todo #1: log exception
+                await TestContext.Out.WriteLineAsync($"{BuildHttpFunctionExceptionMessage(ex)}. {retryMessage}");
+                return failureResponseFactory();
+            }
+            catch (Exception ex)
+            {
+                await TestContext.Out.WriteLineAsync($"{ex.GetType().Name}: {ex.Message}. {retryMessage}");
                 return failureResponseFactory();
             }
         }
 
         return await policy.ExecuteAsync(WrappedRequest);
+    }
+
+    private static string BuildHttpFunctionExceptionMessage(HttpFunctionException ex)
+    {
+        var responseContent = ex.ResponseContent.ReadAsStringAsync().Result;
+        var formattedContent = responseContent.Length > 0 ? $"{responseContent}, " : string.Empty;
+
+        return $"{nameof(HttpFunctionException)}: " +
+               $"[{(int)ex.HttpStatusCode}, {ex.HttpStatusCode}] " +
+               $"{formattedContent}{ex.Message}";
     }
 }
