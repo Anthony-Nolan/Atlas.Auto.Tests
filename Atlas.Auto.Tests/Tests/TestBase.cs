@@ -4,22 +4,22 @@ using AventStack.ExtentReports;
 
 namespace Atlas.Auto.Tests.Tests;
 
-public abstract class TestBase
+internal abstract class TestBase
 {
-    protected IServiceProvider Provider;
-    protected static string TestFixtureName;
-    private static ExtentTest ExtentTestForFixture;
+    protected readonly IServiceProvider Provider;
+    protected readonly string TestFixtureName;
+    private readonly ExtentTest extentTestForFixture;
 
     protected TestBase(string testFixtureName)
     {
         Provider = ServiceConfiguration.CreateProvider();
         TestFixtureName = testFixtureName;
-        ExtentTestForFixture = ExtentManager.CreateForFixture(testFixtureName);
+        extentTestForFixture = ExtentManager.CreateForFixture(testFixtureName);
     }
 
     [OneTimeTearDown]
     public void Cleanup()
     {
-        ExtentTestForFixture.Extent.Flush();
+        extentTestForFixture.Extent.Flush();
     }
 }
