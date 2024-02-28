@@ -6,13 +6,15 @@ namespace Atlas.Auto.Tests.Tests;
 
 public abstract class TestBase
 {
-    private static ExtentTest ExtentTestForFixture;
     protected IServiceProvider Provider;
+    protected static string TestFixtureName;
+    private static ExtentTest ExtentTestForFixture;
 
     protected TestBase(string testFixtureName)
     {
-        ExtentTestForFixture = ExtentManager.CreateForFixture(testFixtureName);
         Provider = ServiceConfiguration.CreateProvider();
+        TestFixtureName = testFixtureName;
+        ExtentTestForFixture = ExtentManager.CreateForFixture(testFixtureName);
     }
 
     [OneTimeTearDown]

@@ -24,7 +24,8 @@ internal static class ServiceConfiguration
         services.RegisterDebugClients(
             OptionsReaderFor<DonorImportHttpFunctionSettings>(),
             OptionsReaderFor<MatchingAlgorithmHttpFunctionSettings>(),
-            OptionsReaderFor<TopLevelHttpFunctionSettings>());
+            OptionsReaderFor<TopLevelHttpFunctionSettings>(),
+            OptionsReaderFor<PublicApiHttpFunctionSettings>());
 
         services.RegisterTestServices();
 
@@ -47,12 +48,15 @@ internal static class ServiceConfiguration
         services.RegisterAsOptions<DonorImportHttpFunctionSettings>("DonorImport");
         services.RegisterAsOptions<MatchingAlgorithmHttpFunctionSettings>("MatchingAlgorithm");
         services.RegisterAsOptions<TopLevelHttpFunctionSettings>("TopLevel");
+        services.RegisterAsOptions<PublicApiHttpFunctionSettings>("PublicApi");
     }
 
     private static void RegisterTestServices(this IServiceCollection services)
     {
         services.AddTransient<IDebugRequester, DebugRequester>();
         services.AddTransient<IMessageFetcher, MessageFetcher>();
+
+        services.AddTransient(typeof(IHealthChecker<>), typeof(HealthChecker<>));
 
         services.AddTransient<IDonorImportTestSteps, DonorImportTestSteps>();
         services.AddTransient<IDonorImportWorkflow, DonorImportWorkflow>();
