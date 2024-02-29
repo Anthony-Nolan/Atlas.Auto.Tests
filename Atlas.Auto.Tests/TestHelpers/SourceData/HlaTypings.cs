@@ -34,7 +34,7 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
         /// Phenotype constructed from two A~B~C~Q~R haplotypes within the test HF set to ensure it is deemed "represented" during match prediction.
         /// The haplotypes themselves are relatively rare in an effort to minimise the number of matches found during search.
         /// </summary>
-        public static PhenotypeInfoTransfer<string> TestHlaPhenotypeForSearch = new PhenotypeInfo<string>(
+        public static PhenotypeInfoTransfer<string> SearchTestPhenotype = new PhenotypeInfo<string>(
             "*31:01", "*32:01", 
             "*14:01", "*35:01", 
             "*01:02", "*08:180N", 

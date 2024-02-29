@@ -1,5 +1,4 @@
-﻿using Atlas.Auto.Tests.TestHelpers.Services;
-using Atlas.Auto.Tests.TestHelpers.SourceData;
+﻿using Atlas.Auto.Tests.TestHelpers.SourceData;
 using Atlas.DonorImport.FileSchema.Models;
 using LochNessBuilder;
 
@@ -31,6 +30,9 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
         public static Builder<DonorUpdate> WithHlaAtEveryLocusExceptDrb1(this Builder<DonorUpdate> builder) =>
             builder.WithFactory(d => d.Hla, ImportedHlaBuilder.ValidHlaAtAllLoci.WithNoHlaAtDrb1().Build);
 
+        public static Builder<DonorUpdate> WithSearchTestPhenotype(this Builder<DonorUpdate> builder) =>
+            builder.WithFactory(d => d.Hla, ImportedHlaBuilder.SearchTestPhenotype.Build);
+
         public static Builder<DonorUpdate> WithChangeType(this Builder<DonorUpdate> builder, ImportDonorChangeType changeType) =>
             builder.With(d => d.ChangeType, changeType);
 
@@ -39,5 +41,8 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
 
         public static Builder<DonorUpdate> WithRecordIds(this Builder<DonorUpdate> builder, IEnumerable<string> recordIds) =>
             builder.WithSequentialFrom(d => d.RecordId, recordIds);
+
+        public static Builder<DonorUpdate> WithDonorType(this Builder<DonorUpdate> builder, ImportDonorType donorType) =>
+            builder.With(d => d.DonorType, donorType);
     }
 }
