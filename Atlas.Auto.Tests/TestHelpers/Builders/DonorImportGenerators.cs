@@ -1,6 +1,6 @@
 ﻿using Atlas.Auto.Tests.TestHelpers.SourceData;
 
-namespace Atlas.Auto.Tests.TestHelpers.Services
+namespace Atlas.Auto.Tests.TestHelpers.Builders
 {
     internal static class DonorImportGenerators
     {

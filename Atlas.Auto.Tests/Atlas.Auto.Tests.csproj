@@ -11,6 +11,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="TestHelpers\SourceData\search-request-cord-4_8.json" />
+    <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-10_10.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Atlas.Debug.Client" Version="1.0.0-ci-46846" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="LochNessBuilder" Version="4.1.0" />

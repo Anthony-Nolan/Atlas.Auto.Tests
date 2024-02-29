@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Services.DonorImport;
+using Atlas.Auto.Tests.TestHelpers.Services.Search;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Debug.Client;
@@ -58,6 +59,7 @@ internal static class ServiceConfiguration
 
         services.AddTransient(typeof(IHealthChecker<>), typeof(HealthChecker<>));
 
+        // donor import
         services.AddTransient<IDonorImportTestSteps, DonorImportTestSteps>();
         services.AddTransient<IDonorImportWorkflow, DonorImportWorkflow>();
         services.AddTransient<IFileImporter, FileImporter>();
@@ -68,5 +70,10 @@ internal static class ServiceConfiguration
         services.AddTransient<IFailedFileAlertFetcher, FailedFileAlertFetcher>();
         services.AddTransient<IHlaExpansionFailureAlertFetcher, HlaExpansionFailureAlertFetcher>();
         services.AddTransient<IDonorImportFailureInfoFetcher, DonorImportFailureInfoFetcher>();
+
+        // search
+        services.AddTransient<ISearchTestSteps, SearchTestSteps>();
+        services.AddTransient<ISearchWorkflow, SearchWorkflow>();
+        services.AddTransient<ISearchRequester, SearchRequester>();
     }
 }
