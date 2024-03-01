@@ -39,6 +39,11 @@ internal interface ITestLogger
     void AssertThenLogAndThrow(Action assertions, string actionDescription);
 
     /// <summary>
+    /// Will <see cref="LogPass"/> if <paramref name="asyncAssertions"/> complete without error, else will <see cref="LogFailure"/> and then re-throw the exception.
+    /// </summary>
+    Task AssertThenLogAndThrowAsync(Func<Task> asyncAssertions, string actionDescription);
+
+    /// <summary>
     /// Will <see cref="LogPass"/> if <paramref name="debugResponse"/> was successful, else will <see cref="LogFailure"/> and then re-throw the exception.
     /// </summary>
     void AssertResponseThenLogAndThrow<T>(DebugResponse<T> debugResponse, string actionDescription);
@@ -68,6 +73,20 @@ internal class TestLogger : ITestLogger
         try
         {
             assertions();
+            LogPass(PassMessage(actionDescription));
+        }
+        catch
+        {
+            LogFailure(FailMessage(actionDescription));
+            throw;
+        }
+    }
+
+    public async Task AssertThenLogAndThrowAsync(Func<Task> asyncAssertions, string actionDescription)
+    {
+        try
+        {
+            await asyncAssertions();
             LogPass(PassMessage(actionDescription));
         }
         catch

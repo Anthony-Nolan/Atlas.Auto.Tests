@@ -1,7 +1,7 @@
 ﻿using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
 
-namespace Atlas.Auto.Tests.TestHelpers.Assertions
+namespace Atlas.Auto.Tests.TestHelpers.Assertions.DonorImport
 {
     internal static class DonorImportMessageAssertions
     {

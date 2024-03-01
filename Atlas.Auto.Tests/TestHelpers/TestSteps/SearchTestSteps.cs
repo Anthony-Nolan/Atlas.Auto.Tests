@@ -1,10 +1,11 @@
 ﻿using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Client.Models.Search.Requests;
-using System.Text.Json;
+using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.DonorImport.FileSchema.Models;
+using FluentAssertions;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 {
@@ -20,6 +21,8 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         Task<string> CreateTestDonor(ImportDonorType donorType);
 
         Task<SearchInitiationResponse> Submit10Of10DonorSearchRequest();
+
+        Task MatchingShouldHaveBeenSuccessful(string searchRequestId, string expectedDonorCode, string testName);
     }
 
     internal class SearchTestSteps : ISearchTestSteps
@@ -72,13 +75,39 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             return searchResponse;
         }
 
+        public async Task MatchingShouldHaveBeenSuccessful(
+            string searchRequestId,
+            string expectedDonorCode,
+            string testName)
+        {
+            var notificationResponse = await workflow.FetchMatchingResultsNotification(searchRequestId);
+            logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch matching results notification");
+
+            var matchingNotification = notificationResponse.DebugResult!;
+            matchingNotification.MatchingShouldHaveBeenSuccessful();
+
+            var resultSetResponse = await workflow.FetchMatchingResultSet(
+                matchingNotification.ResultsFileName, matchingNotification.BatchFolderName);
+            logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch matching result set");
+
+            var matchingResultSet = resultSetResponse.DebugResult!;
+            var donorResult = matchingResultSet.GetMatchingResult(expectedDonorCode);
+            logger.AssertThenLogAndThrow(() => donorResult.Should().NotBeNull(), $"Select matching result for {expectedDonorCode}");
+
+            await logger.AssertThenLogAndThrowAsync(
+                () => VerifyJson(donorResult!.Serialize())
+                    .IgnoreVaryingSearchResultProperties()
+                    .WriteReceivedToApprovalsFolder($"{testName}_MatchingResult"),
+                "Matching result comparison to approved result");
+        }
+
         private async Task<SearchInitiationResponse> SubmitSearch(string fileName)
         {
             const string action = "Submit search request";
             logger.LogInfo(action);
 
             var fileContents = await SourceDataReader.ReadJsonFile(fileName);
-            var searchRequest = JsonSerializer.Deserialize<SearchRequest>(fileContents);
+            var searchRequest = System.Text.Json.JsonSerializer.Deserialize<SearchRequest>(fileContents);
             var searchResponse = await workflow.SubmitSearchRequest(
                 searchRequest ?? throw new InvalidOperationException("Search request was not read from source file."));
             logger.AssertResponseThenLogAndThrow(searchResponse, action);
