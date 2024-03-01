@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using Atlas.Auto.Tests.TestHelpers.Services;
+using Atlas.Auto.Tests.TestHelpers.Services.DonorDeletion;
 using Atlas.Auto.Tests.TestHelpers.Services.DonorImport;
 using Atlas.Auto.Tests.TestHelpers.Services.Search;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
@@ -54,6 +55,11 @@ internal static class ServiceConfiguration
 
     private static void RegisterTestServices(this IServiceCollection services)
     {
+        services.AddTransient<ITestDonorDeleter, TestDonorDeleter>();
+        services.AddTransient<IDonorCodeFetcher, DonorCodeFetcher>();
+        services.AddTransient<IDonorDeleter, DonorDeleter>();
+        services.AddTransient<IAvailabilitySetter, AvailabilitySetter>();
+
         services.AddTransient<IDebugRequester, DebugRequester>();
         services.AddTransient<IMessageFetcher, MessageFetcher>();
 
