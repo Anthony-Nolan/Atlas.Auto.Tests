@@ -75,5 +75,7 @@ internal static class ServiceConfiguration
         services.AddTransient<ISearchTestSteps, SearchTestSteps>();
         services.AddTransient<ISearchWorkflow, SearchWorkflow>();
         services.AddTransient<ISearchRequester, SearchRequester>();
+        services.AddTransient<IMatchingNotificationFetcher, MatchingNotificationFetcher>();
+        services.AddTransient<IMatchingResultSetFetcher, MatchingResultSetFetcher>();
     }
 }
