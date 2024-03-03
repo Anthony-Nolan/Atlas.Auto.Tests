@@ -1,0 +1,490 @@
+﻿{
+  MatchingResult: {
+    MatchingResult: {
+      TotalMatchCount: 10,
+      DonorHla: {
+        A: {
+          Position1: *31:01,
+          Position2: *32:01
+        },
+        B: {
+          Position1: *14:01,
+          Position2: *35:01
+        },
+        C: {
+          Position1: *01:02,
+          Position2: *08:180N
+        },
+        Dpb1: {
+          Position1: *01:01,
+          Position2: *11:01
+        },
+        Dqb1: {
+          Position1: *02:01,
+          Position2: *03:02
+        },
+        Drb1: {
+          Position1: *03:01,
+          Position2: *09:01
+        }
+      },
+      TypedLociCount: 6
+    },
+    MatchingDonorInfo: {
+      DonorType: Adult,
+      EthnicityCode: AutoTestEthnicity,
+      RegistryCode: AutoTestRegistry
+    },
+    DonorType: Adult,
+    ScoringResult: {
+      TotalMatchCount: 10,
+      MatchCategory: Exact,
+      GradeScore: 100075,
+      ConfidenceScore: 20,
+      TypedLociCountAtScoredLoci: 5,
+      PotentialMatchCount: 0,
+      ExactMatchCount: 10,
+      ScoringResultsByLocus: {
+        A: {
+          IsLocusMatchCountIncludedInTotal: true,
+          MatchCategory: Match,
+          MatchCount: 2,
+          IsLocusTyped: true,
+          MatchGradeScore: 20016,
+          MatchConfidenceScore: 4,
+          ScoreDetailsAtPositionOne: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          ScoreDetailsAtPositionTwo: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          MismatchDirection: null
+        },
+        B: {
+          IsLocusMatchCountIncludedInTotal: true,
+          MatchCategory: Match,
+          MatchCount: 2,
+          IsLocusTyped: true,
+          MatchGradeScore: 20016,
+          MatchConfidenceScore: 4,
+          ScoreDetailsAtPositionOne: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          ScoreDetailsAtPositionTwo: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          MismatchDirection: null
+        },
+        C: {
+          IsLocusMatchCountIncludedInTotal: true,
+          MatchCategory: Match,
+          MatchCount: 2,
+          IsLocusTyped: true,
+          MatchGradeScore: 20011,
+          MatchConfidenceScore: 4,
+          ScoreDetailsAtPositionOne: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          ScoreDetailsAtPositionTwo: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: NullGDna,
+            MatchGradeScore: 10003,
+            IsAntigenMatch: true
+          },
+          MismatchDirection: null
+        },
+        Dpb1: {
+          IsLocusMatchCountIncludedInTotal: false,
+          MatchCategory: Match,
+          MatchCount: 2,
+          IsLocusTyped: true,
+          MatchGradeScore: 20016,
+          MatchConfidenceScore: 4,
+          ScoreDetailsAtPositionOne: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          ScoreDetailsAtPositionTwo: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          MismatchDirection: NotApplicable
+        },
+        Dqb1: {
+          IsLocusMatchCountIncludedInTotal: true,
+          MatchCategory: Match,
+          MatchCount: 2,
+          IsLocusTyped: true,
+          MatchGradeScore: 20016,
+          MatchConfidenceScore: 4,
+          ScoreDetailsAtPositionOne: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          ScoreDetailsAtPositionTwo: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          MismatchDirection: null
+        },
+        Drb1: {
+          IsLocusMatchCountIncludedInTotal: true,
+          MatchCategory: Match,
+          MatchCount: 2,
+          IsLocusTyped: true,
+          MatchGradeScore: 20016,
+          MatchConfidenceScore: 4,
+          ScoreDetailsAtPositionOne: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          ScoreDetailsAtPositionTwo: {
+            MatchConfidence: Exact,
+            MatchConfidenceScore: 2,
+            MatchGrade: GDna,
+            MatchGradeScore: 10008,
+            IsAntigenMatch: true
+          },
+          MismatchDirection: null
+        }
+      }
+    }
+  },
+  MatchPredictionResult: {
+    MatchProbabilities: {
+      ZeroMismatchProbability: {
+        Decimal: 1.0,
+        Percentage: 100
+      },
+      OneMismatchProbability: {
+        Decimal: 0.0,
+        Percentage: 0
+      },
+      TwoMismatchProbability: {
+        Decimal: 0.0,
+        Percentage: 0
+      }
+    },
+    MatchProbabilitiesPerLocus: {
+      A: {
+        MatchProbabilities: {
+          ZeroMismatchProbability: {
+            Decimal: 1.0,
+            Percentage: 100
+          },
+          OneMismatchProbability: {
+            Decimal: 0.0,
+            Percentage: 0
+          },
+          TwoMismatchProbability: {
+            Decimal: 0.0,
+            Percentage: 0
+          }
+        },
+        MatchCategory: Exact,
+        PositionalMatchCategories: {
+          Position1: Exact,
+          Position2: Exact
+        }
+      },
+      B: {
+        MatchProbabilities: {
+          ZeroMismatchProbability: {
+            Decimal: 1.0,
+            Percentage: 100
+          },
+          OneMismatchProbability: {
+            Decimal: 0.0,
+            Percentage: 0
+          },
+          TwoMismatchProbability: {
+            Decimal: 0.0,
+            Percentage: 0
+          }
+        },
+        MatchCategory: Exact,
+        PositionalMatchCategories: {
+          Position1: Exact,
+          Position2: Exact
+        }
+      },
+      C: {
+        MatchProbabilities: {
+          ZeroMismatchProbability: {
+            Decimal: 1.0,
+            Percentage: 100
+          },
+          OneMismatchProbability: {
+            Decimal: 0.0,
+            Percentage: 0
+          },
+          TwoMismatchProbability: {
+            Decimal: 0.0,
+            Percentage: 0
+          }
+        },
+        MatchCategory: Exact,
+        PositionalMatchCategories: {
+          Position1: Exact,
+          Position2: Exact
+        }
+      },
+      Dpb1: {
+        MatchProbabilities: {
+          ZeroMismatchProbability: null,
+          OneMismatchProbability: null,
+          TwoMismatchProbability: null
+        },
+        MatchCategory: null,
+        PositionalMatchCategories: null
+      },
+      Dqb1: {
+        MatchProbabilities: {
+          ZeroMismatchProbability: {
+            Decimal: 1.0,
+            Percentage: 100
+          },
+          OneMismatchProbability: {
+            Decimal: 0.0,
+            Percentage: 0
+          },
+          TwoMismatchProbability: {
+            Decimal: 0.0,
+            Percentage: 0
+          }
+        },
+        MatchCategory: Exact,
+        PositionalMatchCategories: {
+          Position1: Exact,
+          Position2: Exact
+        }
+      },
+      Drb1: {
+        MatchProbabilities: {
+          ZeroMismatchProbability: {
+            Decimal: 1.0,
+            Percentage: 100
+          },
+          OneMismatchProbability: {
+            Decimal: 0.0,
+            Percentage: 0
+          },
+          TwoMismatchProbability: {
+            Decimal: 0.0,
+            Percentage: 0
+          }
+        },
+        MatchCategory: Exact,
+        PositionalMatchCategories: {
+          Position1: Exact,
+          Position2: Exact
+        }
+      }
+    },
+    OverallMatchCount: 10,
+    ExactMatchCount: 10,
+    PotentialMatchCount: 0,
+    OverallMatchCategory: Exact,
+    PatientFrequencySetNomenclatureVersion: 3480,
+    PatientHaplotypeFrequencySet: {
+      RegistryCode: AutoTestRegistry,
+      EthnicityCode: AutoTestEthnicity,
+      HlaNomenclatureVersion: 3480,
+      PopulationId: 12345
+    },
+    DonorFrequencySetNomenclatureVersion: 3480,
+    DonorHaplotypeFrequencySet: {
+      RegistryCode: AutoTestRegistry,
+      EthnicityCode: AutoTestEthnicity,
+      HlaNomenclatureVersion: 3480,
+      PopulationId: 12345
+    },
+    IsPatientPhenotypeUnrepresented: false,
+    IsDonorPhenotypeUnrepresented: false
+  },
+  ScoringResult: {
+    TotalMatchCount: 10,
+    MatchCategory: Exact,
+    GradeScore: 100075,
+    ConfidenceScore: 20,
+    TypedLociCountAtScoredLoci: 5,
+    PotentialMatchCount: 0,
+    ExactMatchCount: 10,
+    ScoringResultsByLocus: {
+      A: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20016,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: null
+      },
+      B: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20016,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: null
+      },
+      C: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20011,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: NullGDna,
+          MatchGradeScore: 10003,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: null
+      },
+      Dpb1: {
+        IsLocusMatchCountIncludedInTotal: false,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20016,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: NotApplicable
+      },
+      Dqb1: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20016,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: null
+      },
+      Drb1: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20016,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: null
+      }
+    }
+  }
+}
