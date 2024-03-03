@@ -20,7 +20,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         /// </summary>
         Task<string> CreateTestDonor(ImportDonorType donorType);
 
-        Task<SearchInitiationResponse> Submit10Of10DonorSearchRequest();
+        Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName);
 
         Task MatchingShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode);
 
@@ -48,7 +48,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
         public async Task<string> CreateTestDonor(ImportDonorType donorType)
         {
-            const string action = "Create test donor";
+            var action = $"Create test {donorType}";
             logger.LogStart(action);
 
             const int donorCount = 1;
@@ -72,10 +72,9 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             return donorRecordId;
         }
 
-        public async Task<SearchInitiationResponse> Submit10Of10DonorSearchRequest()
+        public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName)
         {
-            const string fileName = "search-request-donor-10_10.json";
-            var searchResponse = await SubmitSearch(fileName);
+            var searchResponse = await SubmitSearch(searchRequestFileName);
             logger.LogInfo($"Search request id: {searchResponse.SearchIdentifier}");
             return searchResponse;
         }
