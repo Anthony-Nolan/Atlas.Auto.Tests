@@ -19,6 +19,6 @@ internal abstract class SearchTestBase : TestBase
         var donorImportWorkflow = Provider.ResolveServiceOrThrow<IDonorImportWorkflow>();
         var testLogger = new TestLogger(ExtentManager.CreateForTest(TestFixtureName, testName));
         var donorImportTestSteps = new DonorImportTestSteps(donorImportWorkflow, testLogger);
-        return new TestServices<ISearchTestSteps>(new SearchTestSteps(searchWorkflow, donorImportTestSteps, testLogger), testLogger);
+        return new TestServices<ISearchTestSteps>(new SearchTestSteps(searchWorkflow, donorImportTestSteps, testLogger, testName), testLogger);
     }
 }

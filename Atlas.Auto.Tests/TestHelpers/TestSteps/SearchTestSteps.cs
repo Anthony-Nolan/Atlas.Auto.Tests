@@ -22,7 +22,9 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
         Task<SearchInitiationResponse> Submit10Of10DonorSearchRequest();
 
-        Task MatchingShouldHaveBeenSuccessful(string searchRequestId, string expectedDonorCode, string testName);
+        Task MatchingShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode);
+
+        Task SearchShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode);
     }
 
     internal class SearchTestSteps : ISearchTestSteps
@@ -30,15 +32,18 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         private readonly ISearchWorkflow workflow;
         private readonly IDonorImportTestSteps donorImportTestSteps;
         private readonly ITestLogger logger;
+        private readonly string testName;
 
         public SearchTestSteps(
             ISearchWorkflow workflow,
             IDonorImportTestSteps donorImportTestSteps,
-            ITestLogger logger)
+            ITestLogger logger,
+            string testName)
         {
             this.workflow = workflow;
             this.donorImportTestSteps = donorImportTestSteps;
             this.logger = logger;
+            this.testName = testName;
         }
 
         public async Task<string> CreateTestDonor(ImportDonorType donorType)
@@ -75,23 +80,19 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             return searchResponse;
         }
 
-        public async Task MatchingShouldHaveBeenSuccessful(
-            string searchRequestId,
-            string expectedDonorCode,
-            string testName)
+        public async Task MatchingShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode)
         {
             var notificationResponse = await workflow.FetchMatchingResultsNotification(searchRequestId);
             logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch matching results notification");
 
-            var matchingNotification = notificationResponse.DebugResult!;
-            matchingNotification.MatchingShouldHaveBeenSuccessful();
+            var notification = notificationResponse.DebugResult!;
+            notification.MatchingShouldHaveBeenSuccessful();
 
-            var resultSetResponse = await workflow.FetchMatchingResultSet(
-                matchingNotification.ResultsFileName, matchingNotification.BatchFolderName);
+            var resultSetResponse = await workflow.FetchMatchingResultSet(notification.ResultsFileName, notification.BatchFolderName);
             logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch matching result set");
 
             var matchingResultSet = resultSetResponse.DebugResult!;
-            var donorResult = matchingResultSet.GetMatchingResult(expectedDonorCode);
+            var donorResult = matchingResultSet.GetDonorResult(expectedDonorCode);
             logger.AssertThenLogAndThrow(() => donorResult.Should().NotBeNull(), $"Select matching result for {expectedDonorCode}");
 
             await logger.AssertThenLogAndThrowAsync(
@@ -99,6 +100,28 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
                     .IgnoreVaryingSearchResultProperties()
                     .WriteReceivedToApprovalsFolder($"{testName}_MatchingResult"),
                 "Matching result comparison to approved result");
+        }
+
+        public async Task SearchShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode)
+        {
+            var notificationResponse = await workflow.FetchSearchResultsNotification(searchRequestId);
+            logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch search results notification");
+
+            var notification = notificationResponse.DebugResult!;
+            notification.SearchShouldHaveBeenSuccessful();
+
+            var resultSetResponse = await workflow.FetchSearchResultSet(notification.ResultsFileName, notification.BatchFolderName);
+            logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch search result set");
+
+            var searchResultSet = resultSetResponse.DebugResult!;
+            var donorResult = searchResultSet.GetDonorResult(expectedDonorCode);
+            logger.AssertThenLogAndThrow(() => donorResult.Should().NotBeNull(), $"Select search result for {expectedDonorCode}");
+
+            await logger.AssertThenLogAndThrowAsync(
+                () => VerifyJson(donorResult!.Serialize())
+                    .IgnoreVaryingSearchResultProperties()
+                    .WriteReceivedToApprovalsFolder($"{testName}_SearchResult"),
+                "Search result comparison to approved result");
         }
 
         private async Task<SearchInitiationResponse> SubmitSearch(string fileName)

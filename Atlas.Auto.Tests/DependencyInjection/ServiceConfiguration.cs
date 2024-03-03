@@ -77,5 +77,7 @@ internal static class ServiceConfiguration
         services.AddTransient<ISearchRequester, SearchRequester>();
         services.AddTransient<IMatchingNotificationFetcher, MatchingNotificationFetcher>();
         services.AddTransient<IMatchingResultSetFetcher, MatchingResultSetFetcher>();
+        services.AddTransient<ISearchNotificationFetcher, SearchNotificationFetcher>();
+        services.AddTransient<ISearchResultSetFetcher, SearchResultSetFetcher>();
     }
 }

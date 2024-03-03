@@ -18,15 +18,15 @@ internal class Search_HappyPathTests : SearchTestBase
     [Test]
     public async Task Search_Donor_10_10_ReturnsExpectedSearchResult()
     {
-        const string testName = nameof(Search_Donor_10_10_ReturnsExpectedSearchResult);
-        var test = GetTestServices(testName);
+        var test = GetTestServices(nameof(Search_Donor_10_10_ReturnsExpectedSearchResult));
 
         const string testDescription = "10/10 Donor Search";
         test.Logger.LogStart(testDescription);
 
         var expectedDonorCode = await test.Steps.CreateTestDonor(ImportDonorType.Adult);
         var searchResponse = await test.Steps.Submit10Of10DonorSearchRequest();
-        await test.Steps.MatchingShouldHaveBeenSuccessful(searchResponse.SearchIdentifier, expectedDonorCode, testName);
+        await test.Steps.MatchingShouldHaveReturnedExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+        await test.Steps.SearchShouldHaveReturnedExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
 
         test.Logger.LogCompletion(testDescription);
     }
