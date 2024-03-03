@@ -63,8 +63,6 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
         public async Task FullModeImportShouldNotBeAllowed()
         {
-            const string action = "Check full mode import is **not** allowed";
-            logger.LogInfo(action);
             var response = await workflow.IsFullModeImportAllowed();
 
             // The debug http response should have been successful,
@@ -73,7 +71,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             {
                 response.ShouldBeSuccessful();
                 response.DebugResult.Should().BeFalse();
-            }, action);
+            }, "Check full mode import is **not** allowed");
         }
 
         public async Task DonorImportShouldHaveBeenSuccessful(
@@ -157,27 +155,23 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
         private async Task SendDonorImportFile(DonorImportRequest request)
         {
-            var action = $"Send donor import file {request.FileName}";
-            logger.LogInfo(action);
             var importResponse = await workflow.ImportDonorFile(request);
-            logger.AssertThenLogAndThrow(() => importResponse.Should().BeTrue(), action);
+            logger.AssertThenLogAndThrow(
+                () => importResponse.Should().BeTrue(), 
+                $"Send donor import file {request.FileName}");
         }
 
         private async Task<DonorImportMessage?> FetchDonorImportResultMessage(string fileName)
         {
-            const string action = "Fetch donor import result message";
-            logger.LogInfo(action);
             var response = await workflow.FetchResultMessage(fileName);
-            logger.AssertResponseThenLogAndThrow(response, action);
+            logger.AssertResponseThenLogAndThrow(response, "Fetch donor import result message");
             return response.DebugResult;
         }
 
         private async Task<DebugDonorsResult?> CheckDonorStore(IEnumerable<string> donorCodes)
         {
-            const string action = "Check donor store request";
-            logger.LogInfo(action);
             var response = await workflow.CheckDonorsInDonorStore(donorCodes);
-            logger.AssertResponseThenLogAndThrow(response, action);
+            logger.AssertResponseThenLogAndThrow(response, "Check donor store request");
             return response.DebugResult;
         }
     }

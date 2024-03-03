@@ -82,6 +82,9 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
         public async Task MatchingShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode)
         {
+            const string action = "Check matching returns expected donor";
+            logger.LogStart(action);
+
             var notificationResponse = await workflow.FetchMatchingResultsNotification(searchRequestId);
             logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch matching results notification");
 
@@ -100,10 +103,15 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
                     .IgnoreVaryingSearchResultProperties()
                     .WriteReceivedToApprovalsFolder($"{testName}_MatchingResult"),
                 "Matching result comparison to approved result");
+
+            logger.LogCompletion(action);
         }
 
         public async Task SearchShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode)
         {
+            const string action = "Check search returns expected donor";
+            logger.LogStart(action);
+
             var notificationResponse = await workflow.FetchSearchResultsNotification(searchRequestId);
             logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch search results notification");
 
@@ -122,18 +130,17 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
                     .IgnoreVaryingSearchResultProperties()
                     .WriteReceivedToApprovalsFolder($"{testName}_SearchResult"),
                 "Search result comparison to approved result");
+
+            logger.LogCompletion(action);
         }
 
         private async Task<SearchInitiationResponse> SubmitSearch(string fileName)
         {
-            const string action = "Submit search request";
-            logger.LogInfo(action);
-
             var fileContents = await SourceDataReader.ReadJsonFile(fileName);
             var searchRequest = System.Text.Json.JsonSerializer.Deserialize<SearchRequest>(fileContents);
             var searchResponse = await workflow.SubmitSearchRequest(
                 searchRequest ?? throw new InvalidOperationException("Search request was not read from source file."));
-            logger.AssertResponseThenLogAndThrow(searchResponse, action);
+            logger.AssertResponseThenLogAndThrow(searchResponse, "Submit search request");
 
             return searchResponse.DebugResult!;
         }
