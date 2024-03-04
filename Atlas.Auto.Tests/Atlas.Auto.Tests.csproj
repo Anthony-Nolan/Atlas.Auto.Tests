@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-cord-4_8.json" />
+    <EmbeddedResource Include="TestHelpers\SourceData\search-request-missing-locus-A.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-10_10.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\score-batch-request.json" />
   </ItemGroup>
