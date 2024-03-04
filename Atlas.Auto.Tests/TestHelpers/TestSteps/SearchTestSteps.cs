@@ -4,6 +4,7 @@ using Atlas.Client.Models.Search.Requests;
 using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
+using Atlas.Debug.Client.Models.Validation;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
 
@@ -25,6 +26,8 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         Task MatchingShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode);
 
         Task SearchShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode);
+
+        Task<IEnumerable<RequestValidationFailure>> SubmitInvalidSearchRequest(string searchRequestFileName);
     }
 
     internal class SearchTestSteps : ISearchTestSteps
@@ -74,9 +77,19 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
         public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName)
         {
-            var searchResponse = await SubmitSearch(searchRequestFileName);
-            logger.LogInfo($"Search request id: {searchResponse.SearchIdentifier}");
-            return searchResponse;
+            var searchRequest = await LoadSearchRequestFromFile(searchRequestFileName);
+            var searchResponse = await workflow.SubmitSearchRequest(searchRequest);
+            logger.AssertResponseThenLogAndThrow(searchResponse, "Submit valid search request");
+            logger.LogInfo($"Search request id: {searchResponse.DebugResult!.SearchIdentifier}");
+            return searchResponse.DebugResult!;
+        }
+
+        public async Task<IEnumerable<RequestValidationFailure>> SubmitInvalidSearchRequest(string searchRequestFileName)
+        {
+            var searchRequest = await LoadSearchRequestFromFile(searchRequestFileName);
+            var searchResponse = await workflow.SubmitInvalidSearchRequest(searchRequest);
+            logger.AssertResponseThenLogAndThrow(searchResponse, "Submit invalid search request");
+            return searchResponse.DebugResult!;
         }
 
         public async Task MatchingShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode)
@@ -133,13 +146,11 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             logger.LogCompletion(action);
         }
 
-        private async Task<SearchInitiationResponse> SubmitSearch(string fileName)
+        private static async Task<SearchRequest> LoadSearchRequestFromFile(string fileName)
         {
-            var searchRequest = await SourceDataReader.ReadJsonFile<SearchRequest>(fileName);
-            var searchResponse = await workflow.SubmitSearchRequest(searchRequest);
-            logger.AssertResponseThenLogAndThrow(searchResponse, "Submit search request");
-
-            return searchResponse.DebugResult!;
+            var fileContents = await SourceDataReader.ReadJsonFile(fileName);
+            var searchRequest = System.Text.Json.JsonSerializer.Deserialize<SearchRequest>(fileContents);
+            return searchRequest ?? throw new InvalidOperationException("Search request was not read from source file.");
         }
     }
 }

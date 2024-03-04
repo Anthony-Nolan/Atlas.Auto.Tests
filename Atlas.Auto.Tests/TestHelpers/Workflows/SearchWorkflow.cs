@@ -5,6 +5,7 @@ using Atlas.Client.Models.Search.Results;
 using Atlas.Client.Models.Search.Results.Matching;
 using Atlas.Client.Models.Search.Results.Matching.ResultSet;
 using Atlas.Client.Models.Search.Results.ResultSet;
+using Atlas.Debug.Client.Models.Validation;
 
 namespace Atlas.Auto.Tests.TestHelpers.Workflows;
 
@@ -18,6 +19,7 @@ internal interface ISearchWorkflow
     Task<DebugResponse<OriginalMatchingAlgorithmResultSet>> FetchMatchingResultSet(string resultsFileName, string? batchFolderName);
     Task<DebugResponse<SearchResultsNotification>> FetchSearchResultsNotification(string searchRequestId);
     Task<DebugResponse<OriginalSearchResultSet>> FetchSearchResultSet(string resultsFileName, string? batchFolderName);
+    Task<DebugResponse<IEnumerable<RequestValidationFailure>>> SubmitInvalidSearchRequest(SearchRequest request);
 }
 
 internal class SearchWorkflow : ISearchWorkflow
@@ -65,5 +67,10 @@ internal class SearchWorkflow : ISearchWorkflow
     public async Task<DebugResponse<OriginalSearchResultSet>> FetchSearchResultSet(string resultsFileName, string? batchFolderName)
     {
         return await searchResultSetFetcher.Fetch(resultsFileName, batchFolderName);
+    }
+
+    public async Task<DebugResponse<IEnumerable<RequestValidationFailure>>> SubmitInvalidSearchRequest(SearchRequest request)
+    {
+        return await searchRequester.SubmitInvalidSearchRequest(request);
     }
 }
