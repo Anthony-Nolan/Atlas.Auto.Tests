@@ -69,3 +69,4 @@ stages:
       - job: DonorImport_DiffMode_ExceptionPathTests  
       - job: DonorImport_FullMode_ExceptionPathTests
       - job: Search_HappyPathTests
+      - job: Scoring_HappyPathTests  
