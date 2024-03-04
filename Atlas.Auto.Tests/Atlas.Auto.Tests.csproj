@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -13,10 +13,11 @@
   <ItemGroup>
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-cord-4_8.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-10_10.json" />
+    <EmbeddedResource Include="TestHelpers\SourceData\score-batch-request.json" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Atlas.Debug.Client" Version="1.0.0-ci-47033" />
+    <PackageReference Include="Atlas.Debug.Client" Version="1.0.0-ci-47070" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="LochNessBuilder" Version="4.1.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
@@ -39,6 +40,9 @@
 
   <ItemGroup>
     <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\ScoreBatch_ScoresDonorBatch.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">

@@ -1,0 +1,153 @@
+﻿[
+  {
+    DonorId: AutoTestDonor-ScoreBatchTest,
+    ScoringResult: {
+      TotalMatchCount: 10,
+      PotentialMatchCount: 0,
+      ExactMatchCount: 10,
+      TypedLociCount: 5,
+      GradeScore: 100075,
+      ConfidenceScore: 20,
+      OverallMatchConfidence: Exact,
+      MatchCategory: Exact,
+      SearchResultAtLocusA: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20016,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: null
+      },
+      SearchResultAtLocusB: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20016,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: null
+      },
+      SearchResultAtLocusC: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20011,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: NullGDna,
+          MatchGradeScore: 10003,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: null
+      },
+      SearchResultAtLocusDpb1: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20016,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: NotApplicable
+      },
+      SearchResultAtLocusDqb1: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20016,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: null
+      },
+      SearchResultAtLocusDrb1: {
+        IsLocusMatchCountIncludedInTotal: true,
+        MatchCategory: Match,
+        MatchCount: 2,
+        IsLocusTyped: true,
+        MatchGradeScore: 20016,
+        MatchConfidenceScore: 4,
+        ScoreDetailsAtPositionOne: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        ScoreDetailsAtPositionTwo: {
+          MatchConfidence: Exact,
+          MatchConfidenceScore: 2,
+          MatchGrade: GDna,
+          MatchGradeScore: 10008,
+          IsAntigenMatch: true
+        },
+        MismatchDirection: null
+      }
+    }
+  }
+]

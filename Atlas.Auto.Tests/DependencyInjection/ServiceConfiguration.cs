@@ -2,6 +2,7 @@
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Services.DonorDeletion;
 using Atlas.Auto.Tests.TestHelpers.Services.DonorImport;
+using Atlas.Auto.Tests.TestHelpers.Services.Scoring;
 using Atlas.Auto.Tests.TestHelpers.Services.Search;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
@@ -85,5 +86,10 @@ internal static class ServiceConfiguration
         services.AddTransient<IMatchingResultSetFetcher, MatchingResultSetFetcher>();
         services.AddTransient<ISearchNotificationFetcher, SearchNotificationFetcher>();
         services.AddTransient<ISearchResultSetFetcher, SearchResultSetFetcher>();
+
+        // scoring
+        services.AddTransient<IScoringTestSteps, ScoringTestSteps>();
+        services.AddTransient<IScoringWorkflow, ScoringWorkflow>();
+        services.AddTransient<IDonorScorer, DonorScorer>();
     }
 }

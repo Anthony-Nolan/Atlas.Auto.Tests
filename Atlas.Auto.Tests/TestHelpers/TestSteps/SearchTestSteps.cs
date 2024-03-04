@@ -99,7 +99,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             logger.AssertThenLogAndThrow(() => donorResult.Should().NotBeNull(), $"Select matching result for {expectedDonorCode}");
 
             await logger.AssertThenLogAndThrowAsync(
-                () => VerifyJson(donorResult!.Serialize())
+                () => VerifyJson(donorResult!.SerializeSingle())
                     .IgnoreVaryingSearchResultProperties()
                     .WriteReceivedToApprovalsFolder($"{testName}_MatchingResult"),
                 "Matching result comparison to approved result");
@@ -126,7 +126,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             logger.AssertThenLogAndThrow(() => donorResult.Should().NotBeNull(), $"Select search result for {expectedDonorCode}");
 
             await logger.AssertThenLogAndThrowAsync(
-                () => VerifyJson(donorResult!.Serialize())
+                () => VerifyJson(donorResult!.SerializeSingle())
                     .IgnoreVaryingSearchResultProperties()
                     .WriteReceivedToApprovalsFolder($"{testName}_SearchResult"),
                 "Search result comparison to approved result");
@@ -136,10 +136,8 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
         private async Task<SearchInitiationResponse> SubmitSearch(string fileName)
         {
-            var fileContents = await SourceDataReader.ReadJsonFile(fileName);
-            var searchRequest = System.Text.Json.JsonSerializer.Deserialize<SearchRequest>(fileContents);
-            var searchResponse = await workflow.SubmitSearchRequest(
-                searchRequest ?? throw new InvalidOperationException("Search request was not read from source file."));
+            var searchRequest = await SourceDataReader.ReadJsonFile<SearchRequest>(fileName);
+            var searchResponse = await workflow.SubmitSearchRequest(searchRequest);
             logger.AssertResponseThenLogAndThrow(searchResponse, "Submit search request");
 
             return searchResponse.DebugResult!;

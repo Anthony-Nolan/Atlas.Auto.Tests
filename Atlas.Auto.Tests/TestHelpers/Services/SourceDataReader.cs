@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text.Json;
 
 namespace Atlas.Auto.Tests.TestHelpers.Services
 {
@@ -12,9 +13,11 @@ namespace Atlas.Auto.Tests.TestHelpers.Services
         /// </summary>
         private static readonly ConcurrentDictionary<string, string> PreviouslyLoadedFiles = new();
 
-        public static async Task<string> ReadJsonFile(string fileName)
+        public static async Task<T> ReadJsonFile<T>(string fileName)
         {
-            return PreviouslyLoadedFiles.GetOrAdd(fileName, await LoadFile(fileName));
+            var fileContents = PreviouslyLoadedFiles.GetOrAdd(fileName, await LoadFile(fileName));
+            var result = JsonSerializer.Deserialize<T>(fileContents);
+            return result ?? throw new InvalidOperationException($"Failed to load file {fileName}");
         }
 
         private static async Task<string> LoadFile(string fileName)
