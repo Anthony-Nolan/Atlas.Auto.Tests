@@ -28,4 +28,18 @@ internal class Search_ExceptionPathTests : SearchTestBase
 
         test.Logger.LogCompletion(testDescription);
     }
+
+    [Test]
+    public async Task Search_InvalidPatientHla_FailsDuringMatching()
+    {
+        var test = GetTestServices(nameof(Search_InvalidPatientHla_FailsDuringMatching));
+
+        const string testDescription = "Search with invalid patient HLA";
+        test.Logger.LogStart(testDescription);
+
+        var searchResponse = await test.Steps.SubmitSearchRequest("search-request-invalid-patient-hla-at-A1.json");
+        await test.Steps.MatchingShouldHaveFailedHlaValidation(searchResponse.SearchIdentifier);
+
+        test.Logger.LogCompletion(testDescription);
+    }
 }
