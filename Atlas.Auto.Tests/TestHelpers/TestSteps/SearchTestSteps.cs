@@ -4,6 +4,7 @@ using Atlas.Client.Models.Search.Requests;
 using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
+using Atlas.Client.Models.Search.Results.Matching;
 using Atlas.Debug.Client.Models.Validation;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
@@ -28,6 +29,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         Task SearchShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode);
 
         Task<IEnumerable<RequestValidationFailure>> SubmitInvalidSearchRequest(string searchRequestFileName);
+        Task MatchingShouldHaveFailedHlaValidation(string searchRequestId);
     }
 
     internal class SearchTestSteps : ISearchTestSteps
@@ -77,7 +79,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
         public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName)
         {
-            var searchRequest = await LoadSearchRequestFromFile(searchRequestFileName);
+            var searchRequest = await SourceDataReader.ReadJsonFile<SearchRequest>(searchRequestFileName);
             var searchResponse = await workflow.SubmitSearchRequest(searchRequest);
             logger.AssertResponseThenLogAndThrow(searchResponse, "Submit valid search request");
             logger.LogInfo($"Search request id: {searchResponse.DebugResult!.SearchIdentifier}");
@@ -86,10 +88,16 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
         public async Task<IEnumerable<RequestValidationFailure>> SubmitInvalidSearchRequest(string searchRequestFileName)
         {
-            var searchRequest = await LoadSearchRequestFromFile(searchRequestFileName);
+            var searchRequest = await SourceDataReader.ReadJsonFile<SearchRequest>(searchRequestFileName);
             var searchResponse = await workflow.SubmitInvalidSearchRequest(searchRequest);
             logger.AssertResponseThenLogAndThrow(searchResponse, "Submit invalid search request");
             return searchResponse.DebugResult!;
+        }
+
+        public async Task MatchingShouldHaveFailedHlaValidation(string searchRequestId)
+        {
+            var notification = await FetchMatchingResultsNotification(searchRequestId);
+            notification.MatchingShouldHaveFailedHlaValidation();
         }
 
         public async Task MatchingShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode)
@@ -97,10 +105,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             const string action = "Check matching returns expected donor";
             logger.LogStart(action);
 
-            var notificationResponse = await workflow.FetchMatchingResultsNotification(searchRequestId);
-            logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch matching results notification");
-
-            var notification = notificationResponse.DebugResult!;
+            var notification = await FetchMatchingResultsNotification(searchRequestId);
             notification.MatchingShouldHaveBeenSuccessful();
 
             var resultSetResponse = await workflow.FetchMatchingResultSet(notification.ResultsFileName, notification.BatchFolderName);
@@ -146,11 +151,11 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             logger.LogCompletion(action);
         }
 
-        private static async Task<SearchRequest> LoadSearchRequestFromFile(string fileName)
+        private async Task<MatchingResultsNotification> FetchMatchingResultsNotification(string searchRequestId)
         {
-            var fileContents = await SourceDataReader.ReadJsonFile(fileName);
-            var searchRequest = System.Text.Json.JsonSerializer.Deserialize<SearchRequest>(fileContents);
-            return searchRequest ?? throw new InvalidOperationException("Search request was not read from source file.");
+            var notificationResponse = await workflow.FetchMatchingResultsNotification(searchRequestId);
+            logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch matching results notification");
+            return notificationResponse.DebugResult!;
         }
     }
 }
