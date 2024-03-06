@@ -28,7 +28,8 @@ internal static class ServiceConfiguration
             OptionsReaderFor<DonorImportHttpFunctionSettings>(),
             OptionsReaderFor<MatchingAlgorithmHttpFunctionSettings>(),
             OptionsReaderFor<TopLevelHttpFunctionSettings>(),
-            OptionsReaderFor<PublicApiHttpFunctionSettings>());
+            OptionsReaderFor<PublicApiHttpFunctionSettings>(),
+            OptionsReaderFor<RepeatSearchHttpFunctionSettings>());
 
         services.RegisterTestServices();
 
@@ -52,6 +53,7 @@ internal static class ServiceConfiguration
         services.RegisterAsOptions<MatchingAlgorithmHttpFunctionSettings>("MatchingAlgorithm");
         services.RegisterAsOptions<TopLevelHttpFunctionSettings>("TopLevel");
         services.RegisterAsOptions<PublicApiHttpFunctionSettings>("PublicApi");
+        services.RegisterAsOptions<RepeatSearchHttpFunctionSettings>("RepeatSearch");
     }
 
     private static void RegisterTestServices(this IServiceCollection services)

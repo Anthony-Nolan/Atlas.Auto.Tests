@@ -18,7 +18,8 @@ internal class HealthCheckTests : TestBase
         typeof(IDonorImportFunctionsClient),
         typeof(IMatchingAlgorithmFunctionsClient),
         typeof(IPublicApiFunctionsClient),
-        typeof(ITopLevelFunctionsClient)
+        typeof(ITopLevelFunctionsClient),
+        typeof(IRepeatSearchFunctionsClient)
     };
 
     public HealthCheckTests() : base(nameof(HealthCheckTests))

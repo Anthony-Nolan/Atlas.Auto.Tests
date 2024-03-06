@@ -108,7 +108,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             var notification = await FetchMatchingResultsNotification(searchRequestId);
             notification.MatchingShouldHaveBeenSuccessful();
 
-            var resultSetResponse = await workflow.FetchMatchingResultSet(notification.ResultsFileName, notification.BatchFolderName);
+            var resultSetResponse = await workflow.FetchMatchingResultSet(notification.ToDebugSearchResultsRequest());
             logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch matching result set");
 
             var matchingResultSet = resultSetResponse.DebugResult!;
@@ -135,7 +135,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             var notification = notificationResponse.DebugResult!;
             notification.SearchShouldHaveBeenSuccessful();
 
-            var resultSetResponse = await workflow.FetchSearchResultSet(notification.ResultsFileName, notification.BatchFolderName);
+            var resultSetResponse = await workflow.FetchSearchResultSet(notification.ToDebugSearchResultsRequest());
             logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch search result set");
 
             var searchResultSet = resultSetResponse.DebugResult!;
