@@ -71,3 +71,4 @@ stages:
       - job: Search_HappyPathTests
       - job: Search_ExceptionPathTests
       - job: Scoring_HappyPathTests  
+      - job: RepeatSearch_HappyPathTests  

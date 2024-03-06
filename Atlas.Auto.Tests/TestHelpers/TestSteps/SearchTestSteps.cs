@@ -28,6 +28,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         Task SearchShouldHaveReturnedExpectedDonor(string searchRequestId, string expectedDonorCode);
 
         Task<IEnumerable<RequestValidationFailure>> SubmitInvalidSearchRequest(string searchRequestFileName);
+
         Task MatchingShouldHaveFailedHlaValidation(string searchRequestId);
     }
 
@@ -52,7 +53,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
         public async Task<string> CreateDonor(ImportDonorType donorType)
         {
-            return (await donorImportSteps.CreateDonorWithSearchTestPhenotype(donorType)).RecordId;
+            return await donorImportSteps.CreateDonorWithSearchTestPhenotype(donorType);
         }
 
         public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName)
