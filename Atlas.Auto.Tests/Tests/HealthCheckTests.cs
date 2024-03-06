@@ -1,8 +1,6 @@
 ﻿using Atlas.Auto.Tests.DependencyInjection;
 using Atlas.Auto.Tests.TestHelpers.Services;
-using Atlas.Auto.Utils.Reporting;
 using Atlas.Debug.Client.Clients;
-using AventStack.ExtentReports;
 using FluentAssertions;
 
 namespace Atlas.Auto.Tests.Tests;
@@ -30,12 +28,16 @@ internal class HealthCheckTests : TestBase
     [TestCaseSource(nameof(clientsToTest))]
     public async Task HealthCheck(Type clientType)
     {
+        var action = $"Health Check Test for {clientType.Name}";
         dynamic healthChecker = Provider.ResolveServiceOrThrow(typeof(IHealthChecker<>).MakeGenericType(clientType));
-        var test = ExtentManager.CreateForTest(TestFixtureName, $"Health Check Test for {clientType.Name}");
+        var test = BuildTestLogger(action);
 
-        test.Log(Status.Info, $"Started health check for client type {clientType.Name}");
+        test.LogStart(action);
         var result = await healthChecker.HealthCheck() as bool?;
-        test.Log(result != null && result.Value ? Status.Pass : Status.Fail, $"Health check result for {clientType.Name}: {result}");
-        result.Should().BeTrue();
+        test.AssertThenLogAndThrow( () =>
+        {
+            result.Should().NotBeNull();
+            result!.Value.Should().BeTrue();
+        }, action);
     }
 }
