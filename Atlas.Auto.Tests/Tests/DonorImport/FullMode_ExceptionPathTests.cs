@@ -35,7 +35,7 @@ internal class FullMode_ExceptionPathTests : DonorImportTestBase
         test.Logger.LogStart(testCase);
 
         var updates = DonorUpdateBuilder.Default
-            .WithValidDnaAtAllLoci()
+            .WithValidDnaPhenotype()
             .WithChangeTypes(new[] { ImportDonorChangeType.Create, ImportDonorChangeType.Upsert })
             .Build(donorCount);
 

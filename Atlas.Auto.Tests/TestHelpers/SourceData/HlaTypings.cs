@@ -5,10 +5,10 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
 {
     /// <summary>
     /// HLA typings that can be used to build test patients and donors.
+    /// Note: <see cref="ValidDnaPhenotype"/> should not match <see cref="SearchTestPhenotype"/>, either 10/10 or 4/8.
     /// </summary>
     internal static class HlaTypings
     {
-        #region Valid typings
         /// <summary>
         /// A set of HLA typings that are relatively old and are unlikely to be deleted in future versions of the IMGT/HLA database.
         /// </summary>
@@ -20,10 +20,22 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
         public const string ValidDnaForLocusDrb1 = "*04:01";
 
         /// <summary>
+        /// Phenotype constructed from valid molecular HLA typings.
+        /// Intended for use in testing donor import.
+        /// Use <see cref="SearchTestPhenotype"/> when testing search.
+        /// </summary>
+        public static PhenotypeInfoTransfer<string> ValidDnaPhenotype = new PhenotypeInfo<string>(
+            ValidDnaForLocusA, ValidDnaForLocusA,
+            ValidDnaForLocusB, ValidDnaForLocusB,
+            ValidDnaForLocusC, ValidDnaForLocusC,
+            ValidDnaForLocusDpb1, ValidDnaForLocusDpb1,
+            ValidDnaForLocusDqb1, ValidDnaForLocusDqb1,
+            ValidDnaForLocusDrb1, ValidDnaForLocusDrb1).ToPhenotypeInfoTransfer();
+
+        /// <summary>
         /// Use for testing donor edits
         /// </summary>
         public const string AlternativeValidDnaForLocusA = "*11:11";
-        #endregion
 
         /// <summary>
         /// This typing fits the pattern of a valid MAC but does not actually exist.

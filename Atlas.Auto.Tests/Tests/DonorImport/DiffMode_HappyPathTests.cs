@@ -31,7 +31,7 @@ internal class DiffMode_HappyPathTests : DonorImportTestBase
         test.Logger.LogStart(currentTestCase);
 
         var creationUpdates = DonorUpdateBuilder.Default
-            .WithValidDnaAtAllLoci()
+            .WithValidDnaPhenotype()
             .WithChangeTypes(new[] { ImportDonorChangeType.Create, ImportDonorChangeType.Upsert })
             .Build(donorCount);
 
