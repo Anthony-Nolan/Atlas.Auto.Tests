@@ -12,9 +12,9 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
     internal interface IDonorImportStepsForSearchTests
     {
         /// <summary>
-        /// Creates a donor of the specified type with <see cref="HlaTypings.SearchTestPhenotype"/> and returns the creation update.
+        /// Creates a donor of the specified type with <see cref="HlaTypings.SearchTestPhenotype"/> and returns the donor record id.
         /// </summary>
-        Task<DonorUpdate> CreateDonorWithSearchTestPhenotype(ImportDonorType donorType);
+        Task<string> CreateDonorWithSearchTestPhenotype(ImportDonorType donorType);
 
         /// <summary>
         /// Edits the HLA of donor with code <see cref="donorCode"/> to a phenotype that does not match <see cref="HlaTypings.SearchTestPhenotype"/>.
@@ -41,7 +41,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         }
 
         /// <inheritdoc />
-        public async Task<DonorUpdate> CreateDonorWithSearchTestPhenotype(ImportDonorType donorType)
+        public async Task<string> CreateDonorWithSearchTestPhenotype(ImportDonorType donorType)
         {
             var action = $"Create test {donorType}";
             logger.LogStart(action);
@@ -60,11 +60,11 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             await donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorInfo);
             await donorImportTestSteps.DonorsShouldBeAvailableForSearch(donorInfo);
 
-            var singleUpdate = donorUpdate.Single();
-            logger.LogInfo($"Donor record id: {singleUpdate.RecordId}");
+            var recordId = donorUpdate.Single().RecordId;
+            logger.LogInfo($"Donor record id: {recordId}");
             logger.LogCompletion(action);
 
-            return singleUpdate;
+            return recordId;
         }
 
         /// <inheritdoc />
@@ -76,6 +76,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             const int donorCount = 1;
             var donorUpdate = DonorUpdateBuilder.Default
                 .WithValidDnaPhenotype()
+                .WithRecordIds(new[] { donorCode })
                 .WithDonorType(donorType)
                 .WithChangeType(ImportDonorChangeType.Edit)
                 .Build(donorCount);
