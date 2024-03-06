@@ -18,7 +18,7 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
             .With(d => d.RegistryCode, TestConstants.DefaultRegistryCode)
             .With(d => d.Ethnicity, TestConstants.DefaultEthnicity);
 
-        public static Builder<DonorUpdate> WithValidDnaAtAllLoci(this Builder<DonorUpdate> builder) =>
+        public static Builder<DonorUpdate> WithValidDnaPhenotype(this Builder<DonorUpdate> builder) =>
             builder.WithFactory(d => d.Hla, ImportedHlaBuilder.ValidHlaAtAllLoci.Build);
 
         public static Builder<DonorUpdate> WithAlternativeDnaAtLocusA(this Builder<DonorUpdate> builder) =>

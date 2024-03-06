@@ -32,7 +32,7 @@ internal class DiffMode_ExceptionPathTests : DonorImportTestBase
         test.Logger.LogStart(currentTestCase);
 
         var creationUpdate = DonorUpdateBuilder.Default
-            .WithValidDnaAtAllLoci()
+            .WithValidDnaPhenotype()
             .WithChangeType(ImportDonorChangeType.Create)
             .Build(donorCount);
 
@@ -67,7 +67,7 @@ internal class DiffMode_ExceptionPathTests : DonorImportTestBase
         test.Logger.LogStart(testCase);
 
         var update = DonorUpdateBuilder.Default
-            .WithValidDnaAtAllLoci()
+            .WithValidDnaPhenotype()
             .WithChangeType(ImportDonorChangeType.Edit)
             .Build(donorCount);
 
@@ -144,7 +144,7 @@ internal class DiffMode_ExceptionPathTests : DonorImportTestBase
         test.Logger.LogStart(testCase);
 
         var validUpdate = DonorUpdateBuilder.Default
-            .WithValidDnaAtAllLoci()
+            .WithValidDnaPhenotype()
             .WithChangeType(ImportDonorChangeType.Create)
             .Build(validDonorCount);
 

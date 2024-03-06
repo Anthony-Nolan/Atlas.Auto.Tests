@@ -2,7 +2,6 @@
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Client.Models.Search.Requests;
 using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
-using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Client.Models.Search.Results.Matching;
 using Atlas.Debug.Client.Models.Validation;
@@ -18,9 +17,9 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
     internal interface ISearchTestSteps
     {
         /// <summary>
-        /// Creates a test donor of the specified type and returns the record ID of the created donor.
+        /// Creates a donor of the specified type and returns the record id.
         /// </summary>
-        Task<string> CreateTestDonor(ImportDonorType donorType);
+        Task<string> CreateDonor(ImportDonorType donorType);
 
         Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName);
 
@@ -35,46 +34,25 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
     internal class SearchTestSteps : ISearchTestSteps
     {
         private readonly ISearchWorkflow workflow;
-        private readonly IDonorImportTestSteps donorImportTestSteps;
+        private readonly IDonorImportStepsForSearchTests donorImportSteps;
         private readonly ITestLogger logger;
         private readonly string testName;
 
         public SearchTestSteps(
             ISearchWorkflow workflow,
-            IDonorImportTestSteps donorImportTestSteps,
+            IDonorImportStepsForSearchTests donorImportSteps,
             ITestLogger logger,
             string testName)
         {
             this.workflow = workflow;
-            this.donorImportTestSteps = donorImportTestSteps;
+            this.donorImportSteps = donorImportSteps;
             this.logger = logger;
             this.testName = testName;
         }
 
-        public async Task<string> CreateTestDonor(ImportDonorType donorType)
+        public async Task<string> CreateDonor(ImportDonorType donorType)
         {
-            var action = $"Create test {donorType}";
-            logger.LogStart(action);
-
-            const int donorCount = 1;
-            var donorUpdate = DonorUpdateBuilder.Default
-                .WithSearchTestPhenotype()
-                .WithChangeType(ImportDonorChangeType.Create)
-                .WithDonorType(donorType)
-                .Build(donorCount);
-
-            var creationRequest = await donorImportTestSteps.ImportDiffDonorFile(donorUpdate);
-            await donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(creationRequest.FileName, donorCount, 0);
-
-            var createdDonorInfo = donorUpdate.ToDonorDebugInfo().ToList();
-            await donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(createdDonorInfo);
-            await donorImportTestSteps.DonorsShouldBeAvailableForSearch(createdDonorInfo);
-
-            var donorRecordId = donorUpdate.GetExternalDonorCodes().Single();
-            logger.LogInfo($"Donor record id: {donorRecordId}");
-            logger.LogCompletion(action);
-
-            return donorRecordId;
+            return (await donorImportSteps.CreateDonorWithSearchTestPhenotype(donorType)).RecordId;
         }
 
         public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName)
