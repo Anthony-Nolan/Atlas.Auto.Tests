@@ -1,4 +1,5 @@
 ﻿using Atlas.Auto.Tests.DependencyInjection;
+using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Utils.Reporting;
 using AventStack.ExtentReports;
 
@@ -22,4 +23,6 @@ internal abstract class TestBase
     {
         extentTestForFixture.Extent.Flush();
     }
+
+    protected ITestLogger BuildTestLogger(string testName) => new TestLogger(ExtentManager.CreateForTest(TestFixtureName, testName));
 }

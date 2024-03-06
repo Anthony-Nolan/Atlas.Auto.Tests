@@ -3,7 +3,6 @@ using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
-using Atlas.Auto.Utils.Reporting;
 
 namespace Atlas.Auto.Tests.Tests.Search;
 
@@ -15,7 +14,7 @@ internal abstract class SearchTestBase : TestBase
 
     protected TestServices<ISearchTestSteps> GetTestServices(string testName)
     {
-        var testLogger = new TestLogger(ExtentManager.CreateForTest(TestFixtureName, testName));
+        var testLogger = BuildTestLogger(testName);
         var importStepsForSearchTests = ResolveDonorImportStepsForSearchTests(testLogger);
         return ResolveTestServices(importStepsForSearchTests, testLogger, testName);
     }
