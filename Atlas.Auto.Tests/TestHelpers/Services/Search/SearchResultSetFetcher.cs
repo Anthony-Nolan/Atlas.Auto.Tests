@@ -7,7 +7,7 @@ namespace Atlas.Auto.Tests.TestHelpers.Services.Search;
 
 internal interface ISearchResultSetFetcher
 {
-    Task<DebugResponse<OriginalSearchResultSet>> Fetch(string resultsFileName, string? batchFolderName);
+    Task<DebugResponse<OriginalSearchResultSet>> Fetch(DebugSearchResultsRequest request);
 }
 
 internal class SearchResultSetFetcher : ISearchResultSetFetcher
@@ -23,20 +23,15 @@ internal class SearchResultSetFetcher : ISearchResultSetFetcher
         this.topLevelClient = topLevelClient;
     }
 
-    public async Task<DebugResponse<OriginalSearchResultSet>> Fetch(string resultsFileName, string? batchFolderName)
+    public async Task<DebugResponse<OriginalSearchResultSet>> Fetch(DebugSearchResultsRequest request)
     {
         return await debugRequester.ExecuteDebugRequestWithWaitAndRetry(
-            5, 10, async () => await FetchSearchResultSet(resultsFileName, batchFolderName));
+            5, 10, async () => await FetchSearchResultSet(request));
     }
 
-    private async Task<DebugResponse<OriginalSearchResultSet>> FetchSearchResultSet(string resultsFileName, string? batchFolderName)
+    private async Task<DebugResponse<OriginalSearchResultSet>> FetchSearchResultSet(DebugSearchResultsRequest request)
     {
-        var resultSet = await topLevelClient.FetchSearchResultSet(new DebugSearchResultsRequest
-        {
-            SearchResultFileName = resultsFileName,
-            BatchFolderName = batchFolderName
-        });
-
+        var resultSet = await topLevelClient.FetchSearchResultSet(request);
         return new DebugResponse<OriginalSearchResultSet>(resultSet);
     }
 }

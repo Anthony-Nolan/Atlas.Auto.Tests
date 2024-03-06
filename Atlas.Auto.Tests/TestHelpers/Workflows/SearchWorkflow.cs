@@ -5,6 +5,7 @@ using Atlas.Client.Models.Search.Results;
 using Atlas.Client.Models.Search.Results.Matching;
 using Atlas.Client.Models.Search.Results.Matching.ResultSet;
 using Atlas.Client.Models.Search.Results.ResultSet;
+using Atlas.Debug.Client.Models.SearchResults;
 using Atlas.Debug.Client.Models.Validation;
 
 namespace Atlas.Auto.Tests.TestHelpers.Workflows;
@@ -16,9 +17,9 @@ internal interface ISearchWorkflow
 {
     Task<DebugResponse<SearchInitiationResponse>> SubmitSearchRequest(SearchRequest request);
     Task<DebugResponse<MatchingResultsNotification>> FetchMatchingResultsNotification(string searchRequestId);
-    Task<DebugResponse<OriginalMatchingAlgorithmResultSet>> FetchMatchingResultSet(string resultsFileName, string? batchFolderName);
+    Task<DebugResponse<OriginalMatchingAlgorithmResultSet>> FetchMatchingResultSet(DebugSearchResultsRequest request);
     Task<DebugResponse<SearchResultsNotification>> FetchSearchResultsNotification(string searchRequestId);
-    Task<DebugResponse<OriginalSearchResultSet>> FetchSearchResultSet(string resultsFileName, string? batchFolderName);
+    Task<DebugResponse<OriginalSearchResultSet>> FetchSearchResultSet(DebugSearchResultsRequest request);
     Task<DebugResponse<IEnumerable<RequestValidationFailure>>> SubmitInvalidSearchRequest(SearchRequest request);
 }
 
@@ -54,9 +55,9 @@ internal class SearchWorkflow : ISearchWorkflow
         return await matchingNotificationFetcher.FetchNotification(searchRequestId);
     }
 
-    public async Task<DebugResponse<OriginalMatchingAlgorithmResultSet>> FetchMatchingResultSet(string resultsFileName, string? batchFolderName)
+    public async Task<DebugResponse<OriginalMatchingAlgorithmResultSet>> FetchMatchingResultSet(DebugSearchResultsRequest request)
     {
-        return await matchingResultSetFetcher.Fetch(resultsFileName, batchFolderName);
+        return await matchingResultSetFetcher.Fetch(request);
     }
 
     public async Task<DebugResponse<SearchResultsNotification>> FetchSearchResultsNotification(string searchRequestId)
@@ -64,9 +65,9 @@ internal class SearchWorkflow : ISearchWorkflow
         return await searchNotificationFetcher.FetchNotification(searchRequestId);
     }
 
-    public async Task<DebugResponse<OriginalSearchResultSet>> FetchSearchResultSet(string resultsFileName, string? batchFolderName)
+    public async Task<DebugResponse<OriginalSearchResultSet>> FetchSearchResultSet(DebugSearchResultsRequest request)
     {
-        return await searchResultSetFetcher.Fetch(resultsFileName, batchFolderName);
+        return await searchResultSetFetcher.Fetch(request);
     }
 
     public async Task<DebugResponse<IEnumerable<RequestValidationFailure>>> SubmitInvalidSearchRequest(SearchRequest request)
