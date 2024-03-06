@@ -9,6 +9,7 @@
             approvalsDirectory = Path.GetFullPath(approvalsDirectory);
             settings.UseDirectory(approvalsDirectory);
             settings.UseFileName(fileName);
+            settings.DisableRequireUniquePrefix();
             return settings;
         }
 

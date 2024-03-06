@@ -53,6 +53,12 @@
     <None Update="TestHelpers\Assertions\Approvals\Search_Cord_4_8_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Donor_10_10_IdentifiedExpectedChanges_MatchingResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Donor_10_10_IdentifiedExpectedChanges_SearchResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

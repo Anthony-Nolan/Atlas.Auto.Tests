@@ -18,7 +18,7 @@ internal class Search_HappyPathTests : SearchTestBase
     [Test]
     public async Task Search_Donor_10_10_ReturnsExpectedSearchResult()
     {
-        var test = GetTestServices(nameof(Search_Donor_10_10_ReturnsExpectedSearchResult));
+        var test = GetSearchTestServices(nameof(Search_Donor_10_10_ReturnsExpectedSearchResult));
 
         const string testDescription = "10/10 Donor Search";
         test.Logger.LogStart(testDescription);
@@ -34,7 +34,7 @@ internal class Search_HappyPathTests : SearchTestBase
     [Test]
     public async Task Search_Cord_4_8_ReturnsExpectedSearchResult()
     {
-        var test = GetTestServices(nameof(Search_Cord_4_8_ReturnsExpectedSearchResult));
+        var test = GetSearchTestServices(nameof(Search_Cord_4_8_ReturnsExpectedSearchResult));
 
         const string testDescription = "4/8 Cord Search";
         test.Logger.LogStart(testDescription);

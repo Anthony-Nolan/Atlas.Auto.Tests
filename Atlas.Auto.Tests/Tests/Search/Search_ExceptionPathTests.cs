@@ -18,7 +18,7 @@ internal class Search_ExceptionPathTests : SearchTestBase
     [Test]
     public async Task Search_MissingRequiredInfo_ReturnsValidationError()
     {
-        var test = GetTestServices(nameof(Search_MissingRequiredInfo_ReturnsValidationError));
+        var test = GetSearchTestServices(nameof(Search_MissingRequiredInfo_ReturnsValidationError));
 
         const string testDescription = "Search with missing required information";
         test.Logger.LogStart(testDescription);
@@ -32,7 +32,7 @@ internal class Search_ExceptionPathTests : SearchTestBase
     [Test]
     public async Task Search_InvalidPatientHla_FailsDuringMatching()
     {
-        var test = GetTestServices(nameof(Search_InvalidPatientHla_FailsDuringMatching));
+        var test = GetSearchTestServices(nameof(Search_InvalidPatientHla_FailsDuringMatching));
 
         const string testDescription = "Search with invalid patient HLA";
         test.Logger.LogStart(testDescription);
