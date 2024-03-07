@@ -47,6 +47,12 @@
     <None Update="TestHelpers\Assertions\Approvals\ScoreBatch_ScoresDonorBatch.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Cord_4_8_IdentifiedExpectedChanges_MatchingResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Cord_4_8_IdentifiedExpectedChanges_SearchResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="TestHelpers\Assertions\Approvals\Search_Cord_4_8_ReturnsExpectedSearchResult_SearchResult.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

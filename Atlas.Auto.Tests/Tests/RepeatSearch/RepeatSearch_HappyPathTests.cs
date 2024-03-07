@@ -20,36 +20,47 @@ internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
     [Test]
     public async Task RepeatSearch_Donor_10_10_IdentifiedExpectedChanges()
     {
-        const string testName = nameof(RepeatSearch_Donor_10_10_IdentifiedExpectedChanges);
-        const ImportDonorType donorType = ImportDonorType.Adult;
-        const string requestFileName = "search-request-donor-10_10.json";
-        var test = GetRepeatSearchTestServices(testName);
-
-        const string testDescription = "Repeat Search of 10/10 donor search";
+        var test = GetRepeatSearchTestServices(nameof(RepeatSearch_Donor_10_10_IdentifiedExpectedChanges));
+        const string testDescription = "Repeat Search tests for 10/10 donor search";
         test.Logger.LogStart(testDescription);
+        await RunRepeatSearchTests(test, ImportDonorType.Adult, "search-request-donor-10_10.json");
+        test.Logger.LogCompletion(testDescription);
+    }
 
+    [Test]
+    public async Task RepeatSearch_Cord_4_8_IdentifiedExpectedChanges()
+    {
+        var test = GetRepeatSearchTestServices(nameof(RepeatSearch_Cord_4_8_IdentifiedExpectedChanges));
+        const string testDescription = "Repeat Search tests for 4/8 cord search";
+        test.Logger.LogStart(testDescription);
+        await RunRepeatSearchTests(test, ImportDonorType.Cord, "search-request-cord-4_8.json");
+        test.Logger.LogCompletion(testDescription);
+    }
+
+    private static async Task RunRepeatSearchTests(
+        TestServices<IRepeatSearchTestSteps> test,
+        ImportDonorType donorType,
+        string requestFileName)
+    {
         var currentTestStep = "Create donors then run original search";
         test.Logger.LogStart(currentTestStep);
         var firstDonors = await CreateFirstDonors(test, donorType);
-        var originalSearchId = await test.Steps.OriginalSearchShouldOnlyReturnExpectedDonors(requestFileName, firstDonors);
+        var searchId = await test.Steps.OriginalSearchShouldOnlyReturnExpectedDonors(requestFileName, firstDonors);
         test.Logger.LogCompletion(currentTestStep);
 
         currentTestStep = "Apply donor updates then run repeat search";
         test.Logger.LogStart(currentTestStep);
         var timeBeforeDonorChanges = DateTimeOffset.UtcNow;
         var donorChanges = await ApplyDonorChanges(test, donorType, firstDonors);
-        await RepeatSearchShouldIdentifyExpectedChanges(test, requestFileName, originalSearchId, timeBeforeDonorChanges, donorChanges);
-
+        await RepeatSearchShouldIdentifyExpectedChanges(test, requestFileName, searchId, timeBeforeDonorChanges, donorChanges);
         test.Logger.LogCompletion(currentTestStep);
 
         currentTestStep = "Delete previously matched donors then run repeat search";
         test.Logger.LogStart(currentTestStep);
         timeBeforeDonorChanges = DateTimeOffset.UtcNow;
         donorChanges = await DeleteDonors(test, donorChanges.NewlyMatching);
-        await RepeatSearchShouldIdentifyExpectedChanges(test, requestFileName, originalSearchId, timeBeforeDonorChanges, donorChanges);
+        await RepeatSearchShouldIdentifyExpectedChanges(test, requestFileName, searchId, timeBeforeDonorChanges, donorChanges);
         test.Logger.LogCompletion(currentTestStep);
-
-        test.Logger.LogCompletion(testDescription);
     }
 
     private static async Task<DonorChanges> CreateFirstDonors(
