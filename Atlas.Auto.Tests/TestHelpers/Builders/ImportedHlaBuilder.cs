@@ -6,7 +6,7 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
 {
     internal static class ImportedHlaBuilder
     {
-        public static Builder<ImportedHla> ValidHlaAtAllLoci => Builder<ImportedHla>.New
+        public static Builder<ImportedHla> ValidDnaPhenotype => Builder<ImportedHla>.New
             .WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaPhenotype.A))
             .WithFactory(h => h.B, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaPhenotype.B))
             .WithFactory(h => h.C, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaPhenotype.C))

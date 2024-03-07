@@ -25,8 +25,8 @@ internal class Search_HappyPathTests : SearchTestBase
 
         var expectedDonorCode = await test.Steps.CreateDonor(ImportDonorType.Adult);
         var searchResponse = await test.Steps.SubmitSearchRequest("search-request-donor-10_10.json");
-        await test.Steps.MatchingShouldHaveReturnedExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-        await test.Steps.SearchShouldHaveReturnedExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+        await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+        await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
 
         test.Logger.LogCompletion(testDescription);
     }
@@ -41,8 +41,8 @@ internal class Search_HappyPathTests : SearchTestBase
 
         var expectedDonorCode = await test.Steps.CreateDonor(ImportDonorType.Cord);
         var searchResponse = await test.Steps.SubmitSearchRequest("search-request-cord-4_8.json");
-        await test.Steps.MatchingShouldHaveReturnedExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-        await test.Steps.SearchShouldHaveReturnedExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+        await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+        await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
 
         test.Logger.LogCompletion(testDescription);
     }
