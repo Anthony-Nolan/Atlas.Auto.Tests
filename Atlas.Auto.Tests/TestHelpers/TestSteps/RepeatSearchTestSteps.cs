@@ -1,9 +1,13 @@
 ﻿using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
+using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Client.Models.Search.Requests;
 using Atlas.Client.Models.Search.Results.Matching;
+using Atlas.Client.Models.Search.Results;
+using Atlas.Client.Models.Search.Results.Matching.ResultSet;
+using Atlas.Client.Models.Search.Results.ResultSet;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
 
@@ -16,24 +20,30 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 internal interface IRepeatSearchTestSteps
 {
     /// <returns>donor record id</returns>
-    Task<string> CreateDonor(ImportDonorType donorType);
+    Task<string> CreateMatchingDonor(ImportDonorType donorType);
+
+    /// <returns>donor record id</returns>
+    Task<string> CreateNonMatchingDonor(ImportDonorType donorType);
 
     Task EditDonorToNoLongerMatch(string donorCode, ImportDonorType donorType);
 
-    Task DeleteDonor(string donorCode);
+    Task EditDonorToMatch(string donorCode, ImportDonorType donorType);
+
+    Task DeleteDonors(IReadOnlyCollection<string> donorCodes);
 
     /// <returns>search request id</returns>
-    Task<string> OriginalSearchShouldReturnExpectedDonor(string searchRequestFileName, string expectedDonorCode);
+    Task<string> OriginalSearchShouldOnlyReturnExpectedDonors(
+        string searchRequestFileName, DonorChanges donorChanges);
 
     /// <returns>repeat search request id</returns>
     Task<string> SubmitRepeatSearchRequest(
         string searchRequestFileName, string originalSearchId, DateTimeOffset searchCutOff);
 
     Task RepeatMatchingShouldHaveIdentifiedExpectedChanges(
-        string repeatSearchId, string searchId, string noLongerMatchingDonor, string? newlyMatchedDonor);
+        string repeatSearchId, string searchId, DonorChanges donorChanges);
 
     Task RepeatSearchShouldHaveIdentifiedExpectedChanges(
-        string repeatSearchId, string searchId, string noLongerMatchingDonor, string? newlyMatchedDonor);
+        string repeatSearchId, string searchId, DonorChanges donorChanges);
 }
 
 internal class RepeatSearchTestSteps : IRepeatSearchTestSteps
@@ -58,25 +68,35 @@ internal class RepeatSearchTestSteps : IRepeatSearchTestSteps
         this.donorImportSteps = donorImportSteps;
     }
 
-    public async Task<string> CreateDonor(ImportDonorType donorType)
+    public async Task<string> CreateMatchingDonor(ImportDonorType donorType)
     {
         return await donorImportSteps.CreateDonorWithSearchTestPhenotype(donorType);
     }
 
+    public async Task<string> CreateNonMatchingDonor(ImportDonorType donorType)
+    {
+        return await donorImportSteps.CreateDonorWithValidDnaPhenotype(donorType);
+    }
+
     public async Task EditDonorToNoLongerMatch(string donorCode, ImportDonorType donorType)
     {
-        await donorImportSteps.EditDonorHlaToNonMatchingPhenotype(donorCode, donorType);
+        await donorImportSteps.EditDonorHlaToValidDnaPhenotype(donorCode, donorType);
     }
 
-    public async Task DeleteDonor(string donorCode)
+    public async Task EditDonorToMatch(string donorCode, ImportDonorType donorType)
     {
-        await donorImportSteps.DeleteDonor(donorCode);
+        await donorImportSteps.EditDonorHlaToSearchTestPhenotype(donorCode, donorType);
     }
 
-    public async Task<string> OriginalSearchShouldReturnExpectedDonor(string searchRequestFileName, string expectedDonorCode)
+    public async Task DeleteDonors(IReadOnlyCollection<string> donorCodes)
+    {
+        await donorImportSteps.DeleteDonors(donorCodes);
+    }
+
+    public async Task<string> OriginalSearchShouldOnlyReturnExpectedDonors(string searchRequestFileName, DonorChanges donorChanges)
     {
         var response = await searchTestSteps.SubmitSearchRequest(searchRequestFileName);
-        await searchTestSteps.MatchingShouldHaveReturnedExpectedDonor(response.SearchIdentifier, expectedDonorCode);
+        await searchTestSteps.MatchingShouldOnlyReturnExpectedDonors(response.SearchIdentifier, donorChanges);
         // no need to assert the final search result as repeat search only uses the matching result as input
         return response.SearchIdentifier;
     }
@@ -100,10 +120,10 @@ internal class RepeatSearchTestSteps : IRepeatSearchTestSteps
         return response.DebugResult!.RepeatSearchIdentifier;
     }
 
-    public async Task RepeatMatchingShouldHaveIdentifiedExpectedChanges(string repeatSearchId,
+    public async Task RepeatMatchingShouldHaveIdentifiedExpectedChanges(
+        string repeatSearchId,
         string searchId,
-        string? noLongerMatchingDonor,
-        string? newlyMatchedDonor)
+        DonorChanges donorChanges)
     {
         const string action = "Check repeat matching identifies expected changes";
         logger.LogStart(action);
@@ -111,30 +131,14 @@ internal class RepeatSearchTestSteps : IRepeatSearchTestSteps
         var notification = await FetchMatchingResultsNotification(repeatSearchId, searchId);
         notification.MatchingShouldHaveBeenSuccessful();
 
-        var resultSetResponse = await workflow.FetchMatchingResultSet(notification.ToDebugSearchResultsRequest());
-        logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch matching result set");
+        var matchingResultSet = await FetchMatchingAlgorithmResultSet(notification);
+        ExpectedDonorsShouldNoLongerMatch(matchingResultSet.NoLongerMatchingDonors, donorChanges.NoLongerMatching);
 
-        var matchingResultSet = resultSetResponse.DebugResult!;
-        logger.AssertThenLogAndThrow(
-            () => matchingResultSet.NoLongerMatchingDonors.Should().Contain(noLongerMatchingDonor),
-            "Check for no longer matching donors");
-
-        if (newlyMatchedDonor == null)
+        foreach (var newlyMatchedDonor in donorChanges.NewlyMatching)
         {
-            logger.LogCompletion(action);
-            return;
+            var donorResult = matchingResultSet.GetDonorResult(newlyMatchedDonor);
+            await DonorResultShouldBeAsExpected(donorResult, "MatchingResult");
         }
-
-        var donorResult = matchingResultSet.GetDonorResult(newlyMatchedDonor);
-        logger.AssertThenLogAndThrow(
-            () => donorResult.Should().NotBeNull(),
-            $"Select matching result for {newlyMatchedDonor}");
-
-        await logger.AssertThenLogAndThrowAsync(
-            () => VerifyJson(donorResult!.SerializeSingle())
-                .IgnoreVaryingSearchResultProperties()
-                .WriteReceivedToApprovalsFolder($"{testName}_MatchingResult"),
-            "Matching result comparison to approved result");
 
         logger.LogCompletion(action);
     }
@@ -142,42 +146,22 @@ internal class RepeatSearchTestSteps : IRepeatSearchTestSteps
     public async Task RepeatSearchShouldHaveIdentifiedExpectedChanges(
         string repeatSearchId,
         string searchId,
-        string? noLongerMatchingDonor,
-        string? newlyMatchedDonor)
+        DonorChanges donorChanges)
     {
         const string action = "Check repeat search identifies expected changes";
         logger.LogStart(action);
 
-        var notificationResponse = await workflow.FetchSearchResultsNotification(repeatSearchId, searchId);
-        logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch search results notification");
-
-        var notification = notificationResponse.DebugResult!;
+        var notification = await FetchSearchResultsNotification(repeatSearchId, searchId);
         notification.SearchShouldHaveBeenSuccessful();
 
-        var resultSetResponse = await workflow.FetchSearchResultSet(notification.ToDebugSearchResultsRequest());
-        logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch search result set");
+        var searchResultSet = await FetchSearchResultSet(notification);
+        ExpectedDonorsShouldNoLongerMatch(searchResultSet.NoLongerMatchingDonorCodes, donorChanges.NoLongerMatching);
 
-        var searchResultSet = resultSetResponse.DebugResult!;
-        logger.AssertThenLogAndThrow(
-            () => searchResultSet.NoLongerMatchingDonorCodes.Should().Contain(noLongerMatchingDonor),
-            "Check for no longer matching donors");
-
-        if (newlyMatchedDonor == null)
+        foreach (var newlyMatchedDonor in donorChanges.NewlyMatching)
         {
-            logger.LogCompletion(action);
-            return;
+            var donorResult = searchResultSet.GetDonorResult(newlyMatchedDonor);
+            await DonorResultShouldBeAsExpected(donorResult, "SearchResult");
         }
-
-        var donorResult = searchResultSet.GetDonorResult(newlyMatchedDonor);
-        logger.AssertThenLogAndThrow(
-            () => donorResult.Should().NotBeNull(), 
-            $"Select search result for {newlyMatchedDonor}");
-
-        await logger.AssertThenLogAndThrowAsync(
-            () => VerifyJson(donorResult!.SerializeSingle())
-                .IgnoreVaryingSearchResultProperties()
-                .WriteReceivedToApprovalsFolder($"{testName}_SearchResult"),
-            "Search result comparison to approved result");
 
         logger.LogCompletion(action);
     }
@@ -187,5 +171,46 @@ internal class RepeatSearchTestSteps : IRepeatSearchTestSteps
         var notificationResponse = await workflow.FetchMatchingResultsNotification(repeatSearchId, searchId);
         logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch matching results notification");
         return notificationResponse.DebugResult!;
+    }
+
+    private async Task<RepeatMatchingAlgorithmResultSet> FetchMatchingAlgorithmResultSet(ResultsNotification notification)
+    {
+        var resultSetResponse = await workflow.FetchMatchingResultSet(notification.ToDebugSearchResultsRequest());
+        logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch matching result set");
+        return resultSetResponse.DebugResult!;
+    }
+
+    private async Task<SearchResultsNotification> FetchSearchResultsNotification(string repeatSearchId, string searchId)
+    {
+        var notificationResponse = await workflow.FetchSearchResultsNotification(repeatSearchId, searchId);
+        logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch search results notification");
+        return notificationResponse.DebugResult!;
+    }
+
+    private async Task<RepeatSearchResultSet> FetchSearchResultSet(ResultsNotification notification)
+    {
+        var resultSetResponse = await workflow.FetchSearchResultSet(notification.ToDebugSearchResultsRequest());
+        logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch search result set");
+        return resultSetResponse.DebugResult!;
+    }
+
+    private void ExpectedDonorsShouldNoLongerMatch(
+        IEnumerable<string> noLongerMatchingDonors,
+        IEnumerable<string> expectedDonorCodes)
+    {
+        logger.AssertThenLogAndThrow(
+            () => noLongerMatchingDonors.Should().Contain(expectedDonorCodes),
+            "Check for no longer matching donors");
+    }
+
+    private async Task DonorResultShouldBeAsExpected<TResult>(TResult? donorResult, string approvalFileNameSuffix) where TResult : Result
+    {
+        logger.AssertThenLogAndThrow(() => donorResult.Should().NotBeNull(), "Select donor result");
+
+        await logger.AssertThenLogAndThrowAsync(
+            () => VerifyJson(donorResult.SerializeSingle())
+                .IgnoreVaryingSearchResultProperties()
+                .WriteReceivedToApprovalsFolder($"{testName}_{approvalFileNameSuffix}"),
+            $"Comparison of donor {donorResult!.DonorCode} to approved result");
     }
 }

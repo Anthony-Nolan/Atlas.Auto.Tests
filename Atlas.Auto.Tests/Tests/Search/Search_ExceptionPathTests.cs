@@ -38,7 +38,7 @@ internal class Search_ExceptionPathTests : SearchTestBase
         test.Logger.LogStart(testDescription);
 
         var searchResponse = await test.Steps.SubmitSearchRequest("search-request-invalid-patient-hla-at-A1.json");
-        await test.Steps.MatchingShouldHaveFailedHlaValidation(searchResponse.SearchIdentifier);
+        await test.Steps.MatchingShouldFailHlaValidation(searchResponse.SearchIdentifier);
 
         test.Logger.LogCompletion(testDescription);
     }
