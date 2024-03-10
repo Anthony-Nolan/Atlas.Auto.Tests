@@ -1,4 +1,5 @@
-﻿using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
+﻿using Atlas.Auto.Tests.TestHelpers.Assertions;
+using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.Services;
@@ -44,6 +45,8 @@ internal interface IRepeatSearchTestSteps
 
     Task RepeatSearchShouldHaveIdentifiedExpectedChanges(
         string repeatSearchId, string searchId, DonorChanges donorChanges);
+
+    Task RepeatRequestMissingRequiredInfoShouldReturnValidationErrors();
 }
 
 internal class RepeatSearchTestSteps : IRepeatSearchTestSteps
@@ -164,6 +167,16 @@ internal class RepeatSearchTestSteps : IRepeatSearchTestSteps
         }
 
         logger.LogCompletion(action);
+    }
+
+    public async Task RepeatRequestMissingRequiredInfoShouldReturnValidationErrors()
+    {
+        // submit empty repeat search request
+        var response = await workflow.SubmitInvalidRepeatSearchRequest(new RepeatSearchRequest());
+        logger.AssertResponseThenLogAndThrow(response, "Submit invalid repeat search request");
+        var validationErrors = response.DebugResult!.ToList();
+        validationErrors.ShouldContain("'Original Search Id' must not be empty.");
+        validationErrors.ShouldContain("'Search Cutoff Date' must not be empty.");
     }
 
     private async Task<MatchingResultsNotification> FetchMatchingResultsNotification(string repeatSearchId, string searchId)
