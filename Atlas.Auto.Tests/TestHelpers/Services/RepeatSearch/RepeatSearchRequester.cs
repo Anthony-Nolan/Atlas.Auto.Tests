@@ -13,6 +13,13 @@ internal interface IRepeatSearchRequester
     /// An invalid request will always be deemed unsuccessful.
     /// </summary>
     Task<DebugResponse<SearchInitiationResponse>> SubmitValidSearchRequest(RepeatSearchRequest request);
+
+    /// <summary>
+    /// The <paramref name="request"/> must be **invalid** in terms of http request validation (excludes HLA validation).
+    /// The request will be resent until "invalid request" response is received, or the maximum number of retries is reached.
+    /// An valid request will always be deemed unsuccessful.
+    /// </summary>
+    Task<DebugResponse<IEnumerable<RequestValidationFailure>>> SubmitInvalidSearchRequest(RepeatSearchRequest request);
 }
 
 internal class RepeatSearchRequester : IRepeatSearchRequester
@@ -31,10 +38,25 @@ internal class RepeatSearchRequester : IRepeatSearchRequester
         return await debugRequester.ExecuteDebugRequestWithWaitAndRetry(5, 5, async () => await PostValidSearchRequest(request));
     }
 
+    public async Task<DebugResponse<IEnumerable<RequestValidationFailure>>> SubmitInvalidSearchRequest(RepeatSearchRequest request)
+    {
+        return await debugRequester.ExecuteDebugRequestWithWaitAndRetry(5, 5, async () => await PostInvalidSearchRequest(request));
+    }
+
     private async Task<DebugResponse<SearchInitiationResponse>> PostValidSearchRequest(RepeatSearchRequest request)
     {
         var response = await PostRequest(request);
-        return new DebugResponse<SearchInitiationResponse>(response is { WasSuccess: true }, response.ResponseOnSuccess);
+        return new DebugResponse<SearchInitiationResponse>(
+            response is { WasSuccess: true },
+            response.ResponseOnSuccess);
+    }
+
+    private async Task<DebugResponse<IEnumerable<RequestValidationFailure>>> PostInvalidSearchRequest(RepeatSearchRequest request)
+    {
+        var response = await PostRequest(request);
+        return new DebugResponse<IEnumerable<RequestValidationFailure>>(
+            response is { WasSuccess: false },
+            response.ValidationFailures);
     }
 
     private async Task<ResponseFromValidatedRequest<SearchInitiationResponse>> PostRequest(RepeatSearchRequest request)
