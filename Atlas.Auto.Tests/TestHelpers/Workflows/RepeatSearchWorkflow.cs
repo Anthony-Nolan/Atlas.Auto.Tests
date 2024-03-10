@@ -6,6 +6,7 @@ using Atlas.Client.Models.Search.Results.Matching;
 using Atlas.Client.Models.Search.Results.Matching.ResultSet;
 using Atlas.Client.Models.Search.Results.ResultSet;
 using Atlas.Debug.Client.Models.SearchResults;
+using Atlas.Debug.Client.Models.Validation;
 
 namespace Atlas.Auto.Tests.TestHelpers.Workflows;
 
@@ -19,6 +20,7 @@ internal interface IRepeatSearchWorkflow
     Task<DebugResponse<RepeatMatchingAlgorithmResultSet>> FetchMatchingResultSet(DebugSearchResultsRequest request);
     Task<DebugResponse<SearchResultsNotification>> FetchSearchResultsNotification(string repeatSearchRequestId, string searchRequestId);
     Task<DebugResponse<RepeatSearchResultSet>> FetchSearchResultSet(DebugSearchResultsRequest request);
+    Task<DebugResponse<IEnumerable<RequestValidationFailure>>> SubmitInvalidRepeatSearchRequest(RepeatSearchRequest request);
 }
 
 internal class RepeatSearchWorkflow : IRepeatSearchWorkflow
@@ -66,5 +68,10 @@ internal class RepeatSearchWorkflow : IRepeatSearchWorkflow
     public async Task<DebugResponse<RepeatSearchResultSet>> FetchSearchResultSet(DebugSearchResultsRequest request)
     {
         return await searchResultSetFetcher.Fetch(request);
+    }
+
+    public async Task<DebugResponse<IEnumerable<RequestValidationFailure>>> SubmitInvalidRepeatSearchRequest(RepeatSearchRequest request)
+    {
+        return await repeatSearchRequester.SubmitInvalidSearchRequest(request);
     }
 }
