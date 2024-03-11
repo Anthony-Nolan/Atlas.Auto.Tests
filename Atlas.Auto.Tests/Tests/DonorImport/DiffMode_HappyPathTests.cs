@@ -60,10 +60,7 @@ internal class DiffMode_HappyPathTests : DonorImportTestBase
 
         var editedDonorInfo = editUpdates.ToDonorDebugInfo().ToList();
         await test.Steps.DonorStoreShouldHaveExpectedDonors(editedDonorInfo);
-        // Purposefully not checking if donors are available for search, as only changed the HLA,
-        // and current approach depends on change in donor availability to determine when matching algorithm has caught up with donor updates.
-        // todo #17: extend active matching db checker logic to check for changes in HLA.
-
+        await test.Steps.MatchingAlgorithmDonorInfoShouldBe(editedDonorInfo);
         test.Logger.LogCompletion(currentTestCase);
 
         currentTestCase = "delete donors";

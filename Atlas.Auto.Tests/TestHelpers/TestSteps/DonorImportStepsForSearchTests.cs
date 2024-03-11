@@ -138,9 +138,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
 
             var donorInfo = donorUpdate.ToDonorDebugInfo().ToList();
             await donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorInfo);
-            // Purposefully not checking if donor is available for search, as only changed the HLA,
-            // and current approach depends on change in donor availability to determine when matching algorithm has caught up with donor updates.
-            // todo #17: extend active matching db checker logic to check for changes in HLA.
+            await donorImportTestSteps.MatchingAlgorithmDonorInfoShouldBe(donorInfo);
 
             logger.LogCompletion(action);
         }

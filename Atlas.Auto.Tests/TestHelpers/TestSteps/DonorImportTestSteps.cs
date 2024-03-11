@@ -30,6 +30,12 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         Task DonorsShouldBeAvailableForSearch(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo);
         Task DonorsShouldNotBeAvailableForSearch(IReadOnlyCollection<string> externalDonorCodes);
 
+        /// <summary>
+        /// Use to assert that an edit to an existing donor was successfully applied,
+        /// i.e., where the donor should remain searchable and its info should have been updated.
+        /// </summary>
+        Task MatchingAlgorithmDonorInfoShouldBe(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo);
+
         Task FullModeImportAlertShouldHaveBeenRaised(string fileName);
         Task HlaExpansionFailureShouldBeReportedFor(string donorCode, string invalidHlaName);
 
@@ -126,6 +132,13 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             logger.AssertThenLogAndThrow(
                 () => donorCheck.DebugResult.ShouldNotHaveTheseDonors(externalDonorCodes),
                 "Check that donors are **not** searchable");
+        }
+
+        public async Task MatchingAlgorithmDonorInfoShouldBe(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
+        {
+            var donorCheck = await workflow.CheckDonorInfoInMatchingAlgorithmIsAsExpected(expectedDonorInfo);
+            logger.AssertResponseThenLogAndThrow(donorCheck, "Check donor info in matching algorithm");
+            // it's enough to assert on the response, as the underlying debug service will only return success if the donor info is as expected
         }
 
         public async Task FullModeImportAlertShouldHaveBeenRaised(string fileName)
