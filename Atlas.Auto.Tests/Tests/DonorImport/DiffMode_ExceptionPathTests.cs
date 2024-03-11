@@ -106,11 +106,11 @@ internal class DiffMode_ExceptionPathTests : DonorImportTestBase
     }
 
     [Test]
-    public async Task DonorImport_DiffMode_CreateWithInvalidHla_DoesNotMakeDonorAvailableForSearch()
+    public async Task DonorImport_DiffMode_CreateWithInvalidHla_ReportsInvalidHla_AndDoesNotMakeDonorAvailableForSearch()
     {
         const string testCase = "create donor with invalid HLA in diff mode";
         const int donorCount = 1;
-        var test = GetTestServices(nameof(DonorImport_DiffMode_CreateWithInvalidHla_DoesNotMakeDonorAvailableForSearch));
+        var test = GetTestServices(nameof(DonorImport_DiffMode_CreateWithInvalidHla_ReportsInvalidHla_AndDoesNotMakeDonorAvailableForSearch));
 
         test.Logger.LogStart(testCase);
 
@@ -123,12 +123,12 @@ internal class DiffMode_ExceptionPathTests : DonorImportTestBase
         await test.Steps.DonorImportShouldHaveBeenSuccessful(creationRequest.FileName, donorCount, 0);
 
         // donor should have been created in donor store, but then failed to be made available for search
-        // order of asserts matters: need to first check for the alert, and then check for search availability
+        // order of asserts matters: need to first check for HLA expansion failure, and then check for search availability
         var expectedDonorInfo = creationUpdate.ToDonorDebugInfo().ToList();
+        var donorCode = expectedDonorInfo.GetExternalDonorCodes().ToList();
         await test.Steps.DonorStoreShouldHaveExpectedDonors(expectedDonorInfo);
-        await test.Steps.HlaExpansionFailureAlertShouldHaveBeenRaised();
-        await test.Steps.DonorsShouldNotBeAvailableForSearch(expectedDonorInfo.GetExternalDonorCodes().ToList());
-        //todo #19: this test is prone to false positive outcome until we can query application insights for the exact HLA expansion failure custom event
+        await test.Steps.HlaExpansionFailureShouldBeReportedFor(donorCode.Single(), HlaTypings.InvalidDnaForAnyLocus);
+        await test.Steps.DonorsShouldNotBeAvailableForSearch(donorCode);
 
         test.Logger.LogCompletion(testCase);
     }

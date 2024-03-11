@@ -31,7 +31,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         Task DonorsShouldNotBeAvailableForSearch(IReadOnlyCollection<string> externalDonorCodes);
 
         Task FullModeImportAlertShouldHaveBeenRaised(string fileName);
-        Task HlaExpansionFailureAlertShouldHaveBeenRaised();
+        Task HlaExpansionFailureShouldBeReportedFor(string donorCode, string invalidHlaName);
 
         Task FailedDonorUpdatesShouldHaveBeenLogged(string fileName, IEnumerable<FailedDonorUpdate> expectedFailedDonorInfo);
     }
@@ -98,7 +98,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         {
             var donorCheck = await CheckDonorStore(expectedDonorInfo.GetExternalDonorCodes());
             logger.AssertThenLogAndThrow(
-                () => donorCheck.ShouldHaveExpectedDonors(expectedDonorInfo), 
+                () => donorCheck.ShouldHaveExpectedDonors(expectedDonorInfo),
                 "Check for donor presence");
         }
 
@@ -106,7 +106,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         {
             var donorCheck = await CheckDonorStore(externalDonorCodes);
             logger.AssertThenLogAndThrow(
-                () => donorCheck.ShouldNotHaveTheseDonors(externalDonorCodes), 
+                () => donorCheck.ShouldNotHaveTheseDonors(externalDonorCodes),
                 "Check for donor absence");
         }
 
@@ -115,7 +115,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             var donorCheck = await workflow.CheckDonorsAreAvailableForSearch(expectedDonorInfo.GetExternalDonorCodes());
             logger.AssertResponseThenLogAndThrow(donorCheck, "Search availability request");
             logger.AssertThenLogAndThrow(
-                () => donorCheck.DebugResult.ShouldHaveExpectedDonors(expectedDonorInfo), 
+                () => donorCheck.DebugResult.ShouldHaveExpectedDonors(expectedDonorInfo),
                 "Check that donors are searchable");
         }
 
@@ -124,7 +124,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             var donorCheck = await workflow.CheckDonorsAreNotAvailableForSearch(externalDonorCodes);
             logger.AssertResponseThenLogAndThrow(donorCheck, "Search availability request");
             logger.AssertThenLogAndThrow(
-                () => donorCheck.DebugResult.ShouldNotHaveTheseDonors(externalDonorCodes), 
+                () => donorCheck.DebugResult.ShouldNotHaveTheseDonors(externalDonorCodes),
                 "Check that donors are **not** searchable");
         }
 
@@ -133,15 +133,21 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             var alertResponse = await workflow.FetchFailedFileAlert(fileName);
             logger.AssertResponseThenLogAndThrow(alertResponse, "Fetch file failure alert");
             logger.AssertThenLogAndThrow(
-                () => alertResponse.DebugResult?.ShouldSayFullModeImportNotAllowed(), 
+                () => alertResponse.DebugResult?.ShouldSayFullModeImportNotAllowed(),
                 "Alert for Full mode file import");
         }
 
-        public async Task HlaExpansionFailureAlertShouldHaveBeenRaised()
+        public async Task HlaExpansionFailureShouldBeReportedFor(string donorCode, string invalidHlaName)
         {
             var alertResponse = await workflow.FetchHlaExpansionFailureAlert();
-            logger.AssertResponseThenLogAndThrow(alertResponse, "Fetch HLA expansion failure alert");
+            logger.AssertResponseThenLogAndThrow(alertResponse, "Fetch alert for HLA expansion failure");
             // no need to assert on the alert message contents, as it doesn't contain any data specific to our test
+
+            var failuresResponse = await workflow.FetchHlaExpansionFailuresForDonor(donorCode);
+            logger.AssertResponseThenLogAndThrow(failuresResponse, "Fetch HLA expansion failures for donor");
+            logger.AssertThenLogAndThrow(
+                () => failuresResponse.DebugResult?.ToList().ShouldContainFailureFor(donorCode, invalidHlaName),
+                "HLA expansion failure for donor");
         }
 
         public async Task FailedDonorUpdatesShouldHaveBeenLogged(string fileName, IEnumerable<FailedDonorUpdate> expectedFailedDonorInfo)
@@ -149,7 +155,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
             var infoResponse = await workflow.FetchDonorImportFailureInfo(fileName);
             logger.AssertResponseThenLogAndThrow(infoResponse, "Fetch donor import failures");
             logger.AssertThenLogAndThrow(
-                () => infoResponse.DebugResult?.ShouldBeEquivalentTo(fileName, expectedFailedDonorInfo.ToList()), 
+                () => infoResponse.DebugResult?.ShouldBeEquivalentTo(fileName, expectedFailedDonorInfo.ToList()),
                 "Logging of donor import failures");
         }
 
@@ -157,7 +163,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         {
             var importResponse = await workflow.ImportDonorFile(request);
             logger.AssertThenLogAndThrow(
-                () => importResponse.Should().BeTrue(), 
+                () => importResponse.Should().BeTrue(),
                 $"Send donor import file {request.FileName}");
         }
 

@@ -1,6 +1,7 @@
 ﻿using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.Services.DonorImport;
 using Atlas.Client.Models.SupportMessages;
+using Atlas.Debug.Client.Models.ApplicationInsights;
 using Atlas.Debug.Client.Models.DonorImport;
 using Atlas.DonorImport.FileSchema.Models;
 
@@ -19,6 +20,7 @@ internal interface IDonorImportWorkflow
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes);
     Task<DebugResponse<Alert>> FetchFailedFileAlert(string fileName);
     Task<DebugResponse<Alert>> FetchHlaExpansionFailureAlert();
+    Task<DebugResponse<IEnumerable<HlaExpansionFailure>>> FetchHlaExpansionFailuresForDonor(string externalDonorCode);
     Task<DebugResponse<DonorImportFailureInfo>> FetchDonorImportFailureInfo(string fileName);
 }
 
@@ -31,6 +33,7 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     private readonly IFullModeChecker fullModeChecker;
     private readonly IFailedFileAlertFetcher failedFileAlertFetcher;
     private readonly IHlaExpansionFailureAlertFetcher hlaExpansionFailureAlertFetcher;
+    private readonly IHlaExpansionFailureFetcher hlaExpansionFailureFetcher;
     private readonly IDonorImportFailureInfoFetcher donorImportFailureInfoFetcher;
 
     public DonorImportWorkflow(
@@ -41,6 +44,7 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
         IActiveMatchingDbChecker activeMatchingDbChecker,
         IFailedFileAlertFetcher failedFileAlertFetcher,
         IHlaExpansionFailureAlertFetcher hlaExpansionFailureAlertFetcher,
+        IHlaExpansionFailureFetcher hlaExpansionFailureFetcher,
         IDonorImportFailureInfoFetcher donorImportFailureInfoFetcher)
     {
         this.fullModeChecker = fullModeChecker;
@@ -50,6 +54,7 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
         this.activeMatchingDbChecker = activeMatchingDbChecker;
         this.failedFileAlertFetcher = failedFileAlertFetcher;
         this.hlaExpansionFailureAlertFetcher = hlaExpansionFailureAlertFetcher;
+        this.hlaExpansionFailureFetcher = hlaExpansionFailureFetcher;
         this.donorImportFailureInfoFetcher = donorImportFailureInfoFetcher;
     }
 
@@ -91,6 +96,11 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     public async Task<DebugResponse<Alert>> FetchHlaExpansionFailureAlert()
     {
         return await hlaExpansionFailureAlertFetcher.FetchAlertMessage();
+    }
+
+    public async Task<DebugResponse<IEnumerable<HlaExpansionFailure>>> FetchHlaExpansionFailuresForDonor(string externalDonorCode)
+    {
+        return await hlaExpansionFailureFetcher.FetchHlaExpansionFailuresForDonor(externalDonorCode);
     }
 
     public async Task<DebugResponse<DonorImportFailureInfo>> FetchDonorImportFailureInfo(string fileName)
