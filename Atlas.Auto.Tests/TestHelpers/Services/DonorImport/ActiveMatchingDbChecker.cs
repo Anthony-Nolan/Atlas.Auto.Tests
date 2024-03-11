@@ -1,4 +1,5 @@
-﻿using Atlas.Auto.Tests.TestHelpers.InternalModels;
+﻿using Atlas.Auto.Tests.TestHelpers.Extensions;
+using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Debug.Client.Clients;
 using Atlas.Debug.Client.Models.DonorImport;
 
@@ -15,6 +16,11 @@ internal interface IActiveMatchingDbChecker
     /// Use when checking the outcome of donor deletion.
     /// </summary>
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes);
+
+    /// <summary>
+    /// Use when checking outcome of donor edits that did not involve changing search availability.
+    /// </summary>
+    Task<DebugResponse<DebugDonorsResult>> CheckDonorInfoIsAsExpected(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo);
 }
 
 internal class ActiveMatchingDbChecker : IActiveMatchingDbChecker
@@ -36,7 +42,7 @@ internal class ActiveMatchingDbChecker : IActiveMatchingDbChecker
     /// <inheritdoc />
     public async Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreAvailableForSearch(IEnumerable<string> externalDonorCodes)
     {
-        return await ExecuteDebugRequestWithWaitAndRetry(
+        return await CheckDonorsWithWaitAndRetry(
             externalDonorCodes,
             result => result.DonorCounts.Absent == 0);
     }
@@ -44,12 +50,25 @@ internal class ActiveMatchingDbChecker : IActiveMatchingDbChecker
     /// <inheritdoc />
     public async Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes)
     {
-        return await ExecuteDebugRequestWithWaitAndRetry(
+        return await CheckDonorsWithWaitAndRetry(
             externalDonorCodes,
             result => result.DonorCounts.Present == 0);
     }
 
-    private async Task<DebugResponse<DebugDonorsResult>> ExecuteDebugRequestWithWaitAndRetry(
+    public async Task<DebugResponse<DebugDonorsResult>> CheckDonorInfoIsAsExpected(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
+    {
+        return await CheckDonorsWithWaitAndRetry(
+            expectedDonorInfo.GetExternalDonorCodes(),
+            result =>
+            {
+                // must order else comparison will fail even if the same elements are present
+                return result.PresentDonors
+                    .OrderBy(d => d.ExternalDonorCode)
+                    .SequenceEqual(expectedDonorInfo.OrderBy(d => d.ExternalDonorCode));
+            });
+    }
+
+    private async Task<DebugResponse<DebugDonorsResult>> CheckDonorsWithWaitAndRetry(
         IEnumerable<string> externalDonorCodes,
         Func<DebugDonorsResult, bool> resultIsAsExpected)
     {

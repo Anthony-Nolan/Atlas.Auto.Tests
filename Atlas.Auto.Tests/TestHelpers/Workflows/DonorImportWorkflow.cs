@@ -18,6 +18,7 @@ internal interface IDonorImportWorkflow
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsInDonorStore(IEnumerable<string> externalDonorCodes);
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreAvailableForSearch(IEnumerable<string> externalDonorCodes);
     Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes);
+    Task<DebugResponse<DebugDonorsResult>> CheckDonorInfoInMatchingAlgorithmIsAsExpected(IEnumerable<DonorDebugInfo> donorInfo);
     Task<DebugResponse<Alert>> FetchFailedFileAlert(string fileName);
     Task<DebugResponse<Alert>> FetchHlaExpansionFailureAlert();
     Task<DebugResponse<IEnumerable<HlaExpansionFailure>>> FetchHlaExpansionFailuresForDonor(string externalDonorCode);
@@ -86,6 +87,11 @@ internal class DonorImportWorkflow : IDonorImportWorkflow
     public async Task<DebugResponse<DebugDonorsResult>> CheckDonorsAreNotAvailableForSearch(IEnumerable<string> externalDonorCodes)
     {
         return await activeMatchingDbChecker.CheckDonorsAreNotAvailableForSearch(externalDonorCodes);
+    }
+
+    public async Task<DebugResponse<DebugDonorsResult>> CheckDonorInfoInMatchingAlgorithmIsAsExpected(IEnumerable<DonorDebugInfo> donorInfo)
+    {
+        return await activeMatchingDbChecker.CheckDonorInfoIsAsExpected(donorInfo.ToList());
     }
 
     public async Task<DebugResponse<Alert>> FetchFailedFileAlert(string fileName)
