@@ -6,17 +6,20 @@ namespace Atlas.Auto.Tests.Tests.RepeatSearch;
 
 /// <summary>
 /// Tests that cover happy paths of Atlas repeat search.
+/// Adult and cord test have been split into separate test categories to allow for parallel execution on the test pipeline.
 /// </summary>
 [TestFixture]
 [Parallelizable(ParallelScope.All)]
-[Category($"{nameof(RepeatSearch_HappyPathTests)}")]
 // ReSharper disable once InconsistentNaming
 internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
 {
+    private const string TestCategoryPrefix = nameof(RepeatSearch_HappyPathTests);
+
     public RepeatSearch_HappyPathTests() : base(nameof(RepeatSearch_HappyPathTests))
     {
     }
 
+    [Category($"{TestCategoryPrefix}_Adult")]
     [Test]
     public async Task RepeatSearch_Donor_10_10_IdentifiedExpectedChanges()
     {
@@ -27,6 +30,7 @@ internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
         test.Logger.LogCompletion(testDescription);
     }
 
+    [Category($"{TestCategoryPrefix}_Cord")]
     [Test]
     public async Task RepeatSearch_Cord_4_8_IdentifiedExpectedChanges()
     {
