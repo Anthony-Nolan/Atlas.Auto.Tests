@@ -3,12 +3,12 @@
     TotalMatchCount: 8,
     DonorHla: {
       A: {
-        Position1: *31:01,
-        Position2: *32:01
+        Position1: *31:XX,
+        Position2: *32:XX
       },
       B: {
-        Position1: *14:01,
-        Position2: *35:01
+        Position1: *14:XX,
+        Position2: *35:XX
       },
       C: {
         Position1: *01:02,
@@ -23,8 +23,8 @@
         Position2: *03:02
       },
       Drb1: {
-        Position1: *03:01,
-        Position2: *09:01
+        Position1: *03:XX,
+        Position2: *09:XX
       }
     },
     TypedLociCount: 6
@@ -37,32 +37,32 @@
   DonorType: Cord,
   ScoringResult: {
     TotalMatchCount: 10,
-    MatchCategory: Exact,
-    GradeScore: 100075,
-    ConfidenceScore: 20,
+    MatchCategory: Potential,
+    GradeScore: 100057,
+    ConfidenceScore: 14,
     TypedLociCountAtScoredLoci: 5,
-    PotentialMatchCount: 0,
-    ExactMatchCount: 10,
+    PotentialMatchCount: 6,
+    ExactMatchCount: 4,
     ScoringResultsByLocus: {
       A: {
         IsLocusMatchCountIncludedInTotal: true,
         MatchCategory: Match,
         MatchCount: 2,
         IsLocusTyped: true,
-        MatchGradeScore: 20016,
-        MatchConfidenceScore: 4,
+        MatchGradeScore: 20010,
+        MatchConfidenceScore: 2,
         ScoreDetailsAtPositionOne: {
-          MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
-          MatchGrade: GDna,
-          MatchGradeScore: 10008,
+          MatchConfidence: Potential,
+          MatchConfidenceScore: 1,
+          MatchGrade: GGroup,
+          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         ScoreDetailsAtPositionTwo: {
-          MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
-          MatchGrade: GDna,
-          MatchGradeScore: 10008,
+          MatchConfidence: Potential,
+          MatchConfidenceScore: 1,
+          MatchGrade: GGroup,
+          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         MismatchDirection: null
@@ -72,20 +72,20 @@
         MatchCategory: Match,
         MatchCount: 2,
         IsLocusTyped: true,
-        MatchGradeScore: 20016,
-        MatchConfidenceScore: 4,
+        MatchGradeScore: 20010,
+        MatchConfidenceScore: 2,
         ScoreDetailsAtPositionOne: {
-          MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
-          MatchGrade: GDna,
-          MatchGradeScore: 10008,
+          MatchConfidence: Potential,
+          MatchConfidenceScore: 1,
+          MatchGrade: GGroup,
+          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         ScoreDetailsAtPositionTwo: {
-          MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
-          MatchGrade: GDna,
-          MatchGradeScore: 10008,
+          MatchConfidence: Potential,
+          MatchConfidenceScore: 1,
+          MatchGrade: GGroup,
+          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         MismatchDirection: null
@@ -164,20 +164,20 @@
         MatchCategory: Match,
         MatchCount: 2,
         IsLocusTyped: true,
-        MatchGradeScore: 20016,
-        MatchConfidenceScore: 4,
+        MatchGradeScore: 20010,
+        MatchConfidenceScore: 2,
         ScoreDetailsAtPositionOne: {
-          MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
-          MatchGrade: GDna,
-          MatchGradeScore: 10008,
+          MatchConfidence: Potential,
+          MatchConfidenceScore: 1,
+          MatchGrade: GGroup,
+          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         ScoreDetailsAtPositionTwo: {
-          MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
-          MatchGrade: GDna,
-          MatchGradeScore: 10008,
+          MatchConfidence: Potential,
+          MatchConfidenceScore: 1,
+          MatchGrade: GGroup,
+          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         MismatchDirection: null

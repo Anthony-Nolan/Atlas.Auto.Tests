@@ -45,14 +45,16 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
         /// <summary>
         /// Phenotype constructed from two A~B~C~Q~R haplotypes within the test HF set to ensure it is deemed "represented" during match prediction.
         /// The haplotypes themselves are relatively rare in an effort to minimise the number of matches found during search.
+        /// The typing has purposely been made ambiguous at loci A, B and DRB1 to encourage "genotype expansion" during match prediction.
+        /// The original high resolution phenotype is available as the patient HLA within the saved search requests.
         /// </summary>
         public static PhenotypeInfoTransfer<string> SearchTestPhenotype = new PhenotypeInfo<string>(
-            "*31:01", "*32:01", 
-            "*14:01", "*35:01", 
+            "*31:XX", "*32:XX", 
+            "*14:XX", "*35:XX", 
             "*01:02", "*08:180N", 
             "*01:01", "*11:01",
             "*02:01", "*03:02",
-            "*03:01", "*09:01")
+            "*03:XX", "*09:XX")
             .ToPhenotypeInfoTransfer();
     }
 }
