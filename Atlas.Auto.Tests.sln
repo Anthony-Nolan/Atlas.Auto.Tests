@@ -19,7 +19,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pipelines", "pipelines", "{
 		test-pipeline.yml = test-pipeline.yml
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Atlas.Auto.Utils", "Atlas.Auto.Utils\Atlas.Auto.Utils.csproj", "{1F06D6B5-28B1-4628-8768-F89CD44FB9C7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Atlas.Auto.Utils", "Atlas.Auto.Utils\Atlas.Auto.Utils.csproj", "{1F06D6B5-28B1-4628-8768-F89CD44FB9C7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

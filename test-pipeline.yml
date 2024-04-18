@@ -38,8 +38,9 @@ stages:
         inputs:
           command: 'restore'
           projects: "**/Atlas.Auto.Tests.csproj"
-          feedsToUse: 'config'
-          nugetConfigPath: 'nuget.config'
+          feedsToUse: 'select'
+          vstsFeed: $(ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID)
+          includeNuGetOrg: true
           
       - task: DotNetCoreCLI@2
         displayName: 'Build'

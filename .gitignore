@@ -6,6 +6,9 @@
 # Verify
 *.received.*
 
+# nuget configuration file
+nuget.config
+
 # User-specific files
 *.rsuser
 *.suo

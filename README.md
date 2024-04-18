@@ -9,21 +9,26 @@ Automated end-to-end test framework for the Atlas search algorithm - see the [ma
 
 ## Local
 
-### Settings
+### Running Tests
 - Default settings within `appsettings.json` can be overridden using .NET CLI User Secrets.
   - Either navigate to the root of the `Atlas.Auto.Tests` project and run the following command via the terminal:  
 ```dotnet user-secrets set "NameOfSecret" "ValueOfSecret"```
   - Or, in the Visual Studio IDE, right-click the project name, and select the context menu option: "Manage User Secrets".
-- All settings that must be overridden have the placeholder value of `"override-this"`.
+  - All settings that must be overridden have the placeholder value of `"override-this"`.
+- Tests can be run in parallel to reduce overall execution time.
 
-### Running Tests
-- Tests can be run locally in parallel.
+### Local Development
+- Set the Atlas artifacts feed.
+- In Visual Studio 2022, this can be done via `Tools > NuGet Package Manager > Package Sources`.
 
 ## DevOps
 - `test-pipeline.yml` is a template file for tests to be run in Azure DevOps.
 - A new pipeline should be created for each instance of the Atlas API under test, e.g., Dev, UAT, PR, etc.
 - The template file does not have any triggers or schedules: this should be set as needed for each copy of the pipeline.
-- Each copy must also have pipeline variables that match those within `appsettings.json`.
+- Make sure to extend the list of `testCategoryJobs` whenever a new Category of tests is added.
+
+### Pipeline Variables
+- Each pipeline instance must have pipeline variables that match those within `appsettings.json`.
   - Use `.` for nested settings, e.g., var name `DonorImport.ApiKey` would be used for setting:
 	```json
 	{
@@ -32,7 +37,8 @@ Automated end-to-end test framework for the Atlas search algorithm - see the [ma
 		}
 	}
 	```
-- Make sure to extend the list of `testCategoryJobs` whenever a new Category of tests is added.
+- The name/id of the Atlas artifacts feed must be set using the variable, `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.
+  - String should be format of either `projectName/feedName` e.g., `Atlas/atlas-packages` or just `feedName`, as appropriate.
 
 ## Contributing
 Please refer to the [contribution guidelines on the main Atlas repository](https://github.com/Anthony-Nolan/Atlas/blob/master/README_Contribution_Versioning.md).
