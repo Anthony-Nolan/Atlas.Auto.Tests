@@ -33,6 +33,16 @@ stages:
           jsonTargetFiles: '**/appsettings.json'
         continueOnError: false
 
+      - task: Bash@3
+        displayName: 'Set Atlas package feed URL'
+        inputs:
+          targetType: 'inline'
+          script: |
+            sed -i 's|<add key="atlas" value=".*" />|<add key="atlas" value="'$ATLAS_PACKAGE_FEED_URL'" />|' nuget.config
+            cat nuget.config
+        env:
+          ATLAS_PACKAGE_FEED_URL: $(ATLAS_PACKAGE_FEED_URL)
+
       - task: DotNetCoreCLI@2
         displayName: 'Restore'
         inputs:

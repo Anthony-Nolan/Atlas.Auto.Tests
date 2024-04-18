@@ -23,7 +23,10 @@ Automated end-to-end test framework for the Atlas search algorithm - see the [ma
 - `test-pipeline.yml` is a template file for tests to be run in Azure DevOps.
 - A new pipeline should be created for each instance of the Atlas API under test, e.g., Dev, UAT, PR, etc.
 - The template file does not have any triggers or schedules: this should be set as needed for each copy of the pipeline.
-- Each copy must also have pipeline variables that match those within `appsettings.json`.
+- Make sure to extend the list of `testCategoryJobs` whenever a new Category of tests is added.
+
+### Pipeline Variables
+- Each pipeline instance must have pipeline variables that match those within `appsettings.json`.
   - Use `.` for nested settings, e.g., var name `DonorImport.ApiKey` would be used for setting:
 	```json
 	{
@@ -32,7 +35,7 @@ Automated end-to-end test framework for the Atlas search algorithm - see the [ma
 		}
 	}
 	```
-- Make sure to extend the list of `testCategoryJobs` whenever a new Category of tests is added.
+- The URL for the Atlas package feed must be set using the variable, `ATLAS_PACKAGE_FEED_URL`.
 
 ## Contributing
 Please refer to the [contribution guidelines on the main Atlas repository](https://github.com/Anthony-Nolan/Atlas/blob/master/README_Contribution_Versioning.md).
