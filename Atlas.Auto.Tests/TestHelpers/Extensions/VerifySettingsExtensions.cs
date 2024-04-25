@@ -15,9 +15,22 @@
 
         public static SettingsTask IgnoreVaryingSearchResultProperties(this SettingsTask settings)
         {
-            // these are properties that will vary between test runs and should not be included in the approval
-            // Donor ids and the `Id` for the referenced HF set
-            var propertyNames = new[] { "DonorCode", "ExternalDonorCode", "AtlasDonorId", "Id" };
+            // these are properties that will vary between test runs/installations and should not be included in the approval
+            var propertyNames = new[]
+            {
+                // ignore donor ids
+                "DonorCode",
+                "ExternalDonorCode", 
+                "AtlasDonorId",
+                "DonorId",
+                // ignore HF set id
+                "Id",
+                // Ignore scores as weightings assigned to grades and confidences could differ between Atlas installations
+                "GradeScore",
+                "ConfidenceScore",
+                "MatchGradeScore",
+                "MatchConfidenceScore"
+            };
             settings.IgnoreMembers(propertyNames);
             return settings;
         }
