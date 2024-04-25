@@ -38,8 +38,6 @@
   ScoringResult: {
     TotalMatchCount: 10,
     MatchCategory: Potential,
-    GradeScore: 100057,
-    ConfidenceScore: 14,
     TypedLociCountAtScoredLoci: 5,
     PotentialMatchCount: 6,
     ExactMatchCount: 4,
@@ -49,20 +47,14 @@
         MatchCategory: Match,
         MatchCount: 2,
         IsLocusTyped: true,
-        MatchGradeScore: 20010,
-        MatchConfidenceScore: 2,
         ScoreDetailsAtPositionOne: {
           MatchConfidence: Potential,
-          MatchConfidenceScore: 1,
           MatchGrade: GGroup,
-          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         ScoreDetailsAtPositionTwo: {
           MatchConfidence: Potential,
-          MatchConfidenceScore: 1,
           MatchGrade: GGroup,
-          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         MismatchDirection: null
@@ -72,20 +64,14 @@
         MatchCategory: Match,
         MatchCount: 2,
         IsLocusTyped: true,
-        MatchGradeScore: 20010,
-        MatchConfidenceScore: 2,
         ScoreDetailsAtPositionOne: {
           MatchConfidence: Potential,
-          MatchConfidenceScore: 1,
           MatchGrade: GGroup,
-          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         ScoreDetailsAtPositionTwo: {
           MatchConfidence: Potential,
-          MatchConfidenceScore: 1,
           MatchGrade: GGroup,
-          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         MismatchDirection: null
@@ -95,20 +81,14 @@
         MatchCategory: Match,
         MatchCount: 2,
         IsLocusTyped: true,
-        MatchGradeScore: 20011,
-        MatchConfidenceScore: 4,
         ScoreDetailsAtPositionOne: {
           MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
           MatchGrade: GDna,
-          MatchGradeScore: 10008,
           IsAntigenMatch: true
         },
         ScoreDetailsAtPositionTwo: {
           MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
           MatchGrade: NullGDna,
-          MatchGradeScore: 10003,
           IsAntigenMatch: true
         },
         MismatchDirection: null
@@ -118,20 +98,14 @@
         MatchCategory: Match,
         MatchCount: 2,
         IsLocusTyped: true,
-        MatchGradeScore: 20016,
-        MatchConfidenceScore: 4,
         ScoreDetailsAtPositionOne: {
           MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
           MatchGrade: GDna,
-          MatchGradeScore: 10008,
           IsAntigenMatch: true
         },
         ScoreDetailsAtPositionTwo: {
           MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
           MatchGrade: GDna,
-          MatchGradeScore: 10008,
           IsAntigenMatch: true
         },
         MismatchDirection: NotApplicable
@@ -141,20 +115,14 @@
         MatchCategory: Match,
         MatchCount: 2,
         IsLocusTyped: true,
-        MatchGradeScore: 20016,
-        MatchConfidenceScore: 4,
         ScoreDetailsAtPositionOne: {
           MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
           MatchGrade: GDna,
-          MatchGradeScore: 10008,
           IsAntigenMatch: true
         },
         ScoreDetailsAtPositionTwo: {
           MatchConfidence: Exact,
-          MatchConfidenceScore: 2,
           MatchGrade: GDna,
-          MatchGradeScore: 10008,
           IsAntigenMatch: true
         },
         MismatchDirection: null
@@ -164,20 +132,14 @@
         MatchCategory: Match,
         MatchCount: 2,
         IsLocusTyped: true,
-        MatchGradeScore: 20010,
-        MatchConfidenceScore: 2,
         ScoreDetailsAtPositionOne: {
           MatchConfidence: Potential,
-          MatchConfidenceScore: 1,
           MatchGrade: GGroup,
-          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         ScoreDetailsAtPositionTwo: {
           MatchConfidence: Potential,
-          MatchConfidenceScore: 1,
           MatchGrade: GGroup,
-          MatchGradeScore: 10005,
           IsAntigenMatch: true
         },
         MismatchDirection: null

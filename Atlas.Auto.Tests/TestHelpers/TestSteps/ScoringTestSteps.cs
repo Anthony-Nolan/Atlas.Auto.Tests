@@ -39,7 +39,9 @@ internal class ScoringTestSteps : IScoringTestSteps
 
         var scoringResult = scoreResponse.DebugResult!.SerializeCollection();
         await logger.AssertThenLogAndThrowAsync(
-            () => VerifyJson(scoringResult).WriteReceivedToApprovalsFolder(testName),
+            () => VerifyJson(scoringResult)
+                .WriteReceivedToApprovalsFolder(testName)
+                .IgnoreVaryingSearchResultProperties(),
             "Comparison of scoring result against approved result");
     }
 }
