@@ -7,7 +7,7 @@ jobs:
 - ${{ each testCategoryJob in parameters.testCategoryJobs }}:
   - job:
     displayName: 'Tests run - ${{testCategoryJob.job}}'
-    timeoutInMinutes: 45
+    timeoutInMinutes: 60
     steps: 
       - task: DownloadPipelineArtifact@2
         displayName: 'Download artifact'
