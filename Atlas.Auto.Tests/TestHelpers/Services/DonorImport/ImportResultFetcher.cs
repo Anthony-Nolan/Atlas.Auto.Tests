@@ -16,8 +16,8 @@ internal class ImportResultFetcher : IImportResultFetcher
     private readonly IMessageFetcher messageFetcher;
 
     public ImportResultFetcher(
-        IDebugRequester debugRequester, 
-        IDonorImportFunctionsClient donorImportClient, 
+        IDebugRequester debugRequester,
+        IDonorImportFunctionsClient donorImportClient,
         IMessageFetcher messageFetcher)
     {
         this.debugRequester = debugRequester;
@@ -39,7 +39,7 @@ internal class ImportResultFetcher : IImportResultFetcher
 
         // important to use `EndsWith`, as the filename maybe prefixed with blob container path
         var message = messages.LastOrDefault(m => m.FileName.EndsWith(fileName));
-            
+
         return new DebugResponse<DonorImportMessage>(message);
     }
 }
