@@ -11,29 +11,18 @@ internal interface IMessageFetcher
 internal class MessageFetcher :IMessageFetcher
 {
     public async Task<IEnumerable<TMessage>> FetchAllMessages<TMessage>(
-        Func<PeekServiceBusMessagesRequest, Task<PeekServiceBusMessagesResponse<TMessage>>> peekFunc) where TMessage : class
+        Func<PeekServiceBusMessagesRequest, Task<PeekServiceBusMessagesResponse<TMessage>>> peekFunc)
+        where TMessage : class
     {
-        // todo #7: fetch all messages from new method param `fetchFromSequenceNumber`
-        // to avoid having to cycle through whole queue on subsequent calls
+        const int batchSize = 100;
 
-        var messages = new List<TMessage>();
-        long lastSequenceNumber = -1;
-        int lastMessageCount;
 
-        do
+        var peekResponse = await peekFunc(new PeekServiceBusMessagesRequest
         {
-            var peekResponse = await peekFunc(new PeekServiceBusMessagesRequest
-            {
-                FromSequenceNumber = ++lastSequenceNumber,
-                MessageCount = 100
-            });
+            FromSequenceNumber = 0,
+            MessageCount = batchSize
+        });
 
-            lastMessageCount = peekResponse.MessageCount;
-            if (lastMessageCount == 0) break;
-
-            messages.AddRange(peekResponse.PeekedMessages);
-        } while (lastMessageCount > 0);
-
-        return messages;
+        return peekResponse.PeekedMessages;
     }
 }
