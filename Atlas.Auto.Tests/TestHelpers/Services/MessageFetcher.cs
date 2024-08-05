@@ -17,19 +17,19 @@ internal class MessageFetcher :IMessageFetcher
         // to avoid having to cycle through whole queue on subsequent calls
 
         var messages = new List<TMessage>();
-        const int batchSize = 5;
-        long lastSequenceNumber = -1;
+        const int batchSize = 100;
+        long? lastSequenceNumber = null;
 
         while (true)
         {
             var peekResponse = await peekFunc(new PeekServiceBusMessagesRequest
             {
-                FromSequenceNumber = lastSequenceNumber + 1,
+                FromSequenceNumber = (long)(lastSequenceNumber != null ? lastSequenceNumber + 1 : 0),
                 MessageCount = batchSize
             });
 
             var lastMessageCount = peekResponse.MessageCount;
-            lastSequenceNumber = (long)peekResponse.LastSequenceNumber;
+            lastSequenceNumber = peekResponse.LastSequenceNumber;
             messages.AddRange(peekResponse.PeekedMessages);
 
             if (lastMessageCount < batchSize) break;
