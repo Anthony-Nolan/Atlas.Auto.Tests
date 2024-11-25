@@ -27,6 +27,6 @@ internal class HealthChecker<T> : IHealthChecker<T> where T : ICommonAtlasFuncti
     private async Task<bool> RunHealthCheck()
     {
         var result = await client.HealthCheck();
-        return result?.Contains("successful") ?? false;
+        return result?.Contains("Healthy") ?? false;
     }
 }
