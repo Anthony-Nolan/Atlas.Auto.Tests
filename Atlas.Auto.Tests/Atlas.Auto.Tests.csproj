@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="TestHelpers\SourceData\score-request.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-cord-4_8.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-invalid-patient-hla-at-A1.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-missing-locus-A.json" />
@@ -42,6 +43,9 @@
 
   <ItemGroup>
     <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\Score_ScoresDonor.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestHelpers\Assertions\Approvals\ScoreBatch_ScoresDonorBatch.verified.txt">
