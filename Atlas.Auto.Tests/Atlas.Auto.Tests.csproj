@@ -11,10 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="TestHelpers\SourceData\score-request.json" />
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Include="TestHelpers\SourceData\score-request.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-cord-4_8.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-invalid-patient-hla-at-A1.json" />
