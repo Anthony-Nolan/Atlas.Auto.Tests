@@ -1,0 +1,67 @@
+{
+  "DonorHla": {
+    "A": {
+      "Position1": "*31:01",
+      "Position2": "*32:01"
+    },
+    "B": {
+      "Position1": "*14:01",
+      "Position2": "*35:01"
+    },
+    "C": {
+      "Position1": "*01:02",
+      "Position2": "*08:180N"
+    },
+    "Dpb1": {
+      "Position1": "*01:01",
+      "Position2": "*11:01"
+    },
+    "Dqb1": {
+      "Position1": "*02:01",
+      "Position2": "*03:02"
+    },
+    "Drb1": {
+      "Position1": "*03:01",
+      "Position2": "*09:01"
+    }
+  },
+  "PatientHla": {
+    "A": {
+      "Position1": "*31:01",
+      "Position2": "*32:01"
+    },
+    "B": {
+      "Position1": "*14:01",
+      "Position2": "*35:01"
+    },
+    "C": {
+      "Position1": "*01:02",
+      "Position2": "*08:180N"
+    },
+    "Dpb1": {
+      "Position1": "*01:01",
+      "Position2": "*11:01"
+    },
+    "Dqb1": {
+      "Position1": "*02:01",
+      "Position2": "*03:02"
+    },
+    "Drb1": {
+      "Position1": "*03:01",
+      "Position2": "*09:01"
+    }
+  },
+  "ScoringCriteria": {
+    "LociToScore": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "LociToExcludeFromAggregateScore": [
+      3
+    ]
+  }
+}
