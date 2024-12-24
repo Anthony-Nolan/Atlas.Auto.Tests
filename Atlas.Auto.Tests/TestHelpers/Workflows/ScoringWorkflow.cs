@@ -1,6 +1,7 @@
 ﻿using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.Services.Scoring;
-using Atlas.MatchingAlgorithm.Client.Models.Scoring;
+using Atlas.Client.Models.Scoring.Requests;
+using Atlas.Client.Models.Scoring.Results;
 
 namespace Atlas.Auto.Tests.TestHelpers.Workflows;
 
@@ -9,7 +10,9 @@ namespace Atlas.Auto.Tests.TestHelpers.Workflows;
 /// </summary>
 internal interface IScoringWorkflow
 {
-    Task<DebugResponse<IEnumerable<DonorScoringResult>>> ScoreBatch(BatchScoringRequest request);
+    Task<DebugResponse<IEnumerable<DonorScoringResult>>> ScoreBatch(DonorHlaBatchScoringRequest request);
+
+    Task<DebugResponse<ScoringResult>> Score(DonorHlaScoringRequest request);
 }
 
 internal class ScoringWorkflow : IScoringWorkflow
@@ -21,8 +24,13 @@ internal class ScoringWorkflow : IScoringWorkflow
         this.scorer = scorer;
     }
 
-    public async Task<DebugResponse<IEnumerable<DonorScoringResult>>> ScoreBatch(BatchScoringRequest request)
+    public async Task<DebugResponse<IEnumerable<DonorScoringResult>>> ScoreBatch(DonorHlaBatchScoringRequest request)
     {
         return await scorer.ScoreBatch(request);
+    }
+
+    public async Task<DebugResponse<ScoringResult>> Score(DonorHlaScoringRequest request)
+    {
+        return await scorer.Score(request);
     }
 }
