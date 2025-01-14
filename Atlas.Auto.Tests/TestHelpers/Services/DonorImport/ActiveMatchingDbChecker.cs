@@ -25,8 +25,8 @@ internal interface IActiveMatchingDbChecker
 
 internal class ActiveMatchingDbChecker : IActiveMatchingDbChecker
 {
-    private const int MaxRetries = 15;
-    private const int RetryIntervalSeconds = 45;
+    private const int MaxRetries = 45;
+    private const int RetryIntervalSeconds = 20;
 
     private readonly IDebugRequester debugRequester;
     private readonly IMatchingAlgorithmFunctionsClient matchingClient;
