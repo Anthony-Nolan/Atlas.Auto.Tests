@@ -16,8 +16,8 @@ internal class FailedFileAlertFetcher : IFailedFileAlertFetcher
     private readonly IMessageFetcher messageFetcher;
 
     public FailedFileAlertFetcher(
-        IDebugRequester debugRequester, 
-        ITopLevelFunctionsClient topLevelClient, 
+        IDebugRequester debugRequester,
+        ITopLevelFunctionsClient topLevelClient,
         IMessageFetcher messageFetcher)
     {
         this.debugRequester = debugRequester;
@@ -36,7 +36,7 @@ internal class FailedFileAlertFetcher : IFailedFileAlertFetcher
 
         // important to use `EndsWith`, as the filename maybe prefixed with blob container path
         var message = messages.LastOrDefault(m => m.Description.EndsWith(fileName));
-            
+
         return new DebugResponse<Alert>(message);
     }
 }
