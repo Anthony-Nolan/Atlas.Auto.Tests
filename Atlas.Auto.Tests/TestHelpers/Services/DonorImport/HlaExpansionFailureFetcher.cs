@@ -31,11 +31,11 @@ internal class HlaExpansionFailureFetcher : IHlaExpansionFailureFetcher
     private async Task<DebugResponse<IEnumerable<HlaExpansionFailure>>> FetchExpansionFailures(string externalDonorCode)
     {
         var allFailures = await matchingAlgorithmClient.GetHlaExpansionFailures(1);
-        
-        var donorFailures = 
-            allFailures?.Where(f => f.ExternalDonorCodes.Contains(externalDonorCode)).ToList() 
+
+        var donorFailures =
+            allFailures?.Where(f => f.ExternalDonorCodes.Contains(externalDonorCode)).ToList()
             ?? new List<HlaExpansionFailure>();
-        
+
         return new DebugResponse<IEnumerable<HlaExpansionFailure>>(donorFailures.Any(), donorFailures);
     }
 }

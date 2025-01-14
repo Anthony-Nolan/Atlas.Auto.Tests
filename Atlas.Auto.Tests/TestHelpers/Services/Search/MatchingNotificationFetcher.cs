@@ -16,8 +16,8 @@ internal class MatchingNotificationFetcher : IMatchingNotificationFetcher
     private readonly IMessageFetcher messageFetcher;
 
     public MatchingNotificationFetcher(
-        IDebugRequester debugRequester, 
-        IMatchingAlgorithmFunctionsClient matchingAlgorithmClient, 
+        IDebugRequester debugRequester,
+        IMatchingAlgorithmFunctionsClient matchingAlgorithmClient,
         IMessageFetcher messageFetcher)
     {
         this.debugRequester = debugRequester;
@@ -28,7 +28,7 @@ internal class MatchingNotificationFetcher : IMatchingNotificationFetcher
     public async Task<DebugResponse<MatchingResultsNotification>> FetchNotification(string searchRequestId)
     {
         return await debugRequester.ExecuteDebugRequestWithWaitAndRetry<MatchingResultsNotification>(
-            10, 20, async () => await FetchMessage(searchRequestId));
+            15, 45, async () => await FetchMessage(searchRequestId));
     }
 
     private async Task<DebugResponse<MatchingResultsNotification>> FetchMessage(string searchRequestId)
