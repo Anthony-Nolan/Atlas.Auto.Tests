@@ -28,7 +28,7 @@ internal class MatchingNotificationFetcher : IMatchingNotificationFetcher
     public async Task<DebugResponse<MatchingResultsNotification>> FetchNotification(string searchRequestId)
     {
         return await debugRequester.ExecuteDebugRequestWithWaitAndRetry<MatchingResultsNotification>(
-            15, 45, async () => await FetchMessage(searchRequestId));
+            45, 20, async () => await FetchMessage(searchRequestId));
     }
 
     private async Task<DebugResponse<MatchingResultsNotification>> FetchMessage(string searchRequestId)
