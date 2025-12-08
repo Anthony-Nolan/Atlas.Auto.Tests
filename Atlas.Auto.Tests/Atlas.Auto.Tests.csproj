@@ -13,6 +13,7 @@
   <ItemGroup>
     <EmbeddedResource Include="TestHelpers\SourceData\score-request.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-cord-4_8.json" />
+    <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-9_10.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-invalid-patient-hla-at-A1.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-missing-locus-A.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-10_10.json" />
@@ -67,6 +68,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Donor_10_10_IdentifiedExpectedChanges_SearchResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\Search_DonorWithNew_9_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\Search_DonorWithNew_9_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">

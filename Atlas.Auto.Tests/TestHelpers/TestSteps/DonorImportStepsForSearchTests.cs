@@ -23,6 +23,13 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         Task<string> CreateDonorWithValidDnaPhenotype(ImportDonorType donorType);
 
         /// <summary>
+        /// Creates a donor of the specified type with <see cref="HlaTypings.NewDnaPhenotype"/> and returns the donor record id.
+        /// </summary>
+        /// <param name="donorType"></param>
+        /// <returns></returns>
+        Task<string> CreateDonorWithNewDnaPhenotype(ImportDonorType donorType);
+
+        /// <summary>
         /// Edits the HLA of donor with code <see cref="donorCode"/> to <see cref="HlaTypings.SearchTestPhenotype"/>.
         /// </summary>
         Task EditDonorHlaToSearchTestPhenotype(string donorCode, ImportDonorType donorType);
@@ -61,6 +68,11 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps
         public async Task<string> CreateDonorWithValidDnaPhenotype(ImportDonorType donorType)
         {
             return await CreateDonor(donorType, ImportedHlaBuilder.ValidDnaPhenotype);
+        }
+
+        public async Task<string> CreateDonorWithNewDnaPhenotype(ImportDonorType donorType)
+        {
+            return await CreateDonor(donorType, ImportedHlaBuilder.SearchNewPhenotype);
         }
 
         /// <inheritdoc />

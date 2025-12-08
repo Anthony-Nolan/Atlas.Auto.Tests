@@ -56,5 +56,14 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
             "*02:01", "*03:02",
             "*03:XX", "*09:XX")
             .ToPhenotypeInfoTransfer();
+
+        public static PhenotypeInfoTransfer<string> SearchNewPhenotype = new PhenotypeInfo<string>(
+            "NEW", "*32:XX",
+            "*14:XX", "*35:XX",
+            "*01:02", "*08:180N",
+            "*01:01", "*11:01",
+            "*02:01", "*03:02",
+            "*03:XX", "*09:XX")
+            .ToPhenotypeInfoTransfer();
     }
 }

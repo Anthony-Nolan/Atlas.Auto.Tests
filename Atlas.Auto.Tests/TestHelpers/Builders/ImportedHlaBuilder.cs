@@ -30,6 +30,14 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
             .WithFactory(h => h.DQB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchTestPhenotype.Dqb1))
             .WithFactory(h => h.DRB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchTestPhenotype.Drb1));
 
+        public static Builder<ImportedHla> SearchNewPhenotype => Builder<ImportedHla>.New
+            .WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.A))
+            .WithFactory(h => h.B, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.B))
+            .WithFactory(h => h.C, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.C))
+            .WithFactory(h => h.DPB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.Dpb1))
+            .WithFactory(h => h.DQB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.Dqb1))
+            .WithFactory(h => h.DRB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.Drb1));
+
         public static Builder<ImportedHla> WithAlternativeHlaAtLocusA(this Builder<ImportedHla> builder) 
             => builder.WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.AlternativeValidDnaForLocusA));
 
