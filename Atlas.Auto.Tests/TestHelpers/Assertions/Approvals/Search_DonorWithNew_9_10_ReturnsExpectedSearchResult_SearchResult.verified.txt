@@ -150,84 +150,12 @@
   },
   MatchPredictionResult: {
     MatchProbabilities: {
-      ZeroMismatchProbability: {
-        Decimal: 1.0,
-        Percentage: 100
-      },
-      OneMismatchProbability: {
-        Decimal: 0.0,
-        Percentage: 0
-      },
-      TwoMismatchProbability: {
-        Decimal: 0.0,
-        Percentage: 0
-      }
+      ZeroMismatchProbability: null,
+      OneMismatchProbability: null,
+      TwoMismatchProbability: null
     },
     MatchProbabilitiesPerLocus: {
       A: {
-        MatchProbabilities: {
-          ZeroMismatchProbability: {
-            Decimal: 1.0,
-            Percentage: 100
-          },
-          OneMismatchProbability: {
-            Decimal: 0.0,
-            Percentage: 0
-          },
-          TwoMismatchProbability: {
-            Decimal: 0.0,
-            Percentage: 0
-          }
-        },
-        MatchCategory: Exact,
-        PositionalMatchCategories: {
-          Position1: Exact,
-          Position2: Exact
-        }
-      },
-      B: {
-        MatchProbabilities: {
-          ZeroMismatchProbability: {
-            Decimal: 1.0,
-            Percentage: 100
-          },
-          OneMismatchProbability: {
-            Decimal: 0.0,
-            Percentage: 0
-          },
-          TwoMismatchProbability: {
-            Decimal: 0.0,
-            Percentage: 0
-          }
-        },
-        MatchCategory: Exact,
-        PositionalMatchCategories: {
-          Position1: Exact,
-          Position2: Exact
-        }
-      },
-      C: {
-        MatchProbabilities: {
-          ZeroMismatchProbability: {
-            Decimal: 1.0,
-            Percentage: 100
-          },
-          OneMismatchProbability: {
-            Decimal: 0.0,
-            Percentage: 0
-          },
-          TwoMismatchProbability: {
-            Decimal: 0.0,
-            Percentage: 0
-          }
-        },
-        MatchCategory: Exact,
-        PositionalMatchCategories: {
-          Position1: Exact,
-          Position2: Exact
-        }
-      },
-      Dpb1: {
         MatchProbabilities: {
           ZeroMismatchProbability: null,
           OneMismatchProbability: null,
@@ -236,53 +164,48 @@
         MatchCategory: null,
         PositionalMatchCategories: null
       },
+      B: {
+        MatchProbabilities: {
+          ZeroMismatchProbability: null,
+          OneMismatchProbability: null,
+          TwoMismatchProbability: null
+        },
+        MatchCategory: null,
+        PositionalMatchCategories: null
+      },
+      C: {
+        MatchProbabilities: {
+          ZeroMismatchProbability: null,
+          OneMismatchProbability: null,
+          TwoMismatchProbability: null
+        },
+        MatchCategory: null,
+        PositionalMatchCategories: null
+      },
+      Dpb1: null,
       Dqb1: {
         MatchProbabilities: {
-          ZeroMismatchProbability: {
-            Decimal: 1.0,
-            Percentage: 100
-          },
-          OneMismatchProbability: {
-            Decimal: 0.0,
-            Percentage: 0
-          },
-          TwoMismatchProbability: {
-            Decimal: 0.0,
-            Percentage: 0
-          }
+          ZeroMismatchProbability: null,
+          OneMismatchProbability: null,
+          TwoMismatchProbability: null
         },
-        MatchCategory: Exact,
-        PositionalMatchCategories: {
-          Position1: Exact,
-          Position2: Exact
-        }
+        MatchCategory: null,
+        PositionalMatchCategories: null
       },
       Drb1: {
         MatchProbabilities: {
-          ZeroMismatchProbability: {
-            Decimal: 1.0,
-            Percentage: 100
-          },
-          OneMismatchProbability: {
-            Decimal: 0.0,
-            Percentage: 0
-          },
-          TwoMismatchProbability: {
-            Decimal: 0.0,
-            Percentage: 0
-          }
+          ZeroMismatchProbability: null,
+          OneMismatchProbability: null,
+          TwoMismatchProbability: null
         },
-        MatchCategory: Exact,
-        PositionalMatchCategories: {
-          Position1: Exact,
-          Position2: Exact
-        }
+        MatchCategory: null,
+        PositionalMatchCategories: null
       }
     },
-    OverallMatchCount: 10,
-    ExactMatchCount: 10,
-    PotentialMatchCount: 0,
-    OverallMatchCategory: Exact,
+    OverallMatchCount: null,
+    ExactMatchCount: null,
+    PotentialMatchCount: null,
+    OverallMatchCategory: null,
     PatientFrequencySetNomenclatureVersion: 3480,
     PatientHaplotypeFrequencySet: {
       RegistryCode: AutoTestRegistry,
@@ -298,7 +221,7 @@
       PopulationId: 12345
     },
     IsPatientPhenotypeUnrepresented: false,
-    IsDonorPhenotypeUnrepresented: false
+    IsDonorPhenotypeUnrepresented: true
   },
   ScoringResult: {
     TotalMatchCount: 9,
