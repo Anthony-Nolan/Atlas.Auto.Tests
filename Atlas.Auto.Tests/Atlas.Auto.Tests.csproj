@@ -9,7 +9,7 @@
     <IsPublishable>True</IsPublishable>
     <UserSecretsId>a5186e9d-765c-48fe-9425-7069702595d0</UserSecretsId>
   </PropertyGroup>
-
+  
   <ItemGroup>
     <EmbeddedResource Include="TestHelpers\SourceData\score-request.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-cord-4_8.json" />
@@ -18,6 +18,7 @@
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-missing-locus-A.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-10_10.json" />
     <EmbeddedResource Include="TestHelpers\SourceData\score-batch-request.json" />
+    <EmbeddedResource Include="TestHelpers\SourceData\search-request-patient-with-new-at-A1.json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -80,6 +81,18 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew_MatchingResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew_SearchResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
