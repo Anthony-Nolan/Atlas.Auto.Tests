@@ -83,6 +83,12 @@
     <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew_MatchingResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew_SearchResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

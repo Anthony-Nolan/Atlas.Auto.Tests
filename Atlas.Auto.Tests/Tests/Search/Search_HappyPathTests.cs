@@ -78,4 +78,20 @@ internal class Search_HappyPathTests : SearchTestBase
 
         test.Logger.LogCompletion(testDescription);
     }
+
+    [Test]
+    public async Task Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew()
+    {
+        var test = GetSearchTestServices(nameof(Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew));
+
+        const string testDescription = "9/10 Donor Search - Patient with New and Donor with New";
+        test.Logger.LogStart(testDescription);
+
+        var expectedDonorCode = await test.Steps.CreateDonorWithNew(ImportDonorType.Adult);
+        var searchResponse = await test.Steps.SubmitSearchRequest("search-request-patient-with-new-at-A1.json");
+        await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+        await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+
+        test.Logger.LogCompletion(testDescription);
+    }
 }
