@@ -36,10 +36,10 @@
   },
   DonorType: Adult,
   ScoringResult: {
-    TotalMatchCount: 10,
-    MatchCategory: Potential,
+    TotalMatchCount: 9,
+    MatchCategory: Mismatch,
     TypedLociCountAtScoredLoci: 5,
-    PotentialMatchCount: 6,
+    PotentialMatchCount: 5,
     ExactMatchCount: 4,
     ScoringResultsByLocus: {
       A: {
@@ -48,7 +48,7 @@
         MatchCount: 1,
         IsLocusTyped: true,
         ScoreDetailsAtPositionOne: {
-          MatchConfidence: Potential,
+          MatchConfidence: Mismatch,
           MatchGrade: Mismatch,
           IsAntigenMatch: false
         },
