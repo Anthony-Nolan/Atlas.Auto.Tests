@@ -5,6 +5,7 @@ using AventStack.ExtentReports;
 
 namespace Atlas.Auto.Tests.Tests;
 
+[Parallelizable(ParallelScope.All)]
 internal abstract class TestBase
 {
     protected readonly IServiceProvider Provider;

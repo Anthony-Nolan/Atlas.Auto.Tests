@@ -9,9 +9,7 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 /// Tests that cover happy paths of Atlas donor import when in diff mode.
 /// </summary>
 [TestFixture]
-[Parallelizable(scope: ParallelScope.All)]
 [Category($"{TestConstants.DonorImportTestTag}_{nameof(DiffMode_HappyPathTests)}")]
-// ReSharper disable once InconsistentNaming
 internal class DiffMode_HappyPathTests : DonorImportTestBase
 {
     public DiffMode_HappyPathTests() : base(nameof(DiffMode_HappyPathTests))

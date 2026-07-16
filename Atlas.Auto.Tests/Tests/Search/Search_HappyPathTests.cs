@@ -1,97 +1,89 @@
-﻿using Atlas.DonorImport.FileSchema.Models;
+using Atlas.DonorImport.FileSchema.Models;
+using System.Runtime.CompilerServices;
 
 namespace Atlas.Auto.Tests.Tests.Search;
 
-/// <summary>
-/// Tests that cover happy paths of Atlas search.
-/// </summary>
 [TestFixture]
-[Parallelizable(ParallelScope.All)]
 [Category($"{nameof(Search_HappyPathTests)}")]
-// ReSharper disable once InconsistentNaming
 internal class Search_HappyPathTests : SearchTestBase
 {
     public Search_HappyPathTests() : base(nameof(Search_HappyPathTests))
     {
     }
 
-    [Test]
-    public async Task Search_Donor_10_10_ReturnsExpectedSearchResult()
+    [TestCaseSource(nameof(Cases))]
+    public async Task Search_Donor_10_10_ReturnsExpectedSearchResult(bool? parallelMatchPrediction)
     {
-        var test = GetSearchTestServices(nameof(Search_Donor_10_10_ReturnsExpectedSearchResult));
-
-        const string testDescription = "10/10 Donor Search";
-        test.Logger.LogStart(testDescription);
-
-        var expectedDonorCode = await test.Steps.CreateDonor(ImportDonorType.Adult);
-        var searchResponse = await test.Steps.SubmitSearchRequest("search-request-donor-10_10.json");
-        await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-        await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-
-        test.Logger.LogCompletion(testDescription);
+        await Search_Patient(
+            testDescription: "10/10 Donor Search",
+            importDonorType: ImportDonorType.Adult,
+            searchRequestJson: "search-request-donor-10_10.json",
+            parallelMatchPrediction: parallelMatchPrediction);
     }
 
-    [Test]
-    public async Task Search_Cord_4_8_ReturnsExpectedSearchResult()
+    [TestCaseSource(nameof(Cases))]
+    public async Task Search_Cord_4_8_ReturnsExpectedSearchResult(bool? parallelMatchPrediction)
     {
-        var test = GetSearchTestServices(nameof(Search_Cord_4_8_ReturnsExpectedSearchResult));
-
-        const string testDescription = "4/8 Cord Search";
-        test.Logger.LogStart(testDescription);
-
-        var expectedDonorCode = await test.Steps.CreateDonor(ImportDonorType.Cord);
-        var searchResponse = await test.Steps.SubmitSearchRequest("search-request-cord-4_8.json");
-        await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-        await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-
-        test.Logger.LogCompletion(testDescription);
+        await Search_Patient(
+            testDescription: "4/8 Cord Search",
+            importDonorType: ImportDonorType.Cord,
+            searchRequestJson: "search-request-cord-4_8.json",
+            parallelMatchPrediction: parallelMatchPrediction);
     }
 
-    [Test]
-    public async Task Search_DonorWithNew_9_10_ReturnsExpectedSearchResult()
+    [TestCaseSource(nameof(Cases))]
+    public async Task Search_DonorWithNew_9_10_ReturnsExpectedSearchResult(bool? parallelMatchPrediction)
     {
-        var test = GetSearchTestServices(nameof(Search_DonorWithNew_9_10_ReturnsExpectedSearchResult));
-
-        const string testDescription = "9/10 Donor Search";
-        test.Logger.LogStart(testDescription);
-
-        var expectedDonorCode = await test.Steps.CreateDonorWithNew(ImportDonorType.Adult);
-        var searchResponse = await test.Steps.SubmitSearchRequest("search-request-donor-9_10.json");
-        await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-        await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-
-        test.Logger.LogCompletion(testDescription);
+        await Search_Patient(
+            testDescription: "9/10 Donor Search",
+            importDonorType: ImportDonorType.Adult,
+            searchRequestJson: "search-request-donor-9_10.json",
+            newDnaPhenotype: true,
+            parallelMatchPrediction: parallelMatchPrediction);
     }
 
-    [Test]
-    public async Task Search_PatientWithNew_9_10_ReturnsExpectedSearchResult()
+    [TestCaseSource(nameof(Cases))]
+    public async Task Search_PatientWithNew_9_10_ReturnsExpectedSearchResult(bool? parallelMatchPrediction)
     {
-        var test = GetSearchTestServices(nameof(Search_PatientWithNew_9_10_ReturnsExpectedSearchResult));
-
-        const string testDescription = "9/10 Donor Search - Patient with New";
-        test.Logger.LogStart(testDescription);
-
-        var expectedDonorCode = await test.Steps.CreateDonor(ImportDonorType.Adult);
-        var searchResponse = await test.Steps.SubmitSearchRequest("search-request-patient-with-new-at-A1.json");
-        await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-        await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-
-        test.Logger.LogCompletion(testDescription);
+        await Search_Patient(
+            testDescription: "9/10 Donor Search - Patient with New",
+            importDonorType: ImportDonorType.Adult,
+            searchRequestJson: "search-request-patient-with-new-at-A1.json",
+            parallelMatchPrediction: parallelMatchPrediction);
     }
 
-    [Test]
-    public async Task Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew()
+    [TestCaseSource(nameof(Cases))]
+    public async Task Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew(bool? parallelMatchPrediction)
     {
-        var test = GetSearchTestServices(nameof(Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew));
+        await Search_Patient(
+            testDescription: "9/10 Donor Search - Patient with New and Donor with New",
+            importDonorType: ImportDonorType.Adult,
+            searchRequestJson: "search-request-patient-with-new-at-A1.json",
+            newDnaPhenotype: true,
+            parallelMatchPrediction: parallelMatchPrediction);
+    }
 
-        const string testDescription = "9/10 Donor Search - Patient with New and Donor with New";
-        test.Logger.LogStart(testDescription);
+    private async Task Search_Patient(
+        string testDescription,
+        ImportDonorType importDonorType,
+        string searchRequestJson,
+        bool? parallelMatchPrediction,
+        bool newDnaPhenotype = false,
+        [CallerMemberName] string callerName = "")
+    {
+        await ExecuteWithRetry(async () =>
+        {
+            var test = GetSearchTestServices(callerName);
+            test.Logger.LogStart(testDescription);
 
-        var expectedDonorCode = await test.Steps.CreateDonorWithNew(ImportDonorType.Adult);
-        var searchResponse = await test.Steps.SubmitSearchRequest("search-request-patient-with-new-at-A1.json");
-        await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-        await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+            var expectedDonorCode = newDnaPhenotype
+                ? await test.Steps.CreateDonorWithNew(importDonorType)
+                : await test.Steps.CreateDonor(importDonorType);
+            var searchResponse = await test.Steps.SubmitSearchRequest(searchRequestJson, parallelMatchPrediction);
+            await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+            await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
 
-        test.Logger.LogCompletion(testDescription);
+            test.Logger.LogCompletion(testDescription);
+        });
     }
 }

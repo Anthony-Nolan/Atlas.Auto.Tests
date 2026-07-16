@@ -34,11 +34,11 @@ internal interface IRepeatSearchTestSteps
 
     /// <returns>search request id</returns>
     Task<string> OriginalSearchShouldOnlyReturnExpectedDonors(
-        string searchRequestFileName, DonorChanges donorChanges);
+        string searchRequestFileName, DonorChanges donorChanges, bool? parallelMatchPrediction = null);
 
     /// <returns>repeat search request id</returns>
     Task<string> SubmitRepeatSearchRequest(
-        string searchRequestFileName, string originalSearchId, DateTimeOffset searchCutOff);
+        string searchRequestFileName, string originalSearchId, DateTimeOffset searchCutOff, bool? parallelMatchPrediction = null);
 
     Task RepeatMatchingShouldHaveIdentifiedExpectedChanges(
         string repeatSearchId, string searchId, DonorChanges donorChanges);
@@ -96,9 +96,9 @@ internal class RepeatSearchTestSteps : IRepeatSearchTestSteps
         await donorImportSteps.DeleteDonors(donorCodes);
     }
 
-    public async Task<string> OriginalSearchShouldOnlyReturnExpectedDonors(string searchRequestFileName, DonorChanges donorChanges)
+    public async Task<string> OriginalSearchShouldOnlyReturnExpectedDonors(string searchRequestFileName, DonorChanges donorChanges, bool? parallelMatchPrediction = null)
     {
-        var response = await searchTestSteps.SubmitSearchRequest(searchRequestFileName);
+        var response = await searchTestSteps.SubmitSearchRequest(searchRequestFileName, parallelMatchPrediction);
         await searchTestSteps.MatchingShouldOnlyReturnExpectedDonors(response.SearchIdentifier, donorChanges);
         // no need to assert the final search result as repeat search only uses the matching result as input
         return response.SearchIdentifier;
@@ -107,9 +107,11 @@ internal class RepeatSearchTestSteps : IRepeatSearchTestSteps
     public async Task<string> SubmitRepeatSearchRequest(
         string searchRequestFileName,
         string originalSearchId,
-        DateTimeOffset searchCutOff)
+        DateTimeOffset searchCutOff,
+        bool? parallelMatchPrediction = null)
     {
         var originalSearchRequest = await SourceDataReader.ReadJsonFile<SearchRequest>(searchRequestFileName);
+        originalSearchRequest.ParallelMatchPrediction = parallelMatchPrediction;
 
         var repeatRequest = new RepeatSearchRequest
         {

@@ -4,9 +4,7 @@
 /// Tests that cover exception paths of Atlas repeat search.
 /// </summary>
 [TestFixture]
-[Parallelizable(ParallelScope.All)]
 [Category($"{nameof(RepeatSearch_ExceptionPathTests)}")]
-// ReSharper disable once InconsistentNaming
 internal class RepeatSearch_ExceptionPathTests : RepeatSearchTestBase
 {
     public RepeatSearch_ExceptionPathTests() : base(nameof(RepeatSearch_ExceptionPathTests))

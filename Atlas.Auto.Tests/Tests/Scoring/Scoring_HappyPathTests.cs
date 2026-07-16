@@ -6,9 +6,7 @@ namespace Atlas.Auto.Tests.Tests.Scoring;
 /// Tests that cover happy paths of Atlas scoring.
 /// </summary>
 [TestFixture]
-[Parallelizable(ParallelScope.All)]
 [Category($"{nameof(Scoring_HappyPathTests)}")]
-// ReSharper disable once InconsistentNaming
 internal class Scoring_HappyPathTests : ScoringTestBase
 {
     public Scoring_HappyPathTests() : base(nameof(Scoring_HappyPathTests))
