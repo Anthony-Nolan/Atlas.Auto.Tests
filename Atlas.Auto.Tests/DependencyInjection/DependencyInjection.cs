@@ -2,7 +2,7 @@ namespace Atlas.Auto.Tests.DependencyInjection;
 
 public static class DependencyInjection
 {
-    private static IServiceProvider provider;
+    private static IServiceProvider? provider;
 
     public static IServiceProvider Provider
     {

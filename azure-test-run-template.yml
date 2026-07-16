@@ -19,7 +19,7 @@ jobs:
         displayName: 'Run Tests for ${{testCategoryJob.job}}'
         inputs:
           command: 'test'
-          arguments: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net8.0/Atlas.Auto.Tests.dll --no-restore --filter TestCategory=${{testCategoryJob.job}}'
+          arguments: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net10.0/Atlas.Auto.Tests.dll --no-restore --filter TestCategory=${{testCategoryJob.job}}'
 
       - task: PublishPipelineArtifact@1
         continueOnError: true

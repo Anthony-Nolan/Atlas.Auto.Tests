@@ -2,7 +2,7 @@
 {
     internal class DonorChanges
     {
-        public IReadOnlyCollection<string> NoLongerMatching { get; set; }
-        public IReadOnlyCollection<string> NewlyMatching { get; set; }
+        public required IReadOnlyCollection<string> NoLongerMatching { get; set; }
+        public required IReadOnlyCollection<string> NewlyMatching { get; set; }
     }
 }
