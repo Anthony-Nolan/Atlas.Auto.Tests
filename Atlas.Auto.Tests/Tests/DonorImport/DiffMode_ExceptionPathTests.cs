@@ -9,9 +9,7 @@ namespace Atlas.Auto.Tests.Tests.DonorImport;
 /// Tests that cover exception paths of Atlas donor import when in diff mode.
 /// </summary>
 [TestFixture]
-[Parallelizable(scope: ParallelScope.All)]
 [Category($"{TestConstants.DonorImportTestTag}_{nameof(DiffMode_ExceptionPathTests)}")]
-// ReSharper disable once InconsistentNaming
 internal class DiffMode_ExceptionPathTests : DonorImportTestBase
 {
     private const string RecordIdProp = "RecordId";

@@ -29,7 +29,7 @@ namespace Atlas.Auto.Tests.DependencyInjection
         /// <typeparam name="T">Settings Object to be accessed</typeparam>
         public static Func<IServiceProvider, T> OptionsReaderFor<T>() where T : class, new()
         {
-            return sp => sp.GetService<IOptions<T>>().Value;
+            return sp => sp.GetService<IOptions<T>>()!.Value;
         }
 
         /// <summary>

@@ -28,7 +28,7 @@ internal interface ISearchTestSteps
     /// </summary>
     Task<string> CreateDonorWithNew(ImportDonorType donorType);
 
-    Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName);
+    Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName, bool? parallelMatchPrediction = null);
 
     Task MatchingShouldReturnExpectedDonor(string searchRequestId, string expectedDonorCode);
 
@@ -74,9 +74,10 @@ internal class SearchTestSteps : ISearchTestSteps
         return await donorImportSteps.CreateDonorWithNewDnaPhenotype(donorType);
     }
 
-    public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName)
+    public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName, bool? parallelMatchPrediction = null)
     {
         var searchRequest = await SourceDataReader.ReadJsonFile<SearchRequest>(searchRequestFileName);
+        searchRequest.ParallelMatchPrediction = parallelMatchPrediction;
         var searchResponse = await workflow.SubmitSearchRequest(searchRequest);
         logger.AssertResponseThenLogAndThrow(searchResponse, "Submit valid search request");
         logger.LogInfo($"Search request id: {searchResponse.DebugResult!.SearchIdentifier}");

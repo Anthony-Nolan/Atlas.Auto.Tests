@@ -1,16 +1,11 @@
-﻿using Atlas.Auto.Tests.TestHelpers.InternalModels;
+using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.DonorImport.FileSchema.Models;
+using System.Runtime.CompilerServices;
 
 namespace Atlas.Auto.Tests.Tests.RepeatSearch;
 
-/// <summary>
-/// Tests that cover happy paths of Atlas repeat search.
-/// Adult and cord test have been split into separate test categories to allow for parallel execution on the test pipeline.
-/// </summary>
 [TestFixture]
-[Parallelizable(ParallelScope.All)]
-// ReSharper disable once InconsistentNaming
 internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
 {
     private const string TestCategoryPrefix = nameof(RepeatSearch_HappyPathTests);
@@ -20,50 +15,67 @@ internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
     }
 
     [Category($"{TestCategoryPrefix}_Adult")]
-    [Test]
-    public async Task RepeatSearch_Donor_10_10_IdentifiedExpectedChanges()
+    [TestCaseSource(nameof(Cases))]
+    public async Task RepeatSearch_Donor_10_10_IdentifiedExpectedChanges(bool? parallelMatchPrediction)
     {
-        var test = GetRepeatSearchTestServices(nameof(RepeatSearch_Donor_10_10_IdentifiedExpectedChanges));
-        const string testDescription = "Repeat Search tests for 10/10 donor search";
-        test.Logger.LogStart(testDescription);
-        await RunRepeatSearchTests(test, ImportDonorType.Adult, "search-request-donor-10_10.json");
-        test.Logger.LogCompletion(testDescription);
+        await RunRepeatSearch(
+            testDescription: "Repeat Search tests for 10/10 donor search",
+            donorType: ImportDonorType.Adult,
+            requestFileName: "search-request-donor-10_10.json",
+            parallelMatchPrediction: parallelMatchPrediction);
     }
 
     [Category($"{TestCategoryPrefix}_Cord")]
-    [Test]
-    public async Task RepeatSearch_Cord_4_8_IdentifiedExpectedChanges()
+    [TestCaseSource(nameof(Cases))]
+    public async Task RepeatSearch_Cord_4_8_IdentifiedExpectedChanges(bool? parallelMatchPrediction)
     {
-        var test = GetRepeatSearchTestServices(nameof(RepeatSearch_Cord_4_8_IdentifiedExpectedChanges));
-        const string testDescription = "Repeat Search tests for 4/8 cord search";
-        test.Logger.LogStart(testDescription);
-        await RunRepeatSearchTests(test, ImportDonorType.Cord, "search-request-cord-4_8.json");
-        test.Logger.LogCompletion(testDescription);
+        await RunRepeatSearch(
+            testDescription: "Repeat Search tests for 4/8 cord search",
+            donorType: ImportDonorType.Cord,
+            requestFileName: "search-request-cord-4_8.json",
+            parallelMatchPrediction: parallelMatchPrediction);
+    }
+
+    private async Task RunRepeatSearch(
+        string testDescription,
+        ImportDonorType donorType,
+        string requestFileName,
+        bool? parallelMatchPrediction,
+        [CallerMemberName] string callerName = "")
+    {
+        await ExecuteWithRetry(async () =>
+        {
+            var test = GetRepeatSearchTestServices(callerName);
+            test.Logger.LogStart(testDescription);
+            await RunRepeatSearchTests(test, donorType, requestFileName, parallelMatchPrediction);
+            test.Logger.LogCompletion(testDescription);
+        });
     }
 
     private static async Task RunRepeatSearchTests(
         TestServices<IRepeatSearchTestSteps> test,
         ImportDonorType donorType,
-        string requestFileName)
+        string requestFileName,
+        bool? parallelMatchPrediction)
     {
         var currentTestStep = "Create donors then run original search";
         test.Logger.LogStart(currentTestStep);
         var firstDonors = await CreateFirstDonors(test, donorType);
-        var searchId = await test.Steps.OriginalSearchShouldOnlyReturnExpectedDonors(requestFileName, firstDonors);
+        var searchId = await test.Steps.OriginalSearchShouldOnlyReturnExpectedDonors(requestFileName, firstDonors, parallelMatchPrediction);
         test.Logger.LogCompletion(currentTestStep);
 
         currentTestStep = "Apply donor updates then run repeat search";
         test.Logger.LogStart(currentTestStep);
         var timeBeforeDonorChanges = DateTimeOffset.UtcNow;
         var donorChanges = await ApplyDonorChanges(test, donorType, firstDonors);
-        await RepeatSearchShouldIdentifyExpectedChanges(test, requestFileName, searchId, timeBeforeDonorChanges, donorChanges);
+        await RepeatSearchShouldIdentifyExpectedChanges(test, requestFileName, searchId, timeBeforeDonorChanges, donorChanges, parallelMatchPrediction);
         test.Logger.LogCompletion(currentTestStep);
 
         currentTestStep = "Delete previously matched donors then run repeat search";
         test.Logger.LogStart(currentTestStep);
         timeBeforeDonorChanges = DateTimeOffset.UtcNow;
         donorChanges = await DeleteDonors(test, donorChanges.NewlyMatching);
-        await RepeatSearchShouldIdentifyExpectedChanges(test, requestFileName, searchId, timeBeforeDonorChanges, donorChanges);
+        await RepeatSearchShouldIdentifyExpectedChanges(test, requestFileName, searchId, timeBeforeDonorChanges, donorChanges, parallelMatchPrediction);
         test.Logger.LogCompletion(currentTestStep);
     }
 
@@ -122,9 +134,10 @@ internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
         string searchRequestFileName,
         string originalSearchId,
         DateTimeOffset searchCutOff,
-        DonorChanges donorChanges)
+        DonorChanges donorChanges,
+        bool? parallelMatchPrediction)
     {
-        var repeatRunId = await test.Steps.SubmitRepeatSearchRequest(searchRequestFileName, originalSearchId, searchCutOff);
+        var repeatRunId = await test.Steps.SubmitRepeatSearchRequest(searchRequestFileName, originalSearchId, searchCutOff, parallelMatchPrediction);
         await test.Steps.RepeatMatchingShouldHaveIdentifiedExpectedChanges(repeatRunId, originalSearchId, donorChanges);
         await test.Steps.RepeatSearchShouldHaveIdentifiedExpectedChanges(repeatRunId, originalSearchId, donorChanges);
     }
