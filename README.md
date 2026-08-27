@@ -47,13 +47,13 @@ The E2E tests should be updated to use the latest version of these packages when
 
 This should be done by:
 1. First reading both the [Atlas](https://github.com/Anthony-Nolan/Atlas/blob/master/Atlas.Functions.PublicApi/CHANGELOG_Atlas.md) and [Debug client](https://github.com/Anthony-Nolan/Atlas/blob/master/Atlas.Debug.Client/CHANGELOG_DebugClient.md) changelogs to check for both API-level and/or functional breaking changes.
-2. Creating a new branch of the E2E tests repo named after the version of Atlas being tested, i.e., `atlas/x.y.z`, where "x.y.z" is the Atlas version number under test.
+2. Creating a new branch of the E2E tests repo named after the version of Atlas being tested, i.e., `release/x.y.z`, where "x.y.z" is the Atlas version number under test. Branching follows the same `release/x.y.z` (and, for patches to an already-released version, `hotfix/x.y.z`) model as the [main Atlas repository](https://github.com/Anthony-Nolan/Atlas/blob/master/README_Contribution_Versioning.md).
 3. Updating the package references in the `Atlas.Auto.Tests.csproj` file to version `x.y.z` (stable, not pre-release).
 4. Running the health check tests locally as a build check.
 5. Push the new branch to the remote repository.
-6. On DevOps, run the `atlas/x.y.z` version of the tests pipeline against the Atlas instance of the same version - most likely, this will be Atlas UAT.
-7. If all tests are green, git tag the branch with the version number, i.e., `atlas/x.y.z`, then push the tag to the remote repository.
-8. Merge the branch into `main`, and finally, delete the branch.
+6. On DevOps, run the `release/x.y.z` version of the tests pipeline against the Atlas instance of the same version - most likely, this will be Atlas UAT.
+7. If all tests are green, merge the branch into `main`.
+8. The `release/x.y.z` branch is not deleted or tagged - it is kept in the remote so a `hotfix/x.y.z` branch can be cut from it later if that specific released version needs a test fix.
 
 ## Contributing
 Please refer to the [contribution guidelines on the main Atlas repository](https://github.com/Anthony-Nolan/Atlas/blob/master/README_Contribution_Versioning.md).
