@@ -28,6 +28,11 @@ internal interface ISearchTestSteps
     /// </summary>
     Task<string> CreateDonorWithNew(ImportDonorType donorType);
 
+    /// <summary>
+    /// Creates a donor of the specified type with DNA phenotype containing an associated antigen and returns the record id.
+    /// </summary>
+    Task<string> CreateDonorWithAssociatedAntigen(ImportDonorType donorType);
+
     Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName, bool? parallelMatchPrediction = null);
 
     Task MatchingShouldReturnExpectedDonor(string searchRequestId, string expectedDonorCode);
@@ -72,6 +77,11 @@ internal class SearchTestSteps : ISearchTestSteps
     public async Task<string> CreateDonorWithNew(ImportDonorType donorType)
     {
         return await donorImportSteps.CreateDonorWithNewDnaPhenotype(donorType);
+    }
+
+    public async Task<string> CreateDonorWithAssociatedAntigen(ImportDonorType donorType)
+    {
+        return await donorImportSteps.CreateDonorWithAssociatedAntigenPhenotype(donorType);
     }
 
     public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName, bool? parallelMatchPrediction = null)

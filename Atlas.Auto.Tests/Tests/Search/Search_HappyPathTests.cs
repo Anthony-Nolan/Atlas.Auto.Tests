@@ -63,6 +63,22 @@ internal class Search_HappyPathTests : SearchTestBase
             parallelMatchPrediction: parallelMatchPrediction);
     }
 
+    [Test]
+    public async Task Search_DonorWithAssociatedAntigen_10_10_ReturnsExpectedSearchResult()
+    {
+        var test = GetSearchTestServices(nameof(Search_DonorWithAssociatedAntigen_10_10_ReturnsExpectedSearchResult));
+
+        const string testDescription = "10/10 Donor Search - Donor with Associated Antigen";
+        test.Logger.LogStart(testDescription);
+
+        var expectedDonorCode = await test.Steps.CreateDonorWithAssociatedAntigen(ImportDonorType.Adult);
+        var searchResponse = await test.Steps.SubmitSearchRequest("search-request-donor-associated-antigen-10_10.json");
+        await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+        await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+
+        test.Logger.LogCompletion(testDescription);
+    }
+
     private async Task Search_Patient(
         string testDescription,
         ImportDonorType importDonorType,

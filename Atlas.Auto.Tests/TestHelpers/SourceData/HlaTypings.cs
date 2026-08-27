@@ -42,6 +42,8 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
         /// </summary>
         public const string InvalidDnaForAnyLocus = "*999:INVALIDHLA";
 
+        public const string AssociatedAntigen = "1201";
+
         /// <summary>
         /// Phenotype constructed from two A~B~C~Q~R haplotypes within the test HF set to ensure it is deemed "represented" during match prediction.
         /// The haplotypes themselves are relatively rare in an effort to minimise the number of matches found during search.
@@ -64,6 +66,15 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
             "*01:01", "*11:01",
             "*02:01", "*03:02",
             "*03:XX", "*09:XX")
+            .ToPhenotypeInfoTransfer();
+
+        public static PhenotypeInfoTransfer<string> SearchAssociatedPhenotype = new PhenotypeInfo<string>(
+            "*0265", "*33:01",
+            "*14:02", "*35:01",
+            "*06:02", "*12",
+            "*01:01", "*11:01",
+            "*02:01", "*03:01",
+            "*07:01", "*1201")
             .ToPhenotypeInfoTransfer();
     }
 }
