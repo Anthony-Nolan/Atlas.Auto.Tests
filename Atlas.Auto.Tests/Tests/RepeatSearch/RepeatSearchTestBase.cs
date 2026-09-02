@@ -1,8 +1,10 @@
-﻿using Atlas.Auto.Tests.DependencyInjection;
-using Atlas.Auto.Tests.TestHelpers.InternalModels;
+using Atlas.Auto.Tests.DependencyInjection;
+using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
-using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Auto.Tests.Tests.Search;
+using Atlas.Client.Models.Search.Results;
+using Atlas.Client.Models.Search.Results.Matching;
+using Atlas.Debug.Client.Clients;
 
 namespace Atlas.Auto.Tests.Tests.RepeatSearch;
 
@@ -12,20 +14,25 @@ internal abstract class RepeatSearchTestBase : SearchTestBase
     {
     }
 
-    protected TestServices<IRepeatSearchTestSteps> GetRepeatSearchTestServices(string testName)
+    protected RepeatSearchTestSteps GetRepeatSearchTestSteps(string testName)
     {
-        var searchTestServices = GetSearchTestServices(testName); // builds search test steps & a test logger
-        var repeatSearchTestSteps = ResolveRepeatSearchTestSteps(searchTestServices, testName);
-        return new TestServices<IRepeatSearchTestSteps>(repeatSearchTestSteps, searchTestServices.Logger);
-    }
+        var searchTestSteps = GetSearchTestSteps(testName);
 
-    private RepeatSearchTestSteps ResolveRepeatSearchTestSteps(
-        TestServices<ISearchTestSteps> searchTestServices,
-        string testName)
-    {
-        var repeatWorkflow = Provider.ResolveServiceOrThrow<IRepeatSearchWorkflow>();
-        var importStepsForSearchTests = ResolveDonorImportStepsForSearchTests(searchTestServices.Logger);
+        var publicApiClient = Provider.ResolveServiceOrThrow<IPublicApiFunctionsClient>();
+        var repeatSearchClient = Provider.ResolveServiceOrThrow<IRepeatSearchFunctionsClient>();
+        var topLevelClient = Provider.ResolveServiceOrThrow<ITopLevelFunctionsClient>();
+
         return new RepeatSearchTestSteps(
-            repeatWorkflow, importStepsForSearchTests, searchTestServices.Steps, searchTestServices.Logger, testName);
+            req => publicApiClient.PostRepeatSearchRequest(req),
+            new NotificationFetcher<MatchingResultsNotification>(
+                req => repeatSearchClient.PeekMatchingResultNotifications(req), 10, 20, "Fetch repeat matching notification"),
+            req => repeatSearchClient.FetchMatchingResultSet(req),
+            new NotificationFetcher<SearchResultsNotification>(
+                req => topLevelClient.PeekRepeatSearchResultNotifications(req), 10, 20, "Fetch repeat search notification"),
+            req => topLevelClient.FetchRepeatSearchResultSet(req),
+            searchTestSteps,
+            ResolveDonorImportStepsForSearchTests(searchTestSteps.Logger),
+            searchTestSteps.Logger,
+            testName);
     }
 }

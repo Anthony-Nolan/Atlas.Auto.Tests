@@ -45,46 +45,46 @@ internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
     {
         await ExecuteWithRetry(async () =>
         {
-            var test = GetRepeatSearchTestServices(callerName);
-            test.Logger.LogStart(testDescription);
-            await RunRepeatSearchTests(test, donorType, requestFileName, parallelMatchPrediction);
-            test.Logger.LogCompletion(testDescription);
+            var steps = GetRepeatSearchTestSteps(callerName);
+            steps.Logger.LogStart(testDescription);
+            await RunRepeatSearchTests(steps, donorType, requestFileName, parallelMatchPrediction);
+            steps.Logger.LogCompletion(testDescription);
         });
     }
 
     private static async Task RunRepeatSearchTests(
-        TestServices<IRepeatSearchTestSteps> test,
+        RepeatSearchTestSteps steps,
         ImportDonorType donorType,
         string requestFileName,
         bool? parallelMatchPrediction)
     {
         var currentTestStep = "Create donors then run original search";
-        test.Logger.LogStart(currentTestStep);
-        var firstDonors = await CreateFirstDonors(test, donorType);
-        var searchId = await test.Steps.OriginalSearchShouldOnlyReturnExpectedDonors(requestFileName, firstDonors, parallelMatchPrediction);
-        test.Logger.LogCompletion(currentTestStep);
+        steps.Logger.LogStart(currentTestStep);
+        var firstDonors = await CreateFirstDonors(steps, donorType);
+        var searchId = await steps.OriginalSearchShouldOnlyReturnExpectedDonors(requestFileName, firstDonors, parallelMatchPrediction);
+        steps.Logger.LogCompletion(currentTestStep);
 
         currentTestStep = "Apply donor updates then run repeat search";
-        test.Logger.LogStart(currentTestStep);
+        steps.Logger.LogStart(currentTestStep);
         var timeBeforeDonorChanges = DateTimeOffset.UtcNow;
-        var donorChanges = await ApplyDonorChanges(test, donorType, firstDonors);
-        await RepeatSearchShouldIdentifyExpectedChanges(test, requestFileName, searchId, timeBeforeDonorChanges, donorChanges, parallelMatchPrediction);
-        test.Logger.LogCompletion(currentTestStep);
+        var donorChanges = await ApplyDonorChanges(steps, donorType, firstDonors);
+        await RepeatSearchShouldIdentifyExpectedChanges(steps, requestFileName, searchId, timeBeforeDonorChanges, donorChanges, parallelMatchPrediction);
+        steps.Logger.LogCompletion(currentTestStep);
 
         currentTestStep = "Delete previously matched donors then run repeat search";
-        test.Logger.LogStart(currentTestStep);
+        steps.Logger.LogStart(currentTestStep);
         timeBeforeDonorChanges = DateTimeOffset.UtcNow;
-        donorChanges = await DeleteDonors(test, donorChanges.NewlyMatching);
-        await RepeatSearchShouldIdentifyExpectedChanges(test, requestFileName, searchId, timeBeforeDonorChanges, donorChanges, parallelMatchPrediction);
-        test.Logger.LogCompletion(currentTestStep);
+        donorChanges = await DeleteDonors(steps, donorChanges.NewlyMatching);
+        await RepeatSearchShouldIdentifyExpectedChanges(steps, requestFileName, searchId, timeBeforeDonorChanges, donorChanges, parallelMatchPrediction);
+        steps.Logger.LogCompletion(currentTestStep);
     }
 
     private static async Task<DonorChanges> CreateFirstDonors(
-        TestServices<IRepeatSearchTestSteps> test,
+        RepeatSearchTestSteps steps,
         ImportDonorType donorType)
     {
-        var nonMatchingDonor = await test.Steps.CreateNonMatchingDonor(donorType);
-        var matchingDonor = await test.Steps.CreateMatchingDonor(donorType);
+        var nonMatchingDonor = await steps.CreateNonMatchingDonor(donorType);
+        var matchingDonor = await steps.CreateMatchingDonor(donorType);
         return new DonorChanges
         {
             NoLongerMatching = new[] { nonMatchingDonor },
@@ -93,21 +93,21 @@ internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
     }
 
     private static async Task<DonorChanges> ApplyDonorChanges(
-        TestServices<IRepeatSearchTestSteps> test,
+        RepeatSearchTestSteps steps,
         ImportDonorType donorType,
         DonorChanges originalDonorChanges)
     {
         foreach (var donorCode in originalDonorChanges.NewlyMatching)
         {
-            await test.Steps.EditDonorToNoLongerMatch(donorCode, donorType);
+            await steps.EditDonorToNoLongerMatch(donorCode, donorType);
         }
 
         foreach (var donorCode in originalDonorChanges.NoLongerMatching)
         {
-            await test.Steps.EditDonorToMatch(donorCode, donorType);
+            await steps.EditDonorToMatch(donorCode, donorType);
         }
 
-        var newMatchingDonor = await test.Steps.CreateMatchingDonor(donorType);
+        var newMatchingDonor = await steps.CreateMatchingDonor(donorType);
 
         return new DonorChanges
         {
@@ -117,10 +117,10 @@ internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
     }
 
     private static async Task<DonorChanges> DeleteDonors(
-        TestServices<IRepeatSearchTestSteps> test,
+        RepeatSearchTestSteps steps,
         IReadOnlyCollection<string> donors)
     {
-        await test.Steps.DeleteDonors(donors);
+        await steps.DeleteDonors(donors);
 
         return new DonorChanges
         {
@@ -130,15 +130,15 @@ internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
     }
 
     private static async Task RepeatSearchShouldIdentifyExpectedChanges(
-        TestServices<IRepeatSearchTestSteps> test,
+        RepeatSearchTestSteps steps,
         string searchRequestFileName,
         string originalSearchId,
         DateTimeOffset searchCutOff,
         DonorChanges donorChanges,
         bool? parallelMatchPrediction)
     {
-        var repeatRunId = await test.Steps.SubmitRepeatSearchRequest(searchRequestFileName, originalSearchId, searchCutOff, parallelMatchPrediction);
-        await test.Steps.RepeatMatchingShouldHaveIdentifiedExpectedChanges(repeatRunId, originalSearchId, donorChanges);
-        await test.Steps.RepeatSearchShouldHaveIdentifiedExpectedChanges(repeatRunId, originalSearchId, donorChanges);
+        var repeatRunId = await steps.SubmitRepeatSearchRequest(searchRequestFileName, originalSearchId, searchCutOff, parallelMatchPrediction);
+        await steps.RepeatMatchingShouldHaveIdentifiedExpectedChanges(repeatRunId, originalSearchId, donorChanges);
+        await steps.RepeatSearchShouldHaveIdentifiedExpectedChanges(repeatRunId, originalSearchId, donorChanges);
     }
 }

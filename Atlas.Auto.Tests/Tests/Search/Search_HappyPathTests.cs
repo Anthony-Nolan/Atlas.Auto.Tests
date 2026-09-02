@@ -66,17 +66,17 @@ internal class Search_HappyPathTests : SearchTestBase
     [Test]
     public async Task Search_DonorWithAssociatedAntigen_10_10_ReturnsExpectedSearchResult()
     {
-        var test = GetSearchTestServices(nameof(Search_DonorWithAssociatedAntigen_10_10_ReturnsExpectedSearchResult));
+        var steps = GetSearchTestSteps(nameof(Search_DonorWithAssociatedAntigen_10_10_ReturnsExpectedSearchResult));
 
         const string testDescription = "10/10 Donor Search - Donor with Associated Antigen";
-        test.Logger.LogStart(testDescription);
+        steps.Logger.LogStart(testDescription);
 
-        var expectedDonorCode = await test.Steps.CreateDonorWithAssociatedAntigen(ImportDonorType.Adult);
-        var searchResponse = await test.Steps.SubmitSearchRequest("search-request-donor-associated-antigen-10_10.json");
-        await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-        await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+        var expectedDonorCode = await steps.CreateDonorWithAssociatedAntigen(ImportDonorType.Adult);
+        var searchResponse = await steps.SubmitSearchRequest("search-request-donor-associated-antigen-10_10.json");
+        await steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+        await steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
 
-        test.Logger.LogCompletion(testDescription);
+        steps.Logger.LogCompletion(testDescription);
     }
 
     private async Task Search_Patient(
@@ -89,17 +89,17 @@ internal class Search_HappyPathTests : SearchTestBase
     {
         await ExecuteWithRetry(async () =>
         {
-            var test = GetSearchTestServices(callerName);
-            test.Logger.LogStart(testDescription);
+            var steps = GetSearchTestSteps(callerName);
+            steps.Logger.LogStart(testDescription);
 
             var expectedDonorCode = newDnaPhenotype
-                ? await test.Steps.CreateDonorWithNew(importDonorType)
-                : await test.Steps.CreateDonor(importDonorType);
-            var searchResponse = await test.Steps.SubmitSearchRequest(searchRequestJson, parallelMatchPrediction);
-            await test.Steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
-            await test.Steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+                ? await steps.CreateDonorWithNew(importDonorType)
+                : await steps.CreateDonor(importDonorType);
+            var searchResponse = await steps.SubmitSearchRequest(searchRequestJson, parallelMatchPrediction);
+            await steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+            await steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
 
-            test.Logger.LogCompletion(testDescription);
+            steps.Logger.LogCompletion(testDescription);
         });
     }
 }

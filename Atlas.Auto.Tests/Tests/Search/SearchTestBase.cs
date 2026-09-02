@@ -1,10 +1,10 @@
-﻿using Atlas.Auto.Tests.DependencyInjection;
-using Atlas.Auto.Tests.TestHelpers.InternalModels;
+using Atlas.Auto.Tests.DependencyInjection;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
-using Polly;
-using Polly.Retry;
+using Atlas.Client.Models.Search.Results;
+using Atlas.Client.Models.Search.Results.Matching;
+using Atlas.Debug.Client.Clients;
 
 namespace Atlas.Auto.Tests.Tests.Search;
 
@@ -23,22 +23,29 @@ internal abstract class SearchTestBase : TestBase
 
     protected static async Task ExecuteWithRetry(Func<Task> action)
     {
-        var retryPipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new RetryStrategyOptions
-            {
-                MaxRetryAttempts = 2,
-                ShouldHandle = new PredicateBuilder().Handle<Exception>()
-            })
-            .Build();
-
-        await retryPipeline.ExecuteAsync(async _ => await action(), CancellationToken.None);
+        await PollyRetry.ExecuteWithRetry(action, 2, 0, "Test retry");
     }
 
-    protected TestServices<ISearchTestSteps> GetSearchTestServices(string testName)
+    protected SearchTestSteps GetSearchTestSteps(string testName)
     {
         var testLogger = BuildTestLogger(testName);
-        var importStepsForSearchTests = ResolveDonorImportStepsForSearchTests(testLogger);
-        return ResolveSearchTestServices(importStepsForSearchTests, testLogger, testName);
+        var importSteps = ResolveDonorImportStepsForSearchTests(testLogger);
+
+        var publicApiClient = Provider.ResolveServiceOrThrow<IPublicApiFunctionsClient>();
+        var matchingClient = Provider.ResolveServiceOrThrow<IMatchingAlgorithmFunctionsClient>();
+        var topLevelClient = Provider.ResolveServiceOrThrow<ITopLevelFunctionsClient>();
+
+        return new SearchTestSteps(
+            req => publicApiClient.PostSearchRequest(req),
+            new NotificationFetcher<MatchingResultsNotification>(
+                req => matchingClient.PeekMatchingResultNotifications(req), 45, 20, "Fetch matching notification"),
+            req => matchingClient.FetchMatchingResultSet(req),
+            new NotificationFetcher<SearchResultsNotification>(
+                req => topLevelClient.PeekSearchResultNotifications(req), 10, 20, "Fetch search notification"),
+            req => topLevelClient.FetchSearchResultSet(req),
+            importSteps,
+            testLogger,
+            testName);
     }
 
     protected DonorImportStepsForSearchTests ResolveDonorImportStepsForSearchTests(ITestLogger testLogger)
@@ -46,15 +53,5 @@ internal abstract class SearchTestBase : TestBase
         var donorImportWorkflow = Provider.ResolveServiceOrThrow<IDonorImportWorkflow>();
         var donorImportTestSteps = new DonorImportTestSteps(donorImportWorkflow, testLogger);
         return new DonorImportStepsForSearchTests(donorImportTestSteps, testLogger);
-    }
-
-    private TestServices<ISearchTestSteps> ResolveSearchTestServices(
-        IDonorImportStepsForSearchTests importStepsForSearchTests,
-        ITestLogger testLogger,
-        string testName)
-    {
-        var searchWorkflow = Provider.ResolveServiceOrThrow<ISearchWorkflow>();
-        var searchTestSteps = new SearchTestSteps(searchWorkflow, importStepsForSearchTests, testLogger, testName);
-        return new TestServices<ISearchTestSteps>(searchTestSteps, testLogger);
     }
 }
