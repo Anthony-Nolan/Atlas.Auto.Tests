@@ -1,7 +1,7 @@
 namespace Atlas.Auto.Tests.Tests.Scoring;
 
 [TestFixture]
-[Category($"{nameof(ScoringHappyPathTests)}")]
+[Category(nameof(ScoringHappyPathTests))]
 internal class ScoringHappyPathTests : ScoringTestBase
 {
     public ScoringHappyPathTests() : base(nameof(ScoringHappyPathTests))

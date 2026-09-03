@@ -34,10 +34,10 @@ internal class TestDonorDeleter
         }
 
         var deleteResult = await TryDeleteFromDonorStore(donorCodes);
-        _logger.LogInformation("Donors deletion from donor store {Outcome}", deleteResult ? "was successful" : "failed");
+        _logger.LogInformation("Donors deletion from donor store {Outcome:l}", deleteResult ? "was successful" : "failed");
 
         var availabilityResult = await TrySetAsUnavailable(donorCodes);
-        _logger.LogInformation("Setting donors as unavailable for search {Outcome}", availabilityResult ? "was successful" : "failed");
+        _logger.LogInformation("Setting donors as unavailable for search {Outcome:l}", availabilityResult ? "was successful" : "failed");
     }
 
     private async Task<IReadOnlyCollection<string>> GetAutoTestDonorCodes()

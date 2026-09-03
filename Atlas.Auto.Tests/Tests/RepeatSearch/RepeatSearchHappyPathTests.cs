@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace Atlas.Auto.Tests.Tests.RepeatSearch;
 
 [TestFixture]
-[Category($"{nameof(RepeatSearchHappyPathTests)}")]
+[Category(nameof(RepeatSearchHappyPathTests))]
 internal class RepeatSearchHappyPathTests : RepeatSearchTestBase
 {
     private const string TestCategoryPrefix = nameof(RepeatSearchHappyPathTests);

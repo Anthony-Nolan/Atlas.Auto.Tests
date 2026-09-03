@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace Atlas.Auto.Tests.Tests.Search;
 
 [TestFixture]
-[Category($"{nameof(SearchHappyPathTests)}")]
+[Category(nameof(SearchHappyPathTests))]
 internal class SearchHappyPathTests : SearchTestBase
 {
     public SearchHappyPathTests() : base(nameof(SearchHappyPathTests))

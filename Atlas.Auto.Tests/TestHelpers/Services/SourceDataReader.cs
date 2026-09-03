@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 
@@ -8,14 +8,12 @@ namespace Atlas.Auto.Tests.TestHelpers.Services
     {
         private const string SourceDataFilePath = "Atlas.Auto.Tests.TestHelpers.SourceData.";
 
-        /// <summary>
-        /// Key is file name, value is file contents
-        /// </summary>
-        private static readonly ConcurrentDictionary<string, string> PreviouslyLoadedFiles = new();
+        private static readonly ConcurrentDictionary<string, Lazy<Task<string>>> PreviouslyLoadedFiles = new();
 
         public static async Task<T> ReadJsonFile<T>(string fileName)
         {
-            var fileContents = PreviouslyLoadedFiles.GetOrAdd(fileName, await LoadFile(fileName));
+            var lazyFileContents = PreviouslyLoadedFiles.GetOrAdd(fileName, _ => new Lazy<Task<string>>(() => LoadFile(fileName)));
+            var fileContents = await lazyFileContents.Value;
             var result = JsonSerializer.Deserialize<T>(fileContents);
             return result ?? throw new InvalidOperationException($"Failed to load file {fileName}");
         }

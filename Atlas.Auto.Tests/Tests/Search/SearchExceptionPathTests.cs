@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace Atlas.Auto.Tests.Tests.Search;
 
 [TestFixture]
-[Category($"{nameof(SearchExceptionPathTests)}")]
+[Category(nameof(SearchExceptionPathTests))]
 internal class SearchExceptionPathTests : SearchTestBase
 {
     public SearchExceptionPathTests() : base(nameof(SearchExceptionPathTests))
