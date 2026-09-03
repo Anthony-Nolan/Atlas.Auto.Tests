@@ -9,7 +9,7 @@ namespace Atlas.Auto.Tests.Tests;
 [TestFixture]
 internal class HealthCheckTests : TestBase
 {
-    private static object[] clientsToTest = {
+    private static readonly object[] clientsToTest = {
         typeof(IDonorImportFunctionsClient),
         typeof(IMatchingAlgorithmFunctionsClient),
         typeof(IPublicApiFunctionsClient),

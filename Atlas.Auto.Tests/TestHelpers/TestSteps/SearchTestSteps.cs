@@ -39,7 +39,7 @@ internal class SearchTestSteps : SearchTestStepsBase
         _pollyRetry = provider.GetRequiredService<PollyRetry>();
         _retry = provider.GetRequiredService<RetrySettings>();
         _matchingNotificationFetcher = new NotificationFetcher<MatchingResultsNotification>(
-            req => _matchingClient.PeekMatchingResultNotifications(req), _pollyRetry, _retry.CheckDonorsInMatching, "Fetch matching notification");
+            req => _matchingClient.PeekMatchingResultNotifications(req), _pollyRetry, _retry.FetchMessages, "Fetch matching notification");
         _searchNotificationFetcher = new NotificationFetcher<SearchResultsNotification>(
             req => _topLevelClient.PeekSearchResultNotifications(req), _pollyRetry, _retry.FetchMessages, "Fetch search notification");
     }

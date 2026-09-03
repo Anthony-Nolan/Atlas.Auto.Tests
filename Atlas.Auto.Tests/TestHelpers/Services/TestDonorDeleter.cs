@@ -51,9 +51,9 @@ internal class TestDonorDeleter
                 _retry.Cleanup, "Fetch auto-test donor codes for cleanup");
             return result?.ToList() ?? new List<string>();
         }
-        catch
+        catch (Exception ex)
         {
-            _logger.LogWarning("Failed to fetch donor codes for deletion");
+            _logger.LogWarning(ex, "Failed to fetch donor codes for deletion");
             return new List<string>();
         }
     }
@@ -67,8 +67,9 @@ internal class TestDonorDeleter
                 _retry.Cleanup, $"Delete {donorCodes.Count} donors from donor store");
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to delete donors from donor store");
             return false;
         }
     }
@@ -82,8 +83,9 @@ internal class TestDonorDeleter
                 _retry.Cleanup, $"Set {donorCodes.Count} donors as unavailable for search");
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to set donors as unavailable for search");
             return false;
         }
     }

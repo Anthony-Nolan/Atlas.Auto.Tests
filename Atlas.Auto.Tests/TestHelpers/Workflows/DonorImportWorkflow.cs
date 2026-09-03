@@ -86,9 +86,10 @@ internal class DonorImportWorkflow
     public async Task<DebugDonorsResult?> CheckDonorInfoInMatchingAlgorithmIsAsExpected(IEnumerable<DonorDebugInfo> donorInfo)
     {
         var expected = donorInfo.ToList();
-        var codeList = string.Join(", ", expected.GetExternalDonorCodes());
+        var codes = expected.GetExternalDonorCodes().ToList();
+        var codeList = string.Join(", ", codes);
         return await CheckDonorsInMatchingWithCondition(
-            expected.GetExternalDonorCodes(),
+            codes,
             result => result.PresentDonors
                 .OrderBy(d => d.ExternalDonorCode)
                 .SequenceEqual(expected.OrderBy(d => d.ExternalDonorCode)),

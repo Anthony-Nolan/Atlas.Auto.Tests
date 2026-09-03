@@ -4,7 +4,7 @@ using Atlas.Auto.Tests.Tests;
 namespace Atlas.Auto.Tests;
 
 [SetUpFixture]
-public class TestsSetUp
+internal class TestsSetUp
 {
     [OneTimeSetUp]
     public async Task OneTimeSetUpForAllTests()

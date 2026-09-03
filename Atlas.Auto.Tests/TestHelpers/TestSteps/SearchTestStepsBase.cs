@@ -8,6 +8,7 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 internal abstract class SearchTestStepsBase
 {
     public ITestLogger Logger => _logger;
+    internal DonorImportStepsForSearchTests DonorImportSteps => _donorImportSteps;
 
     protected readonly ITestLogger _logger;
     protected readonly string _testName;
