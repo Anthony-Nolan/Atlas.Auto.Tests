@@ -1,3 +1,4 @@
+using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.DonorImport.FileSchema.Models;
@@ -6,11 +7,11 @@ using System.Runtime.CompilerServices;
 namespace Atlas.Auto.Tests.Tests.RepeatSearch;
 
 [TestFixture]
-internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
+internal class RepeatSearchHappyPathTests : RepeatSearchTestBase
 {
-    private const string TestCategoryPrefix = nameof(RepeatSearch_HappyPathTests);
+    private const string TestCategoryPrefix = nameof(RepeatSearchHappyPathTests);
 
-    public RepeatSearch_HappyPathTests() : base(TestCategoryPrefix)
+    public RepeatSearchHappyPathTests() : base(TestCategoryPrefix)
     {
     }
 
@@ -83,8 +84,8 @@ internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
         RepeatSearchTestSteps steps,
         ImportDonorType donorType)
     {
-        var nonMatchingDonor = await steps.CreateNonMatchingDonor(donorType);
-        var matchingDonor = await steps.CreateMatchingDonor(donorType);
+        var nonMatchingDonor = await steps.CreateDonor(donorType, ImportedHlaBuilder.ValidDnaPhenotype);
+        var matchingDonor = await steps.CreateDonor(donorType, ImportedHlaBuilder.SearchTestPhenotype);
         return new DonorChanges
         {
             NoLongerMatching = new[] { nonMatchingDonor },
@@ -99,15 +100,15 @@ internal class RepeatSearch_HappyPathTests : RepeatSearchTestBase
     {
         foreach (var donorCode in originalDonorChanges.NewlyMatching)
         {
-            await steps.EditDonorToNoLongerMatch(donorCode, donorType);
+            await steps.EditDonorHla(donorCode, donorType, ImportedHlaBuilder.ValidDnaPhenotype);
         }
 
         foreach (var donorCode in originalDonorChanges.NoLongerMatching)
         {
-            await steps.EditDonorToMatch(donorCode, donorType);
+            await steps.EditDonorHla(donorCode, donorType, ImportedHlaBuilder.SearchTestPhenotype);
         }
 
-        var newMatchingDonor = await steps.CreateMatchingDonor(donorType);
+        var newMatchingDonor = await steps.CreateDonor(donorType, ImportedHlaBuilder.SearchTestPhenotype);
 
         return new DonorChanges
         {

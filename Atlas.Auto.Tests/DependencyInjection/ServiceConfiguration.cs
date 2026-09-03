@@ -1,15 +1,13 @@
-﻿using System.Reflection;
+using System.Reflection;
+using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
-using Atlas.Auto.Tests.TestHelpers.Services.DonorDeletion;
-using Atlas.Auto.Tests.TestHelpers.Services.DonorImport;
-using Atlas.Auto.Tests.TestHelpers.Services.Scoring;
-using Atlas.Auto.Tests.TestHelpers.TestSteps;
+using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Debug.Client;
 using Atlas.Debug.Client.Models.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using static Atlas.Auto.Tests.DependencyInjection.Utils;
+using Serilog;
 
 namespace Atlas.Auto.Tests.DependencyInjection;
 
@@ -17,73 +15,75 @@ internal static class ServiceConfiguration
 {
     internal static IServiceProvider CreateProvider()
     {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json")
+            .AddUserSecrets(Assembly.GetExecutingAssembly())
+            .Build();
+
+        var donorImport = GetSettingsOrThrow<DonorImportHttpFunctionSettings>(configuration, "DonorImport");
+        var matching = GetSettingsOrThrow<MatchingAlgorithmHttpFunctionSettings>(configuration, "MatchingAlgorithm");
+        var topLevel = GetSettingsOrThrow<TopLevelHttpFunctionSettings>(configuration, "TopLevel");
+        var publicApi = GetSettingsOrThrow<PublicApiHttpFunctionSettings>(configuration, "PublicApi");
+        var repeatSearch = GetSettingsOrThrow<RepeatSearchHttpFunctionSettings>(configuration, "RepeatSearch");
+
         var services = new ServiceCollection();
 
-        services.SetUpConfiguration();
-
-        services.RegisterSettings();
+        services.AddLogging(builder =>
+        {
+            var serilogLogger = new LoggerConfiguration()
+                .WriteTo.Sink(new NUnitSink())
+                .CreateLogger();
+            builder.AddSerilog(serilogLogger, dispose: true);
+        });
 
         services.RegisterDebugClients(
-            OptionsReaderFor<DonorImportHttpFunctionSettings>(),
-            OptionsReaderFor<MatchingAlgorithmHttpFunctionSettings>(),
-            OptionsReaderFor<TopLevelHttpFunctionSettings>(),
-            OptionsReaderFor<PublicApiHttpFunctionSettings>(),
-            OptionsReaderFor<RepeatSearchHttpFunctionSettings>());
+            _ => donorImport,
+            _ => matching,
+            _ => topLevel,
+            _ => publicApi,
+            _ => repeatSearch);
 
-        services.RegisterTestServices();
+        services.AddSingleton(configuration.GetSection("Retry").Get<RetrySettings>() ?? new RetrySettings());
+
+        services.AddSingleton<PollyRetry>();
+
+        services.AddTransient<TestDonorDeleter>();
+
+        services.AddTransient<DonorImportWorkflow>();
 
         return services.BuildServiceProvider();
     }
 
-    private static void SetUpConfiguration(this IServiceCollection services)
+    private static T GetSettingsOrThrow<T>(IConfigurationRoot configuration, string sectionName) where T : HttpFunctionSettings
     {
-        var configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json")
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddUserSecrets(Assembly.GetExecutingAssembly())
-            .Build();
+        var settings = configuration.GetSection(sectionName).Get<T>();
 
-        services.AddSingleton<IConfiguration>(sp => configuration);
-    }
+        var errors = new List<string>();
 
-    private static void RegisterSettings(this IServiceCollection services)
-    {
-        services.RegisterAsOptions<DonorImportHttpFunctionSettings>("DonorImport");
-        services.RegisterAsOptions<MatchingAlgorithmHttpFunctionSettings>("MatchingAlgorithm");
-        services.RegisterAsOptions<TopLevelHttpFunctionSettings>("TopLevel");
-        services.RegisterAsOptions<PublicApiHttpFunctionSettings>("PublicApi");
-        services.RegisterAsOptions<RepeatSearchHttpFunctionSettings>("RepeatSearch");
-    }
+        if (settings == null)
+        {
+            throw new InvalidOperationException(
+                $"Configuration section '{sectionName}' is missing. " +
+                $"Add it to appsettings.json or user secrets with 'BaseUrl' and 'ApiKey' values.");
+        }
 
-    private static void RegisterTestServices(this IServiceCollection services)
-    {
-        services.AddTransient<ITestDonorDeleter, TestDonorDeleter>();
-        services.AddTransient<IDonorCodeFetcher, DonorCodeFetcher>();
-        services.AddTransient<IDonorDeleter, DonorDeleter>();
-        services.AddTransient<IAvailabilitySetter, AvailabilitySetter>();
+        if (string.IsNullOrWhiteSpace(settings.BaseUrl)
+            || string.Equals(settings.BaseUrl, "override-this", StringComparison.OrdinalIgnoreCase)
+            || !Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out _))
+            errors.Add($"'{sectionName}:BaseUrl' is not configured or not a valid URL (current value: '{settings.BaseUrl ?? "null"}')");
 
-        services.AddTransient<IDebugRequester, DebugRequester>();
-        services.AddTransient<IMessageFetcher, MessageFetcher>();
+        if (string.IsNullOrWhiteSpace(settings.ApiKey)
+            || string.Equals(settings.ApiKey, "override-this", StringComparison.OrdinalIgnoreCase))
+            errors.Add($"'{sectionName}:ApiKey' is not configured (current value: '{settings.ApiKey ?? "null"}')");
 
-        services.AddTransient(typeof(IHealthChecker<>), typeof(HealthChecker<>));
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Configuration errors in '{sectionName}':\n  - {string.Join("\n  - ", errors)}\n" +
+                $"Set the correct values in user secrets (dotnet user-secrets set \"{sectionName}:BaseUrl\" \"<url>\").");
+        }
 
-        // donor import
-        services.AddTransient<IDonorImportTestSteps, DonorImportTestSteps>();
-        services.AddTransient<IDonorImportWorkflow, DonorImportWorkflow>();
-        services.AddTransient<IFileImporter, FileImporter>();
-        services.AddTransient<IImportResultFetcher, ImportResultFetcher>();
-        services.AddTransient<IDonorStoreChecker, DonorStoreChecker>();
-        services.AddTransient<IActiveMatchingDbChecker, ActiveMatchingDbChecker>();
-        services.AddTransient<IFullModeChecker, FullModeChecker>();
-        services.AddTransient<IFailedFileAlertFetcher, FailedFileAlertFetcher>();
-        services.AddTransient<IHlaExpansionFailureAlertFetcher, HlaExpansionFailureAlertFetcher>();
-        services.AddTransient<IHlaExpansionFailureFetcher, HlaExpansionFailureFetcher>();
-        services.AddTransient<IDonorImportFailureInfoFetcher, DonorImportFailureInfoFetcher>();
-
-        // scoring
-        services.AddTransient<IScoringTestSteps, ScoringTestSteps>();
-        services.AddTransient<IScoringWorkflow, ScoringWorkflow>();
-        services.AddTransient<IDonorScorer, DonorScorer>();
-
+        return settings;
     }
 }

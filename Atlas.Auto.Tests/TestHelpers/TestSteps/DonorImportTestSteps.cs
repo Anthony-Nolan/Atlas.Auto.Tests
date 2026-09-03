@@ -1,197 +1,150 @@
-﻿using Atlas.Auto.Tests.TestHelpers.Assertions;
 using Atlas.Auto.Tests.TestHelpers.Assertions.DonorImport;
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
-using Atlas.Auto.Tests.TestHelpers.Services;
+using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Debug.Client.Models.DonorImport;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
 
-namespace Atlas.Auto.Tests.TestHelpers.TestSteps
+namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
+
+internal class DonorImportTestSteps
 {
-    /// <summary>
-    /// Steps for testing Atlas donor import.
-    /// Covers arrangement and execution of the donor import workflow and assertion of its outcomes.
-    /// </summary>
-    internal interface IDonorImportTestSteps
+    private readonly DonorImportWorkflow _workflow;
+    public ITestLogger Logger { get; }
+
+    public DonorImportTestSteps(DonorImportWorkflow workflow, ITestLogger logger)
     {
-        Task<DonorImportRequest> ImportDiffDonorFile(IEnumerable<DonorUpdate> updates);
-        Task<DonorImportRequest> ImportFullDonorFile(IEnumerable<DonorUpdate> updates);
-
-        Task FullModeImportShouldNotBeAllowed();
-
-        Task DonorImportShouldHaveBeenSuccessful(string fileName, int expectedDonorCount, int expectedFailedDonorCount);
-        Task DonorImportShouldHaveFailed(string fileName);
-
-        Task DonorStoreShouldHaveExpectedDonors(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo);
-        Task DonorStoreShouldNotHaveTheseDonors(IReadOnlyCollection<string> externalDonorCodes);
-
-        Task DonorsShouldBeAvailableForSearch(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo);
-        Task DonorsShouldNotBeAvailableForSearch(IReadOnlyCollection<string> externalDonorCodes);
-
-        /// <summary>
-        /// Use to assert that an edit to an existing donor was successfully applied,
-        /// i.e., where the donor should remain searchable and its info should have been updated.
-        /// </summary>
-        Task MatchingAlgorithmDonorInfoShouldBe(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo);
-
-        Task FullModeImportAlertShouldHaveBeenRaised(string fileName);
-        Task HlaExpansionFailureShouldBeReportedFor(string donorCode, string invalidHlaName);
-
-        Task FailedDonorUpdatesShouldHaveBeenLogged(string fileName, IEnumerable<FailedDonorUpdate> expectedFailedDonorInfo);
+        _workflow = workflow;
+        Logger = logger;
     }
 
-    internal class DonorImportTestSteps : IDonorImportTestSteps
+    public async Task<DonorImportRequest> ImportDiffDonorFile(IEnumerable<DonorUpdate> updates)
     {
-        private readonly IDonorImportWorkflow workflow;
-        private readonly ITestLogger logger;
+        var request = DonorImportRequestBuilder.New.WithDiffModeFile(updates).Build();
+        await _workflow.ImportDonorFile(request);
+        Logger.LogPass($"Send donor import file {request.FileName}");
+        return request;
+    }
 
-        public DonorImportTestSteps(IDonorImportWorkflow workflow, ITestLogger logger)
-        {
-            this.workflow = workflow;
-            this.logger = logger;
-        }
+    public async Task<DonorImportRequest> ImportFullDonorFile(IEnumerable<DonorUpdate> updates)
+    {
+        var request = DonorImportRequestBuilder.New.WithFullModeFile(updates).Build();
+        await _workflow.ImportDonorFile(request);
+        Logger.LogPass($"Send donor import file {request.FileName}");
+        return request;
+    }
 
-        public async Task<DonorImportRequest> ImportDiffDonorFile(IEnumerable<DonorUpdate> updates)
-        {
-            var request = DonorImportRequestBuilder.New.WithDiffModeFile(updates).Build();
-            await SendDonorImportFile(request);
-            return request;
-        }
+    public async Task FullModeImportShouldNotBeAllowed()
+    {
+        var result = await _workflow.IsFullModeImportAllowed();
+        result.Should().BeFalse("full mode import should not be allowed");
+    }
 
-        public async Task<DonorImportRequest> ImportFullDonorFile(IEnumerable<DonorUpdate> updates)
-        {
-            var request = DonorImportRequestBuilder.New.WithFullModeFile(updates).Build();
-            await SendDonorImportFile(request);
-            return request;
-        }
+    public async Task DonorImportShouldHaveBeenSuccessful(
+        string fileName, int expectedDonorCount, int expectedFailedDonorCount)
+    {
+        var result = await FetchDonorImportResultMessage(fileName);
+        result.ImportShouldHaveBeenSuccessful();
+        result.ShouldHaveImportedDonorCount(expectedDonorCount);
+        result.ShouldHaveFailedDonorCount(expectedFailedDonorCount);
+    }
 
-        public async Task FullModeImportShouldNotBeAllowed()
-        {
-            var response = await workflow.IsFullModeImportAllowed();
+    public async Task DonorImportShouldHaveFailed(string fileName)
+    {
+        var result = await FetchDonorImportResultMessage(fileName);
+        result.ImportShouldHaveFailed();
+    }
 
-            // The debug http response should have been successful,
-            // but the embedded result should be false as full mode import should not be allowed.
-            logger.AssertThenLogAndThrow(() =>
-            {
-                response.ShouldBeSuccessful();
-                response.DebugResult.Should().BeFalse();
-            }, "Check full mode import is **not** allowed");
-        }
+    public async Task DonorStoreShouldHaveExpectedDonors(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
+    {
+        var codes = expectedDonorInfo.GetExternalDonorCodes().ToList();
+        var donorCheck = await CheckDonorStore(codes);
+        donorCheck.ShouldHaveExpectedDonors(expectedDonorInfo);
+    }
 
-        public async Task DonorImportShouldHaveBeenSuccessful(
-            string fileName,
-            int expectedDonorCount,
-            int expectedFailedDonorCount)
-        {
-            var resultMessage = await FetchDonorImportResultMessage(fileName);
-            logger.AssertThenLogAndThrow(() =>
-            {
-                resultMessage.ImportShouldHaveBeenSuccessful();
-                resultMessage?.ShouldHaveImportedDonorCount(expectedDonorCount);
-                resultMessage?.ShouldHaveFailedDonorCount(expectedFailedDonorCount);
-            }, $"Import of {resultMessage?.FileName}");
-        }
+    public async Task DonorStoreShouldNotHaveTheseDonors(IReadOnlyCollection<string> externalDonorCodes)
+    {
+        var donorCheck = await CheckDonorStore(externalDonorCodes);
+        donorCheck.ShouldNotHaveTheseDonors(externalDonorCodes);
+    }
 
-        public async Task DonorImportShouldHaveFailed(string fileName)
-        {
-            var resultMessage = await FetchDonorImportResultMessage(fileName);
-            logger.AssertThenLogAndThrow(resultMessage.ImportShouldHaveFailed, $"Rejection of file {fileName}");
-        }
+    public async Task DonorsShouldBeAvailableForSearch(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
+    {
+        var codes = expectedDonorInfo.GetExternalDonorCodes();
+        var codeList = string.Join(", ", codes);
+        var result = await _workflow.CheckDonorsAreAvailableForSearch(codes);
+        result.Should().NotBeNull(
+            "matching algorithm should confirm donors [{0}] are available for search", codeList);
+        result!.ShouldHaveExpectedDonors(expectedDonorInfo);
+    }
 
-        public async Task DonorStoreShouldHaveExpectedDonors(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
-        {
-            var donorCheck = await CheckDonorStore(expectedDonorInfo.GetExternalDonorCodes());
-            logger.AssertThenLogAndThrow(
-                () => donorCheck.ShouldHaveExpectedDonors(expectedDonorInfo),
-                "Check for donor presence");
-        }
+    public async Task DonorsShouldNotBeAvailableForSearch(IReadOnlyCollection<string> externalDonorCodes)
+    {
+        var codeList = string.Join(", ", externalDonorCodes);
+        var result = await _workflow.CheckDonorsAreNotAvailableForSearch(externalDonorCodes);
+        result.Should().NotBeNull(
+            "matching algorithm should confirm donors [{0}] are NOT available for search", codeList);
+        result!.ShouldNotHaveTheseDonors(externalDonorCodes);
+    }
 
-        public async Task DonorStoreShouldNotHaveTheseDonors(IReadOnlyCollection<string> externalDonorCodes)
-        {
-            var donorCheck = await CheckDonorStore(externalDonorCodes);
-            logger.AssertThenLogAndThrow(
-                () => donorCheck.ShouldNotHaveTheseDonors(externalDonorCodes),
-                "Check for donor absence");
-        }
+    public async Task MatchingAlgorithmDonorInfoShouldBe(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
+    {
+        var codeList = string.Join(", ", expectedDonorInfo.Select(d => d.ExternalDonorCode));
+        var result = await _workflow.CheckDonorInfoInMatchingAlgorithmIsAsExpected(expectedDonorInfo);
+        result.Should().NotBeNull(
+            "donor info in matching algorithm should match expected for codes [{0}]", codeList);
+    }
 
-        public async Task DonorsShouldBeAvailableForSearch(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
-        {
-            var donorCheck = await workflow.CheckDonorsAreAvailableForSearch(expectedDonorInfo.GetExternalDonorCodes());
-            logger.AssertResponseThenLogAndThrow(donorCheck, "Search availability request");
-            logger.AssertThenLogAndThrow(
-                () => donorCheck.DebugResult.ShouldHaveExpectedDonors(expectedDonorInfo),
-                "Check that donors are searchable");
-        }
+    public async Task FullModeImportAlertShouldHaveBeenRaised(string fileName)
+    {
+        var alert = await _workflow.FetchFailedFileAlert(fileName);
+        alert.Should().NotBeNull(
+            "file failure alert should have been received for file {0}", fileName);
+        alert!.Summary.ToLower().Should().Contain("full mode is not allowed");
+    }
 
-        public async Task DonorsShouldNotBeAvailableForSearch(IReadOnlyCollection<string> externalDonorCodes)
-        {
-            var donorCheck = await workflow.CheckDonorsAreNotAvailableForSearch(externalDonorCodes);
-            logger.AssertResponseThenLogAndThrow(donorCheck, "Search availability request");
-            logger.AssertThenLogAndThrow(
-                () => donorCheck.DebugResult.ShouldNotHaveTheseDonors(externalDonorCodes),
-                "Check that donors are **not** searchable");
-        }
+    public async Task HlaExpansionFailureShouldBeReportedFor(string donorCode, string invalidHlaName)
+    {
+        var alert = await _workflow.FetchHlaExpansionFailureAlert();
+        alert.Should().NotBeNull("HLA expansion failure alert should have been received");
 
-        public async Task MatchingAlgorithmDonorInfoShouldBe(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
-        {
-            var donorCheck = await workflow.CheckDonorInfoInMatchingAlgorithmIsAsExpected(expectedDonorInfo);
-            logger.AssertResponseThenLogAndThrow(donorCheck, "Check donor info in matching algorithm");
-            // it's enough to assert on the response, as the underlying debug service will only return success if the donor info is as expected
-        }
+        var failures = await _workflow.FetchHlaExpansionFailuresForDonor(donorCode);
+        failures.Should().NotBeNull(
+            "HLA expansion failures should have been reported for donor {0}", donorCode);
+        failures!.ShouldContainFailureFor(donorCode, invalidHlaName);
+    }
 
-        public async Task FullModeImportAlertShouldHaveBeenRaised(string fileName)
-        {
-            var alertResponse = await workflow.FetchFailedFileAlert(fileName);
-            logger.AssertResponseThenLogAndThrow(alertResponse, "Fetch file failure alert");
-            logger.AssertThenLogAndThrow(
-                () => alertResponse.DebugResult?.ShouldSayFullModeImportNotAllowed(),
-                "Alert for Full mode file import");
-        }
+    public async Task FailedDonorUpdatesShouldHaveBeenLogged(
+        string fileName, IEnumerable<FailedDonorUpdate> expectedFailedDonorInfo)
+    {
+        var failureInfo = await _workflow.FetchDonorImportFailureInfo(fileName);
+        failureInfo.Should().NotBeNull(
+            "donor import failure info should have been logged for file {0}", fileName);
+        var expectedList = expectedFailedDonorInfo.ToList();
+        failureInfo!.FileName.Should().Be(fileName, "failure info file name should match");
+        failureInfo.FailedUpdateCount.Should().Be(expectedList.Count,
+            "failed update count for file {0} should be {1} but was {2}",
+            fileName, expectedList.Count, failureInfo.FailedUpdateCount);
+        failureInfo.FailedUpdates.Should().BeEquivalentTo(expectedList,
+            "failed updates for file {0} should match expected", fileName);
+    }
 
-        public async Task HlaExpansionFailureShouldBeReportedFor(string donorCode, string invalidHlaName)
-        {
-            var alertResponse = await workflow.FetchHlaExpansionFailureAlert();
-            logger.AssertResponseThenLogAndThrow(alertResponse, "Fetch alert for HLA expansion failure");
-            // no need to assert on the alert message contents, as it doesn't contain any data specific to our test
+    private async Task<DonorImportMessage> FetchDonorImportResultMessage(string fileName)
+    {
+        var result = await _workflow.FetchResultMessage(fileName);
+        result.Should().NotBeNull(
+            "import result message should have been received for file {0}", fileName);
+        return result!;
+    }
 
-            var failuresResponse = await workflow.FetchHlaExpansionFailuresForDonor(donorCode);
-            logger.AssertResponseThenLogAndThrow(failuresResponse, "Fetch HLA expansion failures for donor");
-            logger.AssertThenLogAndThrow(
-                () => failuresResponse.DebugResult?.ToList().ShouldContainFailureFor(donorCode, invalidHlaName),
-                "HLA expansion failure for donor");
-        }
-
-        public async Task FailedDonorUpdatesShouldHaveBeenLogged(string fileName, IEnumerable<FailedDonorUpdate> expectedFailedDonorInfo)
-        {
-            var infoResponse = await workflow.FetchDonorImportFailureInfo(fileName);
-            logger.AssertResponseThenLogAndThrow(infoResponse, "Fetch donor import failures");
-            logger.AssertThenLogAndThrow(
-                () => infoResponse.DebugResult?.ShouldBeEquivalentTo(fileName, expectedFailedDonorInfo.ToList()),
-                "Logging of donor import failures");
-        }
-
-        private async Task SendDonorImportFile(DonorImportRequest request)
-        {
-            var importResponse = await workflow.ImportDonorFile(request);
-            logger.AssertThenLogAndThrow(
-                () => importResponse.Should().BeTrue(),
-                $"Send donor import file {request.FileName}");
-        }
-
-        private async Task<DonorImportMessage?> FetchDonorImportResultMessage(string fileName)
-        {
-            var response = await workflow.FetchResultMessage(fileName);
-            logger.AssertResponseThenLogAndThrow(response, "Fetch donor import result message");
-            return response.DebugResult;
-        }
-
-        private async Task<DebugDonorsResult?> CheckDonorStore(IEnumerable<string> donorCodes)
-        {
-            var response = await workflow.CheckDonorsInDonorStore(donorCodes);
-            logger.AssertResponseThenLogAndThrow(response, "Check donor store request");
-            return response.DebugResult;
-        }
+    private async Task<DebugDonorsResult> CheckDonorStore(IReadOnlyCollection<string> donorCodes)
+    {
+        var codeList = string.Join(", ", donorCodes);
+        var result = await _workflow.CheckDonorsInDonorStore(donorCodes);
+        result.Should().NotBeNull(
+            "donor store check should have returned a result for codes [{0}]", codeList);
+        return result!;
     }
 }

@@ -1,5 +1,4 @@
-﻿using Atlas.Auto.Tests.DependencyInjection;
-using Atlas.Auto.Tests.TestHelpers.InternalModels;
+using Microsoft.Extensions.DependencyInjection;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 
@@ -11,10 +10,10 @@ internal abstract class DonorImportTestBase : TestBase
     {
     }
 
-    protected TestServices<IDonorImportTestSteps> GetTestServices(string testName)
+    protected DonorImportTestSteps GetDonorImportTestSteps(string testName)
     {
-        var workflow = Provider.ResolveServiceOrThrow<IDonorImportWorkflow>();
+        var workflow = Provider.GetRequiredService<DonorImportWorkflow>();
         var testLogger = BuildTestLogger(testName);
-        return new TestServices<IDonorImportTestSteps>(new DonorImportTestSteps(workflow, testLogger), testLogger);
+        return new DonorImportTestSteps(workflow, testLogger);
     }
 }

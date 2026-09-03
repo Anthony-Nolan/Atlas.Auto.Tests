@@ -10,7 +10,7 @@ public static class ExtentManager
     // Creates a parent node in the report for the test fixture
     public static ExtentTest CreateForFixture(string testFixtureName, string? description = null)
     {
-        return TestFixtureMap.GetOrAdd(testFixtureName, ExtentService.Instance.CreateTest(testFixtureName, description));
+        return TestFixtureMap.GetOrAdd(testFixtureName, _ => ExtentService.Instance.CreateTest(testFixtureName, description));
     }
 
     // Creates a node in the report for the individual test

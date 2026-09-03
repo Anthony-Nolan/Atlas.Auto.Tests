@@ -1,10 +1,10 @@
 namespace Atlas.Auto.Tests.Tests.RepeatSearch;
 
 [TestFixture]
-[Category($"{nameof(RepeatSearch_ExceptionPathTests)}")]
-internal class RepeatSearch_ExceptionPathTests : RepeatSearchTestBase
+[Category($"{nameof(RepeatSearchExceptionPathTests)}")]
+internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
 {
-    public RepeatSearch_ExceptionPathTests() : base(nameof(RepeatSearch_ExceptionPathTests))
+    public RepeatSearchExceptionPathTests() : base(nameof(RepeatSearchExceptionPathTests))
     {
     }
 

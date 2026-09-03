@@ -1,3 +1,4 @@
+using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Debug.Client.Models.ServiceBus;
 
 namespace Atlas.Auto.Tests.TestHelpers.Services;
@@ -8,29 +9,29 @@ internal class NotificationFetcher<TNotification> where TNotification : class
     private const int MaxPeekIterations = 50;
 
     private readonly Func<PeekServiceBusMessagesRequest, Task<PeekServiceBusMessagesResponse<TNotification>>> _peekFunc;
-    private readonly int _retryCount;
-    private readonly int _retryIntervalInSeconds;
+    private readonly PollyRetry _pollyRetry;
+    private readonly RetryPolicy _retryPolicy;
     private readonly string _operationName;
 
     public NotificationFetcher(
         Func<PeekServiceBusMessagesRequest, Task<PeekServiceBusMessagesResponse<TNotification>>> peekFunc,
-        int retryCount,
-        int retryIntervalInSeconds,
+        PollyRetry pollyRetry,
+        RetryPolicy retryPolicy,
         string operationName)
     {
         _peekFunc = peekFunc;
-        _retryCount = retryCount;
-        _retryIntervalInSeconds = retryIntervalInSeconds;
+        _pollyRetry = pollyRetry;
+        _retryPolicy = retryPolicy;
         _operationName = operationName;
     }
 
-    public async Task<TNotification?> FetchNotification(Func<TNotification, bool> filter)
+    public async Task<TNotification?> FetchNotification(Func<TNotification, bool> filter, string searchDescription)
     {
-        return await PollyRetry.ExecuteWithRetry(async () =>
+        return await _pollyRetry.ExecuteWithRetry(async () =>
         {
             var messages = await PeekAllMessages();
             return messages.LastOrDefault(filter);
-        }, _retryCount, _retryIntervalInSeconds, _operationName);
+        }, _retryPolicy, $"{_operationName}: looking for {searchDescription}");
     }
 
     private async Task<List<TNotification>> PeekAllMessages()
