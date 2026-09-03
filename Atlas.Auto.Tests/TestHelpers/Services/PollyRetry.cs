@@ -89,7 +89,7 @@ internal class PollyRetry
 
     private static string FormatHttpFunctionException(HttpFunctionException ex)
     {
-        var responseContent = ex.ResponseContent.ReadAsStringAsync().Result;
+        var responseContent = ex.ResponseContent.ReadAsStringAsync().GetAwaiter().GetResult();
         var formattedContent = responseContent.Length > 0 ? $"{responseContent}, " : string.Empty;
         return $"HttpFunctionException: [{(int)ex.HttpStatusCode}, {ex.HttpStatusCode}] {formattedContent}{ex.Message}";
     }

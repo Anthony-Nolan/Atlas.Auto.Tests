@@ -2,7 +2,6 @@ using System.Reflection;
 using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Settings;
-using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Debug.Client;
 using Atlas.Debug.Client.Models.Settings;
 using Microsoft.Extensions.Configuration;
@@ -47,10 +46,6 @@ internal static class ServiceConfiguration
         services.AddSingleton(configuration.GetSection("Retry").Get<RetrySettings>() ?? new RetrySettings());
 
         services.AddSingleton<PollyRetry>();
-
-        services.AddTransient<TestDonorDeleter>();
-
-        services.AddTransient<DonorImportWorkflow>();
 
         return services.BuildServiceProvider();
     }

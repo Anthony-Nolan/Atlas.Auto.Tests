@@ -8,8 +8,10 @@ namespace Atlas.Auto.Tests.Tests;
 [Parallelizable(ParallelScope.All)]
 internal abstract class TestBase
 {
+    // NUnit creates test fixture instances itself, so constructor injection via DI is not possible.
+    // A shared static provider is the standard workaround for NUnit-based test projects.
     private static readonly Lazy<IServiceProvider> LazyProvider = new(ServiceConfiguration.CreateProvider);
-    protected static IServiceProvider Provider => LazyProvider.Value;
+    internal static IServiceProvider Provider => LazyProvider.Value;
 
     protected readonly string TestFixtureName;
     private readonly ExtentTest _extentTestForFixture;

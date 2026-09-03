@@ -1,6 +1,7 @@
 using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Auto.Tests.TestHelpers.SourceData;
 using Atlas.Debug.Client.Clients;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Atlas.Auto.Tests.TestHelpers.Services;
@@ -13,18 +14,13 @@ internal class TestDonorDeleter
     private readonly RetrySettings _retry;
     private readonly ILogger<TestDonorDeleter> _logger;
 
-    public TestDonorDeleter(
-        IDonorImportFunctionsClient donorImportClient,
-        IMatchingAlgorithmFunctionsClient matchingClient,
-        PollyRetry pollyRetry,
-        RetrySettings retry,
-        ILogger<TestDonorDeleter> logger)
+    public TestDonorDeleter(IServiceProvider provider)
     {
-        _donorImportClient = donorImportClient;
-        _matchingClient = matchingClient;
-        _pollyRetry = pollyRetry;
-        _retry = retry;
-        _logger = logger;
+        _donorImportClient = provider.GetRequiredService<IDonorImportFunctionsClient>();
+        _matchingClient = provider.GetRequiredService<IMatchingAlgorithmFunctionsClient>();
+        _pollyRetry = provider.GetRequiredService<PollyRetry>();
+        _retry = provider.GetRequiredService<RetrySettings>();
+        _logger = provider.GetRequiredService<ILogger<TestDonorDeleter>>();
     }
 
     public async Task DeleteDonors()

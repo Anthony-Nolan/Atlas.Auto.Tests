@@ -6,6 +6,7 @@ using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Debug.Client.Models.DonorImport;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
@@ -14,9 +15,9 @@ internal class DonorImportTestSteps
     private readonly DonorImportWorkflow _workflow;
     public ITestLogger Logger { get; }
 
-    public DonorImportTestSteps(DonorImportWorkflow workflow, ITestLogger logger)
+    public DonorImportTestSteps(IServiceProvider provider, ITestLogger logger)
     {
-        _workflow = workflow;
+        _workflow = new DonorImportWorkflow(provider);
         Logger = logger;
     }
 
@@ -102,7 +103,7 @@ internal class DonorImportTestSteps
         var alert = await _workflow.FetchFailedFileAlert(fileName);
         alert.Should().NotBeNull(
             "file failure alert should have been received for file {0}", fileName);
-        alert!.Summary.ToLower().Should().Contain("full mode is not allowed");
+        alert!.Summary.Should().ContainEquivalentOf("full mode is not allowed");
     }
 
     public async Task HlaExpansionFailureShouldBeReportedFor(string donorCode, string invalidHlaName)

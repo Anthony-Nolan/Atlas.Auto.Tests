@@ -6,6 +6,7 @@ using Atlas.Debug.Client.Clients;
 using Atlas.Debug.Client.Models.ApplicationInsights;
 using Atlas.Debug.Client.Models.DonorImport;
 using Atlas.DonorImport.FileSchema.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.Auto.Tests.TestHelpers.Workflows;
 
@@ -18,21 +19,17 @@ internal class DonorImportWorkflow
     private readonly NotificationFetcher<DonorImportMessage> _importResultFetcher;
     private readonly NotificationFetcher<Alert> _alertFetcher;
 
-    public DonorImportWorkflow(
-        IDonorImportFunctionsClient donorImportClient,
-        IMatchingAlgorithmFunctionsClient matchingClient,
-        ITopLevelFunctionsClient topLevelClient,
-        PollyRetry pollyRetry,
-        RetrySettings retry)
+    public DonorImportWorkflow(IServiceProvider provider)
     {
-        _donorImportClient = donorImportClient;
-        _matchingClient = matchingClient;
-        _pollyRetry = pollyRetry;
-        _retry = retry;
+        _donorImportClient = provider.GetRequiredService<IDonorImportFunctionsClient>();
+        _matchingClient = provider.GetRequiredService<IMatchingAlgorithmFunctionsClient>();
+        _pollyRetry = provider.GetRequiredService<PollyRetry>();
+        _retry = provider.GetRequiredService<RetrySettings>();
+        var topLevelClient = provider.GetRequiredService<ITopLevelFunctionsClient>();
         _importResultFetcher = new NotificationFetcher<DonorImportMessage>(
-            req => donorImportClient.PeekDonorImportResultMessages(req), pollyRetry, retry.FetchMessages, "Fetch import result");
+            req => _donorImportClient.PeekDonorImportResultMessages(req), _pollyRetry, _retry.FetchMessages, "Fetch import result");
         _alertFetcher = new NotificationFetcher<Alert>(
-            req => topLevelClient.PeekAlerts(req), pollyRetry, retry.FetchMessages, "Fetch alert");
+            req => topLevelClient.PeekAlerts(req), _pollyRetry, _retry.FetchMessages, "Fetch alert");
     }
 
     public async Task<bool> IsFullModeImportAllowed()

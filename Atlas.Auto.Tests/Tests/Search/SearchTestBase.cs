@@ -3,8 +3,6 @@ using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
-using Atlas.Auto.Tests.TestHelpers.Workflows;
-using Atlas.Debug.Client.Clients;
 
 namespace Atlas.Auto.Tests.Tests.Search;
 
@@ -32,22 +30,12 @@ internal abstract class SearchTestBase : TestBase
     {
         var testLogger = BuildTestLogger(testName);
         var importSteps = ResolveDonorImportStepsForSearchTests(testLogger);
-
-        return new SearchTestSteps(
-            Provider.GetRequiredService<IPublicApiFunctionsClient>(),
-            Provider.GetRequiredService<IMatchingAlgorithmFunctionsClient>(),
-            Provider.GetRequiredService<ITopLevelFunctionsClient>(),
-            Provider.GetRequiredService<PollyRetry>(),
-            Provider.GetRequiredService<RetrySettings>(),
-            importSteps,
-            testLogger,
-            testName);
+        return new SearchTestSteps(Provider, importSteps, testLogger, testName);
     }
 
     protected DonorImportStepsForSearchTests ResolveDonorImportStepsForSearchTests(ITestLogger testLogger)
     {
-        var donorImportWorkflow = Provider.GetRequiredService<DonorImportWorkflow>();
-        var donorImportTestSteps = new DonorImportTestSteps(donorImportWorkflow, testLogger);
+        var donorImportTestSteps = new DonorImportTestSteps(Provider, testLogger);
         return new DonorImportStepsForSearchTests(donorImportTestSteps, testLogger);
     }
 }

@@ -1,6 +1,5 @@
-using Atlas.Auto.Tests.DependencyInjection;
 using Atlas.Auto.Tests.TestHelpers.Services;
-using Microsoft.Extensions.DependencyInjection;
+using Atlas.Auto.Tests.Tests;
 
 namespace Atlas.Auto.Tests;
 
@@ -10,8 +9,7 @@ public class TestsSetUp
     [OneTimeSetUp]
     public async Task OneTimeSetUpForAllTests()
     {
-        var provider = ServiceConfiguration.CreateProvider();
-        var testDonorDeleter = provider.GetRequiredService<TestDonorDeleter>();
+        var testDonorDeleter = new TestDonorDeleter(TestBase.Provider);
         await testDonorDeleter.DeleteDonors();
     }
 }

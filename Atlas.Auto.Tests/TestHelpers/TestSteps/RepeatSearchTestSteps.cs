@@ -12,6 +12,7 @@ using Atlas.Client.Models.Search.Results.Matching;
 using Atlas.Debug.Client.Clients;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
@@ -27,27 +28,23 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
     private readonly SearchTestSteps _searchTestSteps;
 
     public RepeatSearchTestSteps(
-        IPublicApiFunctionsClient publicApiClient,
-        IRepeatSearchFunctionsClient repeatSearchClient,
-        ITopLevelFunctionsClient topLevelClient,
-        PollyRetry pollyRetry,
-        RetrySettings retry,
+        IServiceProvider provider,
         SearchTestSteps searchTestSteps,
         DonorImportStepsForSearchTests donorImportSteps,
         ITestLogger logger,
         string testName)
         : base(donorImportSteps, logger, testName)
     {
-        _publicApiClient = publicApiClient;
-        _repeatSearchClient = repeatSearchClient;
-        _topLevelClient = topLevelClient;
-        _pollyRetry = pollyRetry;
-        _retry = retry;
+        _publicApiClient = provider.GetRequiredService<IPublicApiFunctionsClient>();
+        _repeatSearchClient = provider.GetRequiredService<IRepeatSearchFunctionsClient>();
+        _topLevelClient = provider.GetRequiredService<ITopLevelFunctionsClient>();
+        _pollyRetry = provider.GetRequiredService<PollyRetry>();
+        _retry = provider.GetRequiredService<RetrySettings>();
         _searchTestSteps = searchTestSteps;
         _matchingNotificationFetcher = new NotificationFetcher<MatchingResultsNotification>(
-            req => repeatSearchClient.PeekMatchingResultNotifications(req), pollyRetry, retry.FetchMessages, "Fetch repeat matching notification");
+            req => _repeatSearchClient.PeekMatchingResultNotifications(req), _pollyRetry, _retry.FetchMessages, "Fetch repeat matching notification");
         _searchNotificationFetcher = new NotificationFetcher<SearchResultsNotification>(
-            req => topLevelClient.PeekRepeatSearchResultNotifications(req), pollyRetry, retry.FetchMessages, "Fetch repeat search notification");
+            req => _topLevelClient.PeekRepeatSearchResultNotifications(req), _pollyRetry, _retry.FetchMessages, "Fetch repeat search notification");
     }
 
     public async Task<string> CreateDonor(ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
