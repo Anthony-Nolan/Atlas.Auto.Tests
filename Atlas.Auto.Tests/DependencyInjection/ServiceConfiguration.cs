@@ -2,9 +2,7 @@
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Services.DonorDeletion;
 using Atlas.Auto.Tests.TestHelpers.Services.DonorImport;
-using Atlas.Auto.Tests.TestHelpers.Services.RepeatSearch;
 using Atlas.Auto.Tests.TestHelpers.Services.Scoring;
-using Atlas.Auto.Tests.TestHelpers.Services.Search;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Debug.Client;
@@ -82,27 +80,10 @@ internal static class ServiceConfiguration
         services.AddTransient<IHlaExpansionFailureFetcher, HlaExpansionFailureFetcher>();
         services.AddTransient<IDonorImportFailureInfoFetcher, DonorImportFailureInfoFetcher>();
 
-        // search
-        services.AddTransient<ISearchTestSteps, SearchTestSteps>();
-        services.AddTransient<ISearchWorkflow, SearchWorkflow>();
-        services.AddTransient<ISearchRequester, SearchRequester>();
-        services.AddTransient<IMatchingNotificationFetcher, MatchingNotificationFetcher>();
-        services.AddTransient<IMatchingResultSetFetcher, MatchingResultSetFetcher>();
-        services.AddTransient<ISearchNotificationFetcher, SearchNotificationFetcher>();
-        services.AddTransient<ISearchResultSetFetcher, SearchResultSetFetcher>();
-
         // scoring
         services.AddTransient<IScoringTestSteps, ScoringTestSteps>();
         services.AddTransient<IScoringWorkflow, ScoringWorkflow>();
         services.AddTransient<IDonorScorer, DonorScorer>();
 
-        // repeat search
-        services.AddTransient<IRepeatSearchTestSteps, RepeatSearchTestSteps>();
-        services.AddTransient<IRepeatSearchWorkflow, RepeatSearchWorkflow>();
-        services.AddTransient<IRepeatSearchRequester, RepeatSearchRequester>();
-        services.AddTransient<IRepeatMatchingNotificationFetcher, RepeatMatchingNotificationFetcher>();
-        services.AddTransient<IRepeatMatchingResultSetFetcher, RepeatMatchingResultSetFetcher>();
-        services.AddTransient<IRepeatSearchNotificationFetcher, RepeatSearchNotificationFetcher>();
-        services.AddTransient<IRepeatSearchResultSetFetcher, RepeatSearchResultSetFetcher>();
     }
 }

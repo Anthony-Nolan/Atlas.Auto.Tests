@@ -1,8 +1,5 @@
-﻿namespace Atlas.Auto.Tests.Tests.RepeatSearch;
+namespace Atlas.Auto.Tests.Tests.RepeatSearch;
 
-/// <summary>
-/// Tests that cover exception paths of Atlas repeat search.
-/// </summary>
 [TestFixture]
 [Category($"{nameof(RepeatSearch_ExceptionPathTests)}")]
 internal class RepeatSearch_ExceptionPathTests : RepeatSearchTestBase
@@ -14,10 +11,10 @@ internal class RepeatSearch_ExceptionPathTests : RepeatSearchTestBase
     [Test]
     public async Task RepeatSearch_MissingRequiredInfo_ReturnsValidationError()
     {
-        var test = GetRepeatSearchTestServices(nameof(RepeatSearch_MissingRequiredInfo_ReturnsValidationError));
+        var steps = GetRepeatSearchTestSteps(nameof(RepeatSearch_MissingRequiredInfo_ReturnsValidationError));
         const string testDescription = "Repeat search with missing required information";
-        test.Logger.LogStart(testDescription);
-        await test.Steps.RepeatRequestMissingRequiredInfoShouldReturnValidationErrors();
-        test.Logger.LogCompletion(testDescription);
+        steps.Logger.LogStart(testDescription);
+        await steps.RepeatRequestMissingRequiredInfoShouldReturnValidationErrors();
+        steps.Logger.LogCompletion(testDescription);
     }
 }
