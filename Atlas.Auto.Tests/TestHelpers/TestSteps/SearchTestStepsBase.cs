@@ -34,9 +34,9 @@ internal abstract class SearchTestStepsBase
         TResult? donorResult, string approvalFileNameSuffix)
         where TResult : Result
     {
-        donorResult.Should().NotBeNull("donor result should have been returned");
+        var result = AssertNotNull(donorResult, "donor result should have been returned");
 
-        await VerifyJson(donorResult.SerializeSingle())
+        await VerifyJson(result.SerializeSingle())
             .IgnoreVaryingSearchResultProperties()
             .WriteReceivedToApprovalsFolder($"{_testName}_{approvalFileNameSuffix}");
     }

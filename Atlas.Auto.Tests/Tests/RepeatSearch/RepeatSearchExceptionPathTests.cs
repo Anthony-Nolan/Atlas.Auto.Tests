@@ -1,7 +1,9 @@
+using Atlas.Auto.Tests.TestHelpers.SourceData;
+
 namespace Atlas.Auto.Tests.Tests.RepeatSearch;
 
 [TestFixture]
-[Category(nameof(RepeatSearchExceptionPathTests))]
+[Category($"{TestConstants.RepeatSearchTestTag}_{nameof(RepeatSearchExceptionPathTests)}")]
 internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
 {
     public RepeatSearchExceptionPathTests() : base(nameof(RepeatSearchExceptionPathTests))

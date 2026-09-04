@@ -16,8 +16,11 @@ internal class FullModeExceptionPathTests : DonorImportTestBase
     [Test]
     public async Task DonorImport_DoesNotAllowFullModeImport()
     {
+        const string testCase = "full mode import should not be allowed";
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DoesNotAllowFullModeImport));
+        steps.Logger.LogStart(testCase);
         await steps.FullModeImportShouldNotBeAllowed();
+        steps.Logger.LogCompletion(testCase);
     }
 
     [Test]

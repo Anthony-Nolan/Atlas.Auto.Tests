@@ -1,11 +1,12 @@
 using Atlas.Auto.Tests.TestHelpers.Assertions;
+using Atlas.Auto.Tests.TestHelpers.SourceData;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using System.Runtime.CompilerServices;
 
 namespace Atlas.Auto.Tests.Tests.Search;
 
 [TestFixture]
-[Category(nameof(SearchExceptionPathTests))]
+[Category($"{TestConstants.SearchTestTag}_{nameof(SearchExceptionPathTests)}")]
 internal class SearchExceptionPathTests : SearchTestBase
 {
     public SearchExceptionPathTests() : base(nameof(SearchExceptionPathTests))

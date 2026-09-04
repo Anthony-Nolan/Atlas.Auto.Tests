@@ -33,7 +33,7 @@ internal abstract class SearchTestBase : TestBase
         return new SearchTestSteps(Provider, importSteps, testLogger, testName);
     }
 
-    protected DonorImportStepsForSearchTests ResolveDonorImportStepsForSearchTests(ITestLogger testLogger)
+    private DonorImportStepsForSearchTests ResolveDonorImportStepsForSearchTests(ITestLogger testLogger)
     {
         var donorImportTestSteps = new DonorImportTestSteps(Provider, testLogger);
         return new DonorImportStepsForSearchTests(donorImportTestSteps, testLogger);

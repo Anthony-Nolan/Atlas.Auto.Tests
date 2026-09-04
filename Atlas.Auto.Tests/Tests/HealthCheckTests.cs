@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Atlas.Auto.Tests.Tests;
 
 [TestFixture]
+[Category(nameof(HealthCheckTests))]
 internal class HealthCheckTests : TestBase
 {
     private static readonly object[] clientsToTest = {

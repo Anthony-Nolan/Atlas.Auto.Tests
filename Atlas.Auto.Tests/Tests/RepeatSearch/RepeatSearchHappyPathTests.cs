@@ -1,5 +1,6 @@
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.InternalModels;
+using Atlas.Auto.Tests.TestHelpers.SourceData;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
 using Atlas.DonorImport.FileSchema.Models;
 using System.Runtime.CompilerServices;
@@ -7,10 +8,10 @@ using System.Runtime.CompilerServices;
 namespace Atlas.Auto.Tests.Tests.RepeatSearch;
 
 [TestFixture]
-[Category(nameof(RepeatSearchHappyPathTests))]
+[Category($"{TestConstants.RepeatSearchTestTag}_{nameof(RepeatSearchHappyPathTests)}")]
 internal class RepeatSearchHappyPathTests : RepeatSearchTestBase
 {
-    private const string TestCategoryPrefix = nameof(RepeatSearchHappyPathTests);
+    private const string TestCategoryPrefix = TestConstants.RepeatSearchTestTag + "_" + nameof(RepeatSearchHappyPathTests);
 
     public RepeatSearchHappyPathTests() : base(TestCategoryPrefix)
     {

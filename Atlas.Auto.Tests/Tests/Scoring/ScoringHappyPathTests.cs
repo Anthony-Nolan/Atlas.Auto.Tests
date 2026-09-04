@@ -1,7 +1,9 @@
+using Atlas.Auto.Tests.TestHelpers.SourceData;
+
 namespace Atlas.Auto.Tests.Tests.Scoring;
 
 [TestFixture]
-[Category(nameof(ScoringHappyPathTests))]
+[Category($"{TestConstants.ScoringTestTag}_{nameof(ScoringHappyPathTests)}")]
 internal class ScoringHappyPathTests : ScoringTestBase
 {
     public ScoringHappyPathTests() : base(nameof(ScoringHappyPathTests))
