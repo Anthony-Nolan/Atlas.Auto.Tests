@@ -2,8 +2,7 @@ using System.Reflection;
 using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Settings;
-using Atlas.Debug.Client;
-using Atlas.Debug.Client.Models.Settings;
+using Atlas.Debug.Client.Clients;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -20,12 +19,6 @@ internal static class ServiceConfiguration
             .AddUserSecrets(Assembly.GetExecutingAssembly())
             .Build();
 
-        var donorImport = GetSettingsOrThrow<DonorImportHttpFunctionSettings>(configuration, "DonorImport");
-        var matching = GetSettingsOrThrow<MatchingAlgorithmHttpFunctionSettings>(configuration, "MatchingAlgorithm");
-        var topLevel = GetSettingsOrThrow<TopLevelHttpFunctionSettings>(configuration, "TopLevel");
-        var publicApi = GetSettingsOrThrow<PublicApiHttpFunctionSettings>(configuration, "PublicApi");
-        var repeatSearch = GetSettingsOrThrow<RepeatSearchHttpFunctionSettings>(configuration, "RepeatSearch");
-
         var services = new ServiceCollection();
 
         services.AddLogging(builder =>
@@ -36,49 +29,17 @@ internal static class ServiceConfiguration
             builder.AddSerilog(serilogLogger, dispose: true);
         });
 
-        services.RegisterDebugClients(
-            _ => donorImport,
-            _ => matching,
-            _ => topLevel,
-            _ => publicApi,
-            _ => repeatSearch);
+        services.RegisterDebugClients(configuration,
+            ("DonorImport", typeof(IDonorImportFunctionsClient), typeof(DonorImportFunctionsClient)),
+            ("MatchingAlgorithm", typeof(IMatchingAlgorithmFunctionsClient), typeof(MatchingAlgorithmFunctionsClient)),
+            ("TopLevel", typeof(ITopLevelFunctionsClient), typeof(TopLevelFunctionsClient)),
+            ("PublicApi", typeof(IPublicApiFunctionsClient), typeof(PublicApiFunctionsClient)),
+            ("RepeatSearch", typeof(IRepeatSearchFunctionsClient), typeof(RepeatSearchFunctionsClient)));
 
         services.AddSingleton(configuration.GetSection("Retry").Get<RetrySettings>() ?? new RetrySettings());
 
         services.AddSingleton<PollyRetry>();
 
         return services.BuildServiceProvider();
-    }
-
-    private static T GetSettingsOrThrow<T>(IConfigurationRoot configuration, string sectionName) where T : HttpFunctionSettings
-    {
-        var settings = configuration.GetSection(sectionName).Get<T>();
-
-        var errors = new List<string>();
-
-        if (settings == null)
-        {
-            throw new InvalidOperationException(
-                $"Configuration section '{sectionName}' is missing. " +
-                $"Add it to appsettings.json or user secrets with 'BaseUrl' and 'ApiKey' values.");
-        }
-
-        if (string.IsNullOrWhiteSpace(settings.BaseUrl)
-            || string.Equals(settings.BaseUrl, "override-this", StringComparison.OrdinalIgnoreCase)
-            || !Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out _))
-            errors.Add($"'{sectionName}:BaseUrl' is not configured or not a valid URL (current value: '{settings.BaseUrl ?? "null"}')");
-
-        if (string.IsNullOrWhiteSpace(settings.ApiKey)
-            || string.Equals(settings.ApiKey, "override-this", StringComparison.OrdinalIgnoreCase))
-            errors.Add($"'{sectionName}:ApiKey' is not configured (current value: '{settings.ApiKey ?? "null"}')");
-
-        if (errors.Count > 0)
-        {
-            throw new InvalidOperationException(
-                $"Configuration errors in '{sectionName}':\n  - {string.Join("\n  - ", errors)}\n" +
-                $"Set the correct values in user secrets (dotnet user-secrets set \"{sectionName}:BaseUrl\" \"<url>\").");
-        }
-
-        return settings;
     }
 }
