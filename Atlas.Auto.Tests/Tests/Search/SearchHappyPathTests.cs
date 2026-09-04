@@ -1,12 +1,11 @@
 using Atlas.Auto.Tests.TestHelpers.Builders;
-using Atlas.Auto.Tests.TestHelpers.SourceData;
 using Atlas.DonorImport.FileSchema.Models;
 using System.Runtime.CompilerServices;
 
 namespace Atlas.Auto.Tests.Tests.Search;
 
 [TestFixture]
-[Category($"{TestConstants.SearchTestTag}_{nameof(SearchHappyPathTests)}")]
+[Category(nameof(SearchHappyPathTests))]
 internal class SearchHappyPathTests : SearchTestBase
 {
     public SearchHappyPathTests() : base(nameof(SearchHappyPathTests))
