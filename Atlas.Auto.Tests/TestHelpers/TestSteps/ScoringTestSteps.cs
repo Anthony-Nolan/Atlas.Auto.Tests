@@ -35,10 +35,7 @@ internal class ScoringTestSteps
             _retry.ApiCall, $"Score batch request '{scoringRequestFileName}'");
         result.Should().NotBeNull("batch scoring should have returned results");
 
-        var scoringResult = result!.SerializeCollection();
-        await VerifyJson(scoringResult)
-            .WriteReceivedToApprovalsFolder(_testName)
-            .IgnoreVaryingSearchResultProperties();
+        await VerifyScoringResult(result!.SerializeCollection());
     }
 
     public async Task DonorShouldBeScored(string scoringRequestFileName)
@@ -50,8 +47,12 @@ internal class ScoringTestSteps
             _retry.ApiCall, $"Score request '{scoringRequestFileName}'");
         result.Should().NotBeNull("scoring should have returned a result");
 
-        var scoringResult = result!.SerializeSingle();
-        await VerifyJson(scoringResult)
+        await VerifyScoringResult(result!.SerializeSingle());
+    }
+
+    private async Task VerifyScoringResult(string serializedResult)
+    {
+        await VerifyJson(serializedResult)
             .WriteReceivedToApprovalsFolder(_testName)
             .IgnoreVaryingSearchResultProperties();
     }

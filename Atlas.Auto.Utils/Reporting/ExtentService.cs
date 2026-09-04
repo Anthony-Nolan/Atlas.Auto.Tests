@@ -30,19 +30,8 @@ public class ExtentService
 
     private static string GetFilePath()
     {
-        var path = GetProjectRootDirectory();
-        path = Path.Combine(path, FolderName);
-        if (!Directory.Exists(path))
-        {
-            Directory.CreateDirectory(path);
-        }
+        var path = Path.Combine(Environment.CurrentDirectory, FolderName);
+        Directory.CreateDirectory(path);
         return Path.Combine(path, "index.html");
-    }
-
-    private static string GetProjectRootDirectory()
-    {
-        var currentDirectory = Directory.GetCurrentDirectory();
-        var parentDirectoryInfo = Directory.GetParent(currentDirectory);
-        return parentDirectoryInfo?.Parent?.Parent?.FullName ?? string.Empty;
     }
 }
