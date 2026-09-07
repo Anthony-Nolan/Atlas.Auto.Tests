@@ -173,7 +173,7 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
     {
         var notification = await _matchingNotificationFetcher.FetchNotification(
             m => m.RepeatSearchRequestId == repeatSearchId && m.SearchRequestId == searchId,
-            $"repeat search '{repeatSearchId}', original search '{searchId}'");
+            $"Repeat search '{repeatSearchId}', original search '{searchId}'");
         return AssertNotNull(notification,
             $"Matching notification should have been received for repeat search {repeatSearchId}");
     }
@@ -182,7 +182,7 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
     {
         var notification = await _searchNotificationFetcher.FetchNotification(
             m => m.RepeatSearchRequestId == repeatSearchId && m.SearchRequestId == searchId,
-            $"repeat search '{repeatSearchId}', original search '{searchId}'");
+            $"Repeat search '{repeatSearchId}', original search '{searchId}'");
         return AssertNotNull(notification,
             $"Search notification should have been received for repeat search {repeatSearchId}");
     }

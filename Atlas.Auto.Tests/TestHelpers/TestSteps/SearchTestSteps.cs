@@ -135,7 +135,7 @@ internal class SearchTestSteps : SearchTestStepsBase
     {
         var notification = await _matchingNotificationFetcher.FetchNotification(
             m => m.SearchRequestId == searchRequestId,
-            $"search request '{searchRequestId}'");
+            $"Search request '{searchRequestId}'");
         return AssertNotNull(notification,
             $"Matching notification should have been received for search request {searchRequestId}");
     }
@@ -144,7 +144,7 @@ internal class SearchTestSteps : SearchTestStepsBase
     {
         var notification = await _searchNotificationFetcher.FetchNotification(
             m => m.SearchRequestId == searchRequestId,
-            $"search request '{searchRequestId}'");
+            $"Search request '{searchRequestId}'");
         return AssertNotNull(notification,
             $"Search notification should have been received for search request {searchRequestId}");
     }
