@@ -57,10 +57,10 @@ internal class SearchTestSteps : SearchTestStepsBase
         var response = await _pollyRetry.ExecuteWithRetry(
             async () => await _publicApiClient.PostSearchRequest(searchRequest),
             _retry.ApiCall, $"Submit search request '{searchRequestFileName}'");
-        var result = AssertNotNull(response, "search API should have responded");
+        var result = AssertNotNull(response, "Search API should have responded");
 
         result.WasSuccess.Should().BeTrue(
-            "search request should have been accepted but got validation failures: {0}",
+            "Search request should have been accepted but got validation failures: {0}",
             string.Join(", ", result.ValidationFailures?.Select(f => f.ErrorMessage) ?? Array.Empty<string>()));
 
         _logger.LogInfo($"Search request id: {result.ResponseOnSuccess!.SearchIdentifier}");
@@ -74,10 +74,10 @@ internal class SearchTestSteps : SearchTestStepsBase
         var response = await _pollyRetry.ExecuteWithRetry(
             async () => await _publicApiClient.PostSearchRequest(searchRequest),
             _retry.ApiCall, $"Submit invalid search request '{searchRequestFileName}'");
-        var result = AssertNotNull(response, "search API should have responded");
+        var result = AssertNotNull(response, "Search API should have responded");
 
         result.WasSuccess.Should().BeFalse(
-            "search request should have been rejected with validation failures but was accepted");
+            "Search request should have been rejected with validation failures but was accepted");
 
         return result.ValidationFailures!;
     }
@@ -106,7 +106,7 @@ internal class SearchTestSteps : SearchTestStepsBase
 
         results
             .Where(r => donorChanges.NoLongerMatching.Contains(r.DonorCode))
-            .Should().BeEmpty("non-matching donors should not be returned in results");
+            .Should().BeEmpty("Non-matching donors should not be returned in results");
 
         _logger.LogCompletion(action);
     }
@@ -123,7 +123,7 @@ internal class SearchTestSteps : SearchTestStepsBase
             async () => await _topLevelClient.FetchSearchResultSet(notification.ToDebugSearchResultsRequest()),
             _retry.FetchResultSet, $"Fetch search result set for request '{searchRequestId}'");
         AssertNotNull(searchResultSet,
-            $"search result set should have been fetched for request {searchRequestId}");
+            $"Search result set should have been fetched for request {searchRequestId}");
 
         var donorResult = searchResultSet!.GetDonorResult(expectedDonorCode);
         await DonorResultShouldBeAsExpected(donorResult, "SearchResult");
@@ -137,7 +137,7 @@ internal class SearchTestSteps : SearchTestStepsBase
             m => m.SearchRequestId == searchRequestId,
             $"search request '{searchRequestId}'");
         return AssertNotNull(notification,
-            $"matching notification should have been received for search request {searchRequestId}");
+            $"Matching notification should have been received for search request {searchRequestId}");
     }
 
     private async Task<SearchResultsNotification> FetchSearchResultsNotification(string searchRequestId)
@@ -146,7 +146,7 @@ internal class SearchTestSteps : SearchTestStepsBase
             m => m.SearchRequestId == searchRequestId,
             $"search request '{searchRequestId}'");
         return AssertNotNull(notification,
-            $"search notification should have been received for search request {searchRequestId}");
+            $"Search notification should have been received for search request {searchRequestId}");
     }
 
     private async Task<IEnumerable<MatchingAlgorithmResult>> CheckMatchingReturnsExpectedDonors(
@@ -160,7 +160,7 @@ internal class SearchTestSteps : SearchTestStepsBase
             async () => await _matchingClient.FetchMatchingResultSet(notification.ToDebugSearchResultsRequest()),
             _retry.FetchResultSet, $"Fetch matching result set for request '{searchRequestId}'");
         AssertNotNull(matchingResultSet,
-            $"matching result set should have been fetched for search request {searchRequestId}");
+            $"Matching result set should have been fetched for search request {searchRequestId}");
 
         foreach (var expectedDonorCode in expectedDonorCodes)
         {

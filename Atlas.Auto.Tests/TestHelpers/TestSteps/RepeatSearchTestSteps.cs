@@ -89,10 +89,10 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         var response = await _pollyRetry.ExecuteWithRetry(
             async () => await _publicApiClient.PostRepeatSearchRequest(repeatRequest),
             _retry.ApiCall, $"Submit repeat search request for original search '{originalSearchId}'");
-        var result = AssertNotNull(response, "repeat search API should have responded");
+        var result = AssertNotNull(response, "Repeat search API should have responded");
 
         result.WasSuccess.Should().BeTrue(
-            "repeat search request should have been accepted but got validation failures: {0}",
+            "Repeat search request should have been accepted but got validation failures: {0}",
             string.Join(", ", result.ValidationFailures?.Select(f => f.ErrorMessage) ?? Array.Empty<string>()));
 
         return result.ResponseOnSuccess!.RepeatSearchIdentifier;
@@ -113,7 +113,7 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
             async () => await _repeatSearchClient.FetchMatchingResultSet(notification.ToDebugSearchResultsRequest()),
             _retry.FetchResultSet, $"Fetch repeat matching result set for repeat search '{repeatSearchId}'");
         AssertNotNull(matchingResultSet,
-            "matching result set should have been fetched for repeat search");
+            "Matching result set should have been fetched for repeat search");
 
         ExpectedDonorsShouldNoLongerMatch(matchingResultSet!.NoLongerMatchingDonors, donorChanges.NoLongerMatching);
 
@@ -141,7 +141,7 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
             async () => await _topLevelClient.FetchRepeatSearchResultSet(notification.ToDebugSearchResultsRequest()),
             _retry.FetchResultSet, $"Fetch repeat search result set for repeat search '{repeatSearchId}'");
         AssertNotNull(searchResultSet,
-            "search result set should have been fetched for repeat search");
+            "Search result set should have been fetched for repeat search");
 
         ExpectedDonorsShouldNoLongerMatch(searchResultSet!.NoLongerMatchingDonorCodes, donorChanges.NoLongerMatching);
 
@@ -159,10 +159,10 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         var response = await _pollyRetry.ExecuteWithRetry(
             async () => await _publicApiClient.PostRepeatSearchRequest(new RepeatSearchRequest()),
             _retry.ApiCall, "Submit invalid repeat search request (missing required fields)");
-        var result = AssertNotNull(response, "repeat search API should have responded");
+        var result = AssertNotNull(response, "Repeat search API should have responded");
 
         result.WasSuccess.Should().BeFalse(
-            "repeat search request should have been rejected with validation failures but was accepted");
+            "Repeat search request should have been rejected with validation failures but was accepted");
 
         var validationErrors = result.ValidationFailures!.ToList();
         validationErrors.ShouldContain("'Original Search Id' must not be empty.");
@@ -175,7 +175,7 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
             m => m.RepeatSearchRequestId == repeatSearchId && m.SearchRequestId == searchId,
             $"repeat search '{repeatSearchId}', original search '{searchId}'");
         return AssertNotNull(notification,
-            $"matching notification should have been received for repeat search {repeatSearchId}");
+            $"Matching notification should have been received for repeat search {repeatSearchId}");
     }
 
     private async Task<SearchResultsNotification> FetchSearchResultsNotification(string repeatSearchId, string searchId)
@@ -184,7 +184,7 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
             m => m.RepeatSearchRequestId == repeatSearchId && m.SearchRequestId == searchId,
             $"repeat search '{repeatSearchId}', original search '{searchId}'");
         return AssertNotNull(notification,
-            $"search notification should have been received for repeat search {repeatSearchId}");
+            $"Search notification should have been received for repeat search {repeatSearchId}");
     }
 
     private static void ExpectedDonorsShouldNoLongerMatch(
@@ -192,6 +192,6 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         IEnumerable<string> expectedDonorCodes)
     {
         noLongerMatchingDonors.Should().Contain(expectedDonorCodes,
-            "expected donors should be in the no-longer-matching list");
+            "Expected donors should be in the no-longer-matching list");
     }
 }

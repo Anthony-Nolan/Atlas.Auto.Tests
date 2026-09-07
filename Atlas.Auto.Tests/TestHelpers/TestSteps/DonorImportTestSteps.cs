@@ -40,7 +40,7 @@ internal class DonorImportTestSteps
     public async Task FullModeImportShouldNotBeAllowed()
     {
         var result = await _workflow.IsFullModeImportAllowed();
-        result.Should().BeFalse("full mode import should not be allowed");
+        result.Should().BeFalse("Full mode import should not be allowed");
     }
 
     public async Task DonorImportShouldHaveBeenSuccessful(
@@ -77,7 +77,7 @@ internal class DonorImportTestSteps
         var codeList = string.Join(", ", codes);
         var result = await _workflow.CheckDonorsAreAvailableForSearch(codes);
         result.Should().NotBeNull(
-            "matching algorithm should confirm donors [{0}] are available for search", codeList);
+            "Matching algorithm should confirm donors [{0}] are available for search", codeList);
         result!.ShouldHaveExpectedDonors(expectedDonorInfo);
     }
 
@@ -86,7 +86,7 @@ internal class DonorImportTestSteps
         var codeList = string.Join(", ", externalDonorCodes);
         var result = await _workflow.CheckDonorsAreNotAvailableForSearch(externalDonorCodes);
         result.Should().NotBeNull(
-            "matching algorithm should confirm donors [{0}] are NOT available for search", codeList);
+            "Matching algorithm should confirm donors [{0}] are NOT available for search", codeList);
         result!.ShouldNotHaveTheseDonors(externalDonorCodes);
     }
 
@@ -95,14 +95,14 @@ internal class DonorImportTestSteps
         var codeList = string.Join(", ", expectedDonorInfo.Select(d => d.ExternalDonorCode));
         var result = await _workflow.CheckDonorInfoInMatchingAlgorithmIsAsExpected(expectedDonorInfo);
         result.Should().NotBeNull(
-            "donor info in matching algorithm should match expected for codes [{0}]", codeList);
+            "Donor info in matching algorithm should match expected for codes [{0}]", codeList);
     }
 
     public async Task FullModeImportAlertShouldHaveBeenRaised(string fileName)
     {
         var alert = await _workflow.FetchFailedFileAlert(fileName);
         alert.Should().NotBeNull(
-            "file failure alert should have been received for file {0}", fileName);
+            "File failure alert should have been received for file {0}", fileName);
         alert!.Summary.Should().ContainEquivalentOf("full mode is not allowed");
     }
 
@@ -122,21 +122,21 @@ internal class DonorImportTestSteps
     {
         var failureInfo = await _workflow.FetchDonorImportFailureInfo(fileName);
         failureInfo.Should().NotBeNull(
-            "donor import failure info should have been logged for file {0}", fileName);
+            "Donor import failure info should have been logged for file {0}", fileName);
         var expectedList = expectedFailedDonorInfo.ToList();
-        failureInfo!.FileName.Should().Be(fileName, "failure info file name should match");
+        failureInfo!.FileName.Should().Be(fileName, "Failure info file name should match");
         failureInfo.FailedUpdateCount.Should().Be(expectedList.Count,
-            "failed update count for file {0} should be {1} but was {2}",
+            "Failed update count for file {0} should be {1} but was {2}",
             fileName, expectedList.Count, failureInfo.FailedUpdateCount);
         failureInfo.FailedUpdates.Should().BeEquivalentTo(expectedList,
-            "failed updates for file {0} should match expected", fileName);
+            "Failed updates for file {0} should match expected", fileName);
     }
 
     private async Task<DonorImportMessage> FetchDonorImportResultMessage(string fileName)
     {
         var result = await _workflow.FetchResultMessage(fileName);
         result.Should().NotBeNull(
-            "import result message should have been received for file {0}", fileName);
+            "Import result message should have been received for file {0}", fileName);
         return result!;
     }
 
@@ -145,7 +145,7 @@ internal class DonorImportTestSteps
         var codeList = string.Join(", ", donorCodes);
         var result = await _workflow.CheckDonorsInDonorStore(donorCodes);
         result.Should().NotBeNull(
-            "donor store check should have returned a result for codes [{0}]", codeList);
+            "Donor store check should have returned a result for codes [{0}]", codeList);
         return result!;
     }
 }

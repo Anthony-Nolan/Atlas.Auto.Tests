@@ -34,7 +34,7 @@ internal abstract class SearchTestStepsBase
         TResult? donorResult, string approvalFileNameSuffix)
         where TResult : Result
     {
-        var result = AssertNotNull(donorResult, "donor result should have been returned");
+        var result = AssertNotNull(donorResult, "Donor result should have been returned");
 
         await VerifyJson(result.SerializeSingle())
             .IgnoreVaryingSearchResultProperties()

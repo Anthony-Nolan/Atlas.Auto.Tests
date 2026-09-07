@@ -33,7 +33,7 @@ internal class ScoringTestSteps
         var result = await _pollyRetry.ExecuteWithRetry(
             async () => await _publicApiClient.PostScoreBatch(scoreRequest),
             _retry.ApiCall, $"Score batch request '{scoringRequestFileName}'");
-        result.Should().NotBeNull("batch scoring should have returned results");
+        result.Should().NotBeNull("Batch scoring should have returned results");
 
         await VerifyScoringResult(result!.SerializeCollection());
     }
@@ -45,7 +45,7 @@ internal class ScoringTestSteps
         var result = await _pollyRetry.ExecuteWithRetry(
             async () => await _publicApiClient.PostScore(scoreRequest),
             _retry.ApiCall, $"Score request '{scoringRequestFileName}'");
-        result.Should().NotBeNull("scoring should have returned a result");
+        result.Should().NotBeNull("Scoring should have returned a result");
 
         await VerifyScoringResult(result!.SerializeSingle());
     }
