@@ -1,5 +1,5 @@
-﻿using Atlas.Auto.Tests.DependencyInjection;
-using Atlas.Auto.Tests.TestHelpers.Services;
+using Atlas.Auto.Tests.DependencyInjection;
+using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Utils.Reporting;
 using AventStack.ExtentReports;
 
@@ -8,22 +8,26 @@ namespace Atlas.Auto.Tests.Tests;
 [Parallelizable(ParallelScope.All)]
 internal abstract class TestBase
 {
-    protected readonly IServiceProvider Provider;
+    // NUnit creates test fixture instances itself, so constructor injection via DI is not possible.
+    // A shared static provider is the standard workaround for NUnit-based test projects.
+    private static readonly Lazy<IServiceProvider> LazyProvider = new(ServiceConfiguration.CreateProvider);
+    internal static IServiceProvider Provider => LazyProvider.Value;
+
     protected readonly string TestFixtureName;
-    private readonly ExtentTest extentTestForFixture;
+    private readonly ExtentTest _extentTestForFixture;
 
     protected TestBase(string testFixtureName)
     {
-        Provider = ServiceConfiguration.CreateProvider();
         TestFixtureName = testFixtureName;
-        extentTestForFixture = ExtentManager.CreateForFixture(testFixtureName);
+        _extentTestForFixture = ExtentManager.CreateForFixture(testFixtureName);
     }
 
     [OneTimeTearDown]
     public void Cleanup()
     {
-        extentTestForFixture.Extent.Flush();
+        _extentTestForFixture.Extent.Flush();
     }
 
-    protected ITestLogger BuildTestLogger(string testName) => new TestLogger(ExtentManager.CreateForTest(TestFixtureName, testName));
+    protected ITestLogger BuildTestLogger(string testName) =>
+        new TestLogger(ExtentManager.CreateForTest(TestFixtureName, testName));
 }

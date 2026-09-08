@@ -1,13 +1,14 @@
+using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.DonorImport.FileSchema.Models;
 using System.Runtime.CompilerServices;
 
 namespace Atlas.Auto.Tests.Tests.Search;
 
 [TestFixture]
-[Category($"{nameof(Search_HappyPathTests)}")]
-internal class Search_HappyPathTests : SearchTestBase
+[Category(nameof(SearchHappyPathTests))]
+internal class SearchHappyPathTests : SearchTestBase
 {
-    public Search_HappyPathTests() : base(nameof(Search_HappyPathTests))
+    public SearchHappyPathTests() : base(nameof(SearchHappyPathTests))
     {
     }
 
@@ -71,7 +72,7 @@ internal class Search_HappyPathTests : SearchTestBase
         const string testDescription = "10/10 Donor Search - Donor with Associated Antigen";
         steps.Logger.LogStart(testDescription);
 
-        var expectedDonorCode = await steps.CreateDonorWithAssociatedAntigen(ImportDonorType.Adult);
+        var expectedDonorCode = await steps.CreateDonor(ImportDonorType.Adult, ImportedHlaBuilder.AssociatedAntigenPhenotype);
         var searchResponse = await steps.SubmitSearchRequest("search-request-donor-associated-antigen-10_10.json");
         await steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
         await steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
@@ -92,9 +93,10 @@ internal class Search_HappyPathTests : SearchTestBase
             var steps = GetSearchTestSteps(callerName);
             steps.Logger.LogStart(testDescription);
 
-            var expectedDonorCode = newDnaPhenotype
-                ? await steps.CreateDonorWithNew(importDonorType)
-                : await steps.CreateDonor(importDonorType);
+            var hlaBuilder = newDnaPhenotype
+                ? ImportedHlaBuilder.SearchNewPhenotype
+                : ImportedHlaBuilder.SearchTestPhenotype;
+            var expectedDonorCode = await steps.CreateDonor(importDonorType, hlaBuilder);
             var searchResponse = await steps.SubmitSearchRequest(searchRequestJson, parallelMatchPrediction);
             await steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
             await steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);

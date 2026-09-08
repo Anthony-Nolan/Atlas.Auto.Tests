@@ -1,15 +1,11 @@
-﻿using System.Reflection;
+using System.Reflection;
+using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
-using Atlas.Auto.Tests.TestHelpers.Services.DonorDeletion;
-using Atlas.Auto.Tests.TestHelpers.Services.DonorImport;
-using Atlas.Auto.Tests.TestHelpers.Services.Scoring;
-using Atlas.Auto.Tests.TestHelpers.TestSteps;
-using Atlas.Auto.Tests.TestHelpers.Workflows;
-using Atlas.Debug.Client;
-using Atlas.Debug.Client.Models.Settings;
+using Atlas.Auto.Tests.TestHelpers.Settings;
+using Atlas.Debug.Client.Clients;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using static Atlas.Auto.Tests.DependencyInjection.Utils;
+using Serilog;
 
 namespace Atlas.Auto.Tests.DependencyInjection;
 
@@ -17,73 +13,33 @@ internal static class ServiceConfiguration
 {
     internal static IServiceProvider CreateProvider()
     {
-        var services = new ServiceCollection();
-
-        services.SetUpConfiguration();
-
-        services.RegisterSettings();
-
-        services.RegisterDebugClients(
-            OptionsReaderFor<DonorImportHttpFunctionSettings>(),
-            OptionsReaderFor<MatchingAlgorithmHttpFunctionSettings>(),
-            OptionsReaderFor<TopLevelHttpFunctionSettings>(),
-            OptionsReaderFor<PublicApiHttpFunctionSettings>(),
-            OptionsReaderFor<RepeatSearchHttpFunctionSettings>());
-
-        services.RegisterTestServices();
-
-        return services.BuildServiceProvider();
-    }
-
-    private static void SetUpConfiguration(this IServiceCollection services)
-    {
         var configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json")
             .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json")
             .AddUserSecrets(Assembly.GetExecutingAssembly())
             .Build();
 
-        services.AddSingleton<IConfiguration>(sp => configuration);
-    }
+        var services = new ServiceCollection();
 
-    private static void RegisterSettings(this IServiceCollection services)
-    {
-        services.RegisterAsOptions<DonorImportHttpFunctionSettings>("DonorImport");
-        services.RegisterAsOptions<MatchingAlgorithmHttpFunctionSettings>("MatchingAlgorithm");
-        services.RegisterAsOptions<TopLevelHttpFunctionSettings>("TopLevel");
-        services.RegisterAsOptions<PublicApiHttpFunctionSettings>("PublicApi");
-        services.RegisterAsOptions<RepeatSearchHttpFunctionSettings>("RepeatSearch");
-    }
+        services.AddLogging(builder =>
+        {
+            var serilogLogger = new LoggerConfiguration()
+                .WriteTo.Sink(new NUnitSink())
+                .CreateLogger();
+            builder.AddSerilog(serilogLogger, dispose: true);
+        });
 
-    private static void RegisterTestServices(this IServiceCollection services)
-    {
-        services.AddTransient<ITestDonorDeleter, TestDonorDeleter>();
-        services.AddTransient<IDonorCodeFetcher, DonorCodeFetcher>();
-        services.AddTransient<IDonorDeleter, DonorDeleter>();
-        services.AddTransient<IAvailabilitySetter, AvailabilitySetter>();
+        services.RegisterDebugClients(configuration,
+            ("DonorImport", typeof(IDonorImportFunctionsClient), typeof(DonorImportFunctionsClient)),
+            ("MatchingAlgorithm", typeof(IMatchingAlgorithmFunctionsClient), typeof(MatchingAlgorithmFunctionsClient)),
+            ("TopLevel", typeof(ITopLevelFunctionsClient), typeof(TopLevelFunctionsClient)),
+            ("PublicApi", typeof(IPublicApiFunctionsClient), typeof(PublicApiFunctionsClient)),
+            ("RepeatSearch", typeof(IRepeatSearchFunctionsClient), typeof(RepeatSearchFunctionsClient)));
 
-        services.AddTransient<IDebugRequester, DebugRequester>();
-        services.AddTransient<IMessageFetcher, MessageFetcher>();
+        services.AddSingleton(configuration.GetSection("Retry").Get<RetrySettings>() ?? new RetrySettings());
 
-        services.AddTransient(typeof(IHealthChecker<>), typeof(HealthChecker<>));
+        services.AddSingleton<PollyRetry>();
 
-        // donor import
-        services.AddTransient<IDonorImportTestSteps, DonorImportTestSteps>();
-        services.AddTransient<IDonorImportWorkflow, DonorImportWorkflow>();
-        services.AddTransient<IFileImporter, FileImporter>();
-        services.AddTransient<IImportResultFetcher, ImportResultFetcher>();
-        services.AddTransient<IDonorStoreChecker, DonorStoreChecker>();
-        services.AddTransient<IActiveMatchingDbChecker, ActiveMatchingDbChecker>();
-        services.AddTransient<IFullModeChecker, FullModeChecker>();
-        services.AddTransient<IFailedFileAlertFetcher, FailedFileAlertFetcher>();
-        services.AddTransient<IHlaExpansionFailureAlertFetcher, HlaExpansionFailureAlertFetcher>();
-        services.AddTransient<IHlaExpansionFailureFetcher, HlaExpansionFailureFetcher>();
-        services.AddTransient<IDonorImportFailureInfoFetcher, DonorImportFailureInfoFetcher>();
-
-        // scoring
-        services.AddTransient<IScoringTestSteps, ScoringTestSteps>();
-        services.AddTransient<IScoringWorkflow, ScoringWorkflow>();
-        services.AddTransient<IDonorScorer, DonorScorer>();
-
+        return services.BuildServiceProvider();
     }
 }

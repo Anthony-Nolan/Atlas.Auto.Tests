@@ -25,6 +25,6 @@ jobs:
         continueOnError: true
         condition: always()
         inputs:
-          targetPath: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/TestReport'
+          targetPath: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net10.0/TestReport'
           artifact: '${{testCategoryJob.job}}-$(System.JobAttempt)'
           publishLocation: 'pipeline'

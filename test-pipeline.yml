@@ -66,12 +66,12 @@ stages:
     parameters:
       testCategoryJobs:
       - job: HealthCheck
-      - job: DonorImport_DiffMode_HappyPathTests
-      - job: DonorImport_DiffMode_ExceptionPathTests  
-      - job: DonorImport_FullMode_ExceptionPathTests
-      - job: Search_HappyPathTests
-      - job: Search_ExceptionPathTests
-      - job: Scoring_HappyPathTests  
-      - job: RepeatSearch_HappyPathTests_Adult
-      - job: RepeatSearch_HappyPathTests_Cord
-      - job: RepeatSearch_ExceptionPathTests
+      - job: DonorImport_DiffModeHappyPathTests
+      - job: DonorImport_DiffModeExceptionPathTests
+      - job: DonorImport_FullModeExceptionPathTests
+      - job: SearchHappyPathTests
+      - job: SearchExceptionPathTests
+      - job: ScoringHappyPathTests
+      - job: RepeatSearchHappyPathTests_Adult
+      - job: RepeatSearchHappyPathTests_Cord
+      - job: RepeatSearchExceptionPathTests

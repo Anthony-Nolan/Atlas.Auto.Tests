@@ -1,64 +1,59 @@
-﻿using Atlas.Auto.Tests.TestHelpers.Extensions;
+using Atlas.Auto.Tests.TestHelpers.Extensions;
+using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
-using Atlas.Auto.Tests.TestHelpers.Workflows;
+using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Client.Models.Scoring.Requests;
+using Atlas.Debug.Client.Clients;
+using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
-/// <summary>
-/// Steps for testing Atlas scoring.
-/// Covers arrangement and execution of the scoring workflow and assertion of its outcomes.
-/// </summary>
-internal interface IScoringTestSteps
+internal class ScoringTestSteps
 {
-    Task DonorBatchShouldBeScored(string scoringRequestFileName);
+    private readonly IPublicApiFunctionsClient _publicApiClient;
+    private readonly PollyRetry _pollyRetry;
+    private readonly RetrySettings _retry;
+    private readonly string _testName;
+    public ITestLogger Logger { get; }
 
-    Task DonorShouldBeScored(string scoringRequestFileName);
-}
-
-internal class ScoringTestSteps : IScoringTestSteps
-{
-    private readonly IScoringWorkflow workflow;
-    private readonly ITestLogger logger;
-    private readonly string testName;
-
-    public ScoringTestSteps(
-        IScoringWorkflow workflow,
-        ITestLogger logger,
-        string testName)
+    public ScoringTestSteps(IServiceProvider provider, ITestLogger logger, string testName)
     {
-        this.workflow = workflow;
-        this.logger = logger;
-        this.testName = testName;
+        _publicApiClient = provider.GetRequiredService<IPublicApiFunctionsClient>();
+        _pollyRetry = provider.GetRequiredService<PollyRetry>();
+        _retry = provider.GetRequiredService<RetrySettings>();
+        Logger = logger;
+        _testName = testName;
     }
 
     public async Task DonorBatchShouldBeScored(string scoringRequestFileName)
     {
         var scoreRequest = await SourceDataReader.ReadJsonFile<DonorHlaBatchScoringRequest>(scoringRequestFileName);
 
-        var scoreResponse = await workflow.ScoreBatch(scoreRequest);
-        logger.AssertResponseThenLogAndThrow(scoreResponse, "Score request");
+        var result = await _pollyRetry.ExecuteWithRetry(
+            async () => await _publicApiClient.PostScoreBatch(scoreRequest),
+            _retry.ApiCall, $"Score batch request '{scoringRequestFileName}'");
+        result.Should().NotBeNull("Batch scoring should have returned results");
 
-        var scoringResult = scoreResponse.DebugResult!.SerializeCollection();
-        await logger.AssertThenLogAndThrowAsync(
-            () => VerifyJson(scoringResult)
-                .WriteReceivedToApprovalsFolder(testName)
-                .IgnoreVaryingSearchResultProperties(),
-            "Comparison of batch scoring result against approved result");
+        await VerifyScoringResult(result!.SerializeCollection());
     }
 
     public async Task DonorShouldBeScored(string scoringRequestFileName)
     {
         var scoreRequest = await SourceDataReader.ReadJsonFile<DonorHlaScoringRequest>(scoringRequestFileName);
 
-        var scoreResponse = await workflow.Score(scoreRequest);
-        logger.AssertResponseThenLogAndThrow(scoreResponse, "Score request");
+        var result = await _pollyRetry.ExecuteWithRetry(
+            async () => await _publicApiClient.PostScore(scoreRequest),
+            _retry.ApiCall, $"Score request '{scoringRequestFileName}'");
+        result.Should().NotBeNull("Scoring should have returned a result");
 
-        var scoringResult = scoreResponse.DebugResult!.SerializeSingle();
-        await logger.AssertThenLogAndThrowAsync(
-            () => VerifyJson(scoringResult)
-                .WriteReceivedToApprovalsFolder(testName)
-                .IgnoreVaryingSearchResultProperties(),
-            "Comparison of scoring result against approved result");
+        await VerifyScoringResult(result!.SerializeSingle());
+    }
+
+    private async Task VerifyScoringResult(string serializedResult)
+    {
+        await VerifyJson(serializedResult)
+            .WriteReceivedToApprovalsFolder(_testName)
+            .IgnoreVaryingSearchResultProperties();
     }
 }

@@ -1,170 +1,86 @@
-﻿using Atlas.Auto.Tests.TestHelpers.Builders;
+using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
-using Atlas.Auto.Tests.TestHelpers.Services;
-using Atlas.Auto.Tests.TestHelpers.SourceData;
+using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.DonorImport.FileSchema.Models;
 using LochNessBuilder;
 
-namespace Atlas.Auto.Tests.TestHelpers.TestSteps
+namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
+
+internal class DonorImportStepsForSearchTests
 {
-    /// <summary>
-    /// Steps to perform donor import for search and repeat search tests.
-    /// </summary>
-    internal interface IDonorImportStepsForSearchTests
+    private readonly DonorImportTestSteps _donorImportTestSteps;
+    private readonly ITestLogger _logger;
+
+    public DonorImportStepsForSearchTests(DonorImportTestSteps donorImportTestSteps, ITestLogger logger)
     {
-        /// <summary>
-        /// Creates a donor of the specified type with <see cref="HlaTypings.SearchTestPhenotype"/> and returns the donor record id.
-        /// </summary>
-        Task<string> CreateDonorWithSearchTestPhenotype(ImportDonorType donorType);
-
-        /// <summary>
-        /// Creates a donor of the specified type with <see cref="HlaTypings.ValidDnaPhenotype"/> and returns the donor record id.
-        /// </summary>
-        Task<string> CreateDonorWithValidDnaPhenotype(ImportDonorType donorType);
-
-        /// <summary>
-        /// Creates a donor of the specified type with <see cref="HlaTypings.NewDnaPhenotype"/> and returns the donor record id.
-        /// </summary>
-        /// <param name="donorType"></param>
-        /// <returns></returns>
-        Task<string> CreateDonorWithNewDnaPhenotype(ImportDonorType donorType);
-
-        /// <summary>
-        /// Creates a donor of the specified type with <see cref="HlaTypings.AssociatedAntigenPhenotype"/> and returns the donor record id.
-        /// </summary>
-        /// <param name="donorType"></param>
-        /// <returns></returns>
-        Task<string> CreateDonorWithAssociatedAntigenPhenotype(ImportDonorType donorType);
-
-        /// <summary>
-        /// Edits the HLA of donor with code <see cref="donorCode"/> to <see cref="HlaTypings.SearchTestPhenotype"/>.
-        /// </summary>
-        Task EditDonorHlaToSearchTestPhenotype(string donorCode, ImportDonorType donorType);
-
-        /// <summary>
-        /// Edits the HLA of donor with code <see cref="donorCode"/> to <see cref="HlaTypings.ValidDnaPhenotype"/>.
-        /// </summary>
-        Task EditDonorHlaToValidDnaPhenotype(string donorCode, ImportDonorType donorType);
-
-        /// <summary>
-        /// Deletes donors.
-        /// </summary>
-        Task DeleteDonors(IReadOnlyCollection<string> donorCodes);
+        _donorImportTestSteps = donorImportTestSteps;
+        _logger = logger;
     }
 
-    internal class DonorImportStepsForSearchTests : IDonorImportStepsForSearchTests
+    public async Task<string> CreateDonor(ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
     {
-        private readonly IDonorImportTestSteps donorImportTestSteps;
-        private readonly ITestLogger logger;
+        var action = $"Create test {donorType}";
+        _logger.LogStart(action);
 
-        public DonorImportStepsForSearchTests(
-            IDonorImportTestSteps donorImportTestSteps,
-            ITestLogger logger)
-        {
-            this.donorImportTestSteps = donorImportTestSteps;
-            this.logger = logger;
-        }
+        const int donorCount = 1;
+        var donorUpdate = DonorUpdateBuilder.Default
+            .WithDonorType(donorType)
+            .WithHla(hlaBuilder)
+            .WithChangeType(ImportDonorChangeType.Create)
+            .Build(donorCount);
 
-        /// <inheritdoc />
-        public async Task<string> CreateDonorWithSearchTestPhenotype(ImportDonorType donorType)
-        {
-            return await CreateDonor(donorType, ImportedHlaBuilder.SearchTestPhenotype);
-        }
+        var request = await _donorImportTestSteps.ImportDiffDonorFile(donorUpdate);
+        await _donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
 
-        /// <inheritdoc />
-        public async Task<string> CreateDonorWithValidDnaPhenotype(ImportDonorType donorType)
-        {
-            return await CreateDonor(donorType, ImportedHlaBuilder.ValidDnaPhenotype);
-        }
+        var donorInfo = donorUpdate.ToDonorDebugInfo().ToList();
+        await _donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorInfo);
+        await _donorImportTestSteps.DonorsShouldBeAvailableForSearch(donorInfo);
 
-        public async Task<string> CreateDonorWithNewDnaPhenotype(ImportDonorType donorType)
-        {
-            return await CreateDonor(donorType, ImportedHlaBuilder.SearchNewPhenotype);
-        }
+        var recordId = donorUpdate.Single().RecordId;
+        _logger.LogInfo($"Donor record id: {recordId}");
+        _logger.LogCompletion(action);
 
-        public async Task<string> CreateDonorWithAssociatedAntigenPhenotype(ImportDonorType donorType)
-        {
-            return await CreateDonor(donorType, ImportedHlaBuilder.AssociatedAntigenPhenotype);
-        }
+        return recordId;
+    }
 
-        /// <inheritdoc />
-        public async Task EditDonorHlaToSearchTestPhenotype(string donorCode, ImportDonorType donorType)
-        {
-            await EditDonorHla(donorCode, donorType, ImportedHlaBuilder.SearchTestPhenotype);
-        }
+    public async Task EditDonorHla(string donorCode, ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
+    {
+        var action = $"Edit HLA of test {donorType} with record id {donorCode}";
+        _logger.LogStart(action);
 
-        /// <inheritdoc />
-        public async Task EditDonorHlaToValidDnaPhenotype(string donorCode, ImportDonorType donorType)
-        {
-            await EditDonorHla(donorCode, donorType, ImportedHlaBuilder.ValidDnaPhenotype);
-        }
+        const int donorCount = 1;
+        var donorUpdate = DonorUpdateBuilder.Default
+            .WithRecordIds(new[] { donorCode })
+            .WithDonorType(donorType)
+            .WithHla(hlaBuilder)
+            .WithChangeType(ImportDonorChangeType.Edit)
+            .Build(donorCount);
 
-        /// <inheritdoc />
-        public async Task DeleteDonors(IReadOnlyCollection<string> donorCodes)
-        {
-            const string action = "Delete test donors";
-            logger.LogStart(action);
+        var request = await _donorImportTestSteps.ImportDiffDonorFile(donorUpdate);
+        await _donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
 
-            var donorUpdate = DonorUpdateBuilder.Default
-                .WithRecordIds(donorCodes)
-                .WithChangeType(ImportDonorChangeType.Delete)
-                .Build(donorCodes.Count);
+        var donorInfo = donorUpdate.ToDonorDebugInfo().ToList();
+        await _donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorInfo);
+        await _donorImportTestSteps.MatchingAlgorithmDonorInfoShouldBe(donorInfo);
 
-            var request = await donorImportTestSteps.ImportDiffDonorFile(donorUpdate);
-            await donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCodes.Count, 0);
-            await donorImportTestSteps.DonorStoreShouldNotHaveTheseDonors(donorCodes);
-            await donorImportTestSteps.DonorsShouldNotBeAvailableForSearch(donorCodes);
+        _logger.LogCompletion(action);
+    }
 
-            logger.LogCompletion(action);
-        }
+    public async Task DeleteDonors(IReadOnlyCollection<string> donorCodes)
+    {
+        const string action = "Delete test donors";
+        _logger.LogStart(action);
 
-        private async Task<string> CreateDonor(ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
-        {
-            var action = $"Create test {donorType}";
-            logger.LogStart(action);
+        var donorUpdate = DonorUpdateBuilder.Default
+            .WithRecordIds(donorCodes)
+            .WithChangeType(ImportDonorChangeType.Delete)
+            .Build(donorCodes.Count);
 
-            const int donorCount = 1;
-            var donorUpdate = DonorUpdateBuilder.Default
-                .WithDonorType(donorType)
-                .WithHla(hlaBuilder)
-                .WithChangeType(ImportDonorChangeType.Create)
-                .Build(donorCount);
+        var request = await _donorImportTestSteps.ImportDiffDonorFile(donorUpdate);
+        await _donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCodes.Count, 0);
+        await _donorImportTestSteps.DonorStoreShouldNotHaveTheseDonors(donorCodes);
+        await _donorImportTestSteps.DonorsShouldNotBeAvailableForSearch(donorCodes);
 
-            var request = await donorImportTestSteps.ImportDiffDonorFile(donorUpdate);
-            await donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
-
-            var donorInfo = donorUpdate.ToDonorDebugInfo().ToList();
-            await donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorInfo);
-            await donorImportTestSteps.DonorsShouldBeAvailableForSearch(donorInfo);
-
-            var recordId = donorUpdate.Single().RecordId;
-            logger.LogInfo($"Donor record id: {recordId}");
-            logger.LogCompletion(action);
-
-            return recordId;
-        }
-
-        private async Task EditDonorHla(string donorCode, ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
-        {
-            var action = $"Edit HLA of test {donorType} with record id {donorCode}";
-            logger.LogStart(action);
-
-            const int donorCount = 1;
-            var donorUpdate = DonorUpdateBuilder.Default
-                .WithRecordIds(new[] { donorCode })
-                .WithDonorType(donorType)
-                .WithHla(hlaBuilder)
-                .WithChangeType(ImportDonorChangeType.Edit)
-                .Build(donorCount);
-
-            var request = await donorImportTestSteps.ImportDiffDonorFile(donorUpdate);
-            await donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
-
-            var donorInfo = donorUpdate.ToDonorDebugInfo().ToList();
-            await donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorInfo);
-            await donorImportTestSteps.MatchingAlgorithmDonorInfoShouldBe(donorInfo);
-
-            logger.LogCompletion(action);
-        }
+        _logger.LogCompletion(action);
     }
 }

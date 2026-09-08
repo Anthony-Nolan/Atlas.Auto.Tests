@@ -1,5 +1,5 @@
 using Atlas.Auto.Tests.TestHelpers.Extensions;
-using Atlas.Auto.Tests.TestHelpers.Services;
+using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Client.Models.Search.Results;
 using FluentAssertions;
 
@@ -7,27 +7,26 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal abstract class SearchTestStepsBase
 {
-    public ITestLogger Logger => logger;
+    public ITestLogger Logger => _logger;
+    internal DonorImportStepsForSearchTests DonorImportSteps => _donorImportSteps;
 
-    protected readonly ITestLogger logger;
-    protected readonly string testName;
-    protected readonly IDonorImportStepsForSearchTests donorImportSteps;
+    protected readonly ITestLogger _logger;
+    protected readonly string _testName;
+    protected readonly DonorImportStepsForSearchTests _donorImportSteps;
 
     protected SearchTestStepsBase(
-        IDonorImportStepsForSearchTests donorImportSteps,
+        DonorImportStepsForSearchTests donorImportSteps,
         ITestLogger logger,
         string testName)
     {
-        this.donorImportSteps = donorImportSteps;
-        this.logger = logger;
-        this.testName = testName;
+        _donorImportSteps = donorImportSteps;
+        _logger = logger;
+        _testName = testName;
     }
 
-    protected T AssertNotNull<T>(T? value, string because, string actionDescription) where T : class
+    protected static T AssertNotNull<T>(T? value, string because) where T : class
     {
-        logger.AssertThenLogAndThrow(
-            () => value.Should().NotBeNull(because),
-            actionDescription);
+        value.Should().NotBeNull(because);
         return value!;
     }
 
@@ -35,12 +34,10 @@ internal abstract class SearchTestStepsBase
         TResult? donorResult, string approvalFileNameSuffix)
         where TResult : Result
     {
-        logger.AssertThenLogAndThrow(() => donorResult.Should().NotBeNull(), "Select donor result");
+        var result = AssertNotNull(donorResult, "Donor result should have been returned");
 
-        await logger.AssertThenLogAndThrowAsync(
-            () => VerifyJson(donorResult.SerializeSingle())
-                .IgnoreVaryingSearchResultProperties()
-                .WriteReceivedToApprovalsFolder($"{testName}_{approvalFileNameSuffix}"),
-            $"Comparison of donor {donorResult!.DonorCode} to approved result");
+        await VerifyJson(result.SerializeSingle())
+            .IgnoreVaryingSearchResultProperties()
+            .WriteReceivedToApprovalsFolder($"{_testName}_{approvalFileNameSuffix}");
     }
 }

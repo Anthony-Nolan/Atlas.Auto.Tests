@@ -1,17 +1,16 @@
-﻿using Atlas.Auto.Tests.DependencyInjection;
 using Atlas.Auto.Tests.TestHelpers.Services;
+using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Debug.Client.Clients;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.Auto.Tests.Tests;
 
-/// <summary>
-/// This fixture is confirmation that the instance of Atlas under test can be reached for E2E testing.
-/// </summary>
 [TestFixture]
+[Category(nameof(HealthCheckTests))]
 internal class HealthCheckTests : TestBase
 {
-    private static object[] clientsToTest = {
+    private static readonly object[] clientsToTest = {
         typeof(IDonorImportFunctionsClient),
         typeof(IMatchingAlgorithmFunctionsClient),
         typeof(IPublicApiFunctionsClient),
@@ -28,15 +27,18 @@ internal class HealthCheckTests : TestBase
     public async Task HealthCheck(Type clientType)
     {
         var action = $"Health Check Test for {clientType.Name}";
-        dynamic healthChecker = Provider.ResolveServiceOrThrow(typeof(IHealthChecker<>).MakeGenericType(clientType));
+        var client = (ICommonAtlasFunctions)Provider.GetRequiredService(clientType);
+        var pollyRetry = Provider.GetRequiredService<PollyRetry>();
+        var retry = Provider.GetRequiredService<RetrySettings>();
         var test = BuildTestLogger(action);
 
         test.LogStart(action);
-        var result = await healthChecker.HealthCheck() as bool?;
-        test.AssertThenLogAndThrow( () =>
+        var result = await pollyRetry.ExecuteWithRetry(async () =>
         {
-            result.Should().NotBeNull();
-            result!.Value.Should().BeTrue();
-        }, action);
+            var response = await client.HealthCheck();
+            return response?.Contains("Healthy") == true ? response : null;
+        }, retry.HealthCheck, $"Health check for {clientType.Name}");
+        result.Should().NotBeNull("{0} should be healthy", clientType.Name);
+        test.LogCompletion(action);
     }
 }
