@@ -19,9 +19,6 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
         const int donorCount = 2;
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_CreateEditDelete_AppliesUpdates));
 
-        var currentTestCase = "create donors via Create and Upsert";
-        steps.Logger.LogStart(currentTestCase);
-
         var creationUpdates = DonorUpdateBuilder.Default
             .WithValidDnaPhenotype()
             .WithChangeTypes(new[] { ImportDonorChangeType.Create, ImportDonorChangeType.Upsert })
@@ -34,12 +31,7 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
         await steps.DonorStoreShouldHaveExpectedDonors(createdDonorInfo);
         await steps.DonorsShouldBeAvailableForSearch(createdDonorInfo);
 
-        steps.Logger.LogCompletion(currentTestCase);
-
         var donorCodes = creationUpdates.GetExternalDonorCodes();
-
-        currentTestCase = "update donors via Edit and Upsert";
-        steps.Logger.LogStart(currentTestCase);
 
         var editUpdates = DonorUpdateBuilder.Default
             .WithAlternativeDnaAtLocusA()
@@ -53,10 +45,6 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
         var editedDonorInfo = editUpdates.ToDonorDebugInfo().ToList();
         await steps.DonorStoreShouldHaveExpectedDonors(editedDonorInfo);
         await steps.MatchingAlgorithmDonorInfoShouldBe(editedDonorInfo);
-        steps.Logger.LogCompletion(currentTestCase);
-
-        currentTestCase = "delete donors";
-        steps.Logger.LogStart(currentTestCase);
 
         var deletionUpdates = DonorUpdateBuilder.New
             .WithRecordIds(donorCodes)
@@ -67,18 +55,13 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
         await steps.DonorImportShouldHaveBeenSuccessful(deletionRequest.FileName, donorCount, 0);
         await steps.DonorStoreShouldNotHaveTheseDonors(donorCodes);
         await steps.DonorsShouldNotBeAvailableForSearch(donorCodes);
-
-        steps.Logger.LogCompletion(currentTestCase);
     }
 
     [Test]
     public async Task DonorImport_DiffMode_DeleteNonExistingDonor_DoesNotFailTheUpdate()
     {
-        const string testCase = "deletion of non-existing donor";
         const int donorCount = 1;
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_DeleteNonExistingDonor_DoesNotFailTheUpdate));
-
-        steps.Logger.LogStart(testCase);
 
         var update = DonorUpdateBuilder.New
             .WithChangeType(ImportDonorChangeType.Delete)
@@ -86,7 +69,5 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
 
         var request = await steps.ImportDiffDonorFile(update);
         await steps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
-
-        steps.Logger.LogCompletion(testCase);
     }
 }

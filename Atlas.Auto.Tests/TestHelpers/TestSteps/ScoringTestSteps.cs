@@ -1,11 +1,11 @@
 using Atlas.Auto.Tests.TestHelpers.Extensions;
-using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Client.Models.Scoring.Requests;
 using Atlas.Debug.Client.Clients;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
@@ -15,9 +15,9 @@ internal class ScoringTestSteps
     private readonly PollyRetry _pollyRetry;
     private readonly RetrySettings _retry;
     private readonly string _testName;
-    public ITestLogger Logger { get; }
+    public ILogger Logger { get; }
 
-    public ScoringTestSteps(IServiceProvider provider, ITestLogger logger, string testName)
+    public ScoringTestSteps(IServiceProvider provider, ILogger logger, string testName)
     {
         _publicApiClient = provider.GetRequiredService<IPublicApiFunctionsClient>();
         _pollyRetry = provider.GetRequiredService<PollyRetry>();

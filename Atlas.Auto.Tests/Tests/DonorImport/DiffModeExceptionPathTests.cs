@@ -23,9 +23,6 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         const int donorCount = 1;
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_CreateExistingDonor_FailsTheInvalidUpdate));
 
-        var currentTestCase = "create donor in diff mode";
-        steps.Logger.LogStart(currentTestCase);
-
         var creationUpdate = DonorUpdateBuilder.Default
             .WithValidDnaPhenotype()
             .WithChangeType(ImportDonorChangeType.Create)
@@ -38,28 +35,18 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         await steps.DonorStoreShouldHaveExpectedDonors(expectedDonorInfo);
         await steps.DonorsShouldBeAvailableForSearch(expectedDonorInfo);
 
-        steps.Logger.LogCompletion(currentTestCase);
-
-        currentTestCase = "repeat create of donor in diff mode";
-        steps.Logger.LogStart(currentTestCase);
-
         var secondImportRequest = await steps.ImportDiffDonorFile(creationUpdate);
         await steps.DonorImportShouldHaveBeenSuccessful(secondImportRequest.FileName, 0, donorCount);
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             secondImportRequest.FileName,
             creationUpdate.ToFailureInfo(RecordIdProp, "Donor is already present in the database."));
-
-        steps.Logger.LogCompletion(currentTestCase);
     }
 
     [Test]
     public async Task DonorImport_DiffMode_EditNonExistingDonor_FailsTheInvalidUpdate()
     {
-        const string testCase = "edit non-existing donor in diff mode";
         const int donorCount = 1;
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_EditNonExistingDonor_FailsTheInvalidUpdate));
-
-        steps.Logger.LogStart(testCase);
 
         var update = DonorUpdateBuilder.Default
             .WithValidDnaPhenotype()
@@ -72,18 +59,13 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             request.FileName,
             update.ToFailureInfo(RecordIdProp, "Donor is not present in the database."));
-
-        steps.Logger.LogCompletion(testCase);
     }
 
     [Test]
     public async Task DonorImport_DiffMode_CreateWithMissingRequiredHla_FailsTheInvalidUpdate()
     {
-        const string testCase = "create donor with missing required HLA in diff mode";
         const int donorCount = 2;
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_CreateWithMissingRequiredHla_FailsTheInvalidUpdate));
-
-        steps.Logger.LogStart(testCase);
 
         var update = DonorUpdateBuilder.Default
             .WithHlaAtEveryLocusExceptDrb1()
@@ -96,18 +78,13 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             request.FileName,
             update.ToFailureInfo(Drb1DnaProp, Drb1FailureReason));
-
-        steps.Logger.LogCompletion(testCase);
     }
 
     [Test]
     public async Task DonorImport_DiffMode_CreateWithInvalidHla_ReportsInvalidHla_AndDoesNotMakeDonorAvailableForSearch()
     {
-        const string testCase = "create donor with invalid HLA in diff mode";
         const int donorCount = 1;
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_CreateWithInvalidHla_ReportsInvalidHla_AndDoesNotMakeDonorAvailableForSearch));
-
-        steps.Logger.LogStart(testCase);
 
         var creationUpdate = DonorUpdateBuilder.Default
             .WithInvalidDnaAtAllLoci()
@@ -122,19 +99,14 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         await steps.DonorStoreShouldHaveExpectedDonors(expectedDonorInfo);
         await steps.HlaExpansionFailureShouldBeReportedFor(donorCode.Single(), HlaTypings.InvalidDnaForAnyLocus);
         await steps.DonorsShouldNotBeAvailableForSearch(donorCode);
-
-        steps.Logger.LogCompletion(testCase);
     }
 
     [Test]
     public async Task DonorImport_DiffMode_MixOfValidAndInvalidUpdates_AppliesTheValidAndFailsTheInvalidUpdates()
     {
-        const string testCase = "create mix of valid and invalid donors in diff mode";
         const int validDonorCount = 1;
         const int invalidDonorCount = 1;
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_MixOfValidAndInvalidUpdates_AppliesTheValidAndFailsTheInvalidUpdates));
-
-        steps.Logger.LogStart(testCase);
 
         var validUpdate = DonorUpdateBuilder.Default
             .WithValidDnaPhenotype()
@@ -156,7 +128,5 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             request.FileName,
             invalidUpdate.ToFailureInfo(Drb1DnaProp, Drb1FailureReason));
-
-        steps.Logger.LogCompletion(testCase);
     }
 }

@@ -1,7 +1,6 @@
 using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.InternalModels;
-using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Settings;
 using LochNessBuilder;
@@ -13,6 +12,7 @@ using Atlas.Debug.Client.Models.Validation;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
@@ -29,7 +29,7 @@ internal class SearchTestSteps : SearchTestStepsBase
     public SearchTestSteps(
         IServiceProvider provider,
         DonorImportStepsForSearchTests donorImportSteps,
-        ITestLogger logger,
+        ILogger logger,
         string testName)
         : base(donorImportSteps, logger, testName)
     {
@@ -63,7 +63,7 @@ internal class SearchTestSteps : SearchTestStepsBase
             "Search request should have been accepted but got validation failures: {0}",
             string.Join(", ", result.ValidationFailures?.Select(f => f.ErrorMessage) ?? Array.Empty<string>()));
 
-        _logger.LogInfo($"Search request id: {result.ResponseOnSuccess!.SearchIdentifier}");
+        _logger.LogInformation($"Search request id: {result.ResponseOnSuccess!.SearchIdentifier}");
         return result.ResponseOnSuccess;
     }
 
@@ -90,32 +90,21 @@ internal class SearchTestSteps : SearchTestStepsBase
 
     public async Task MatchingShouldReturnExpectedDonor(string searchRequestId, string expectedDonorCode)
     {
-        const string action = "Check matching returns expected donor";
-        _logger.LogStart(action);
         await CheckMatchingReturnsExpectedDonors(searchRequestId, new[] { expectedDonorCode });
-        _logger.LogCompletion(action);
     }
 
     public async Task MatchingShouldOnlyReturnExpectedDonors(
         string searchRequestId, DonorChanges donorChanges)
     {
-        const string action = "Check matching only returns expected donors and not non-matching donors";
-        _logger.LogStart(action);
-
         var results = await CheckMatchingReturnsExpectedDonors(searchRequestId, donorChanges.NewlyMatching);
 
         results
             .Where(r => donorChanges.NoLongerMatching.Contains(r.DonorCode))
             .Should().BeEmpty("Non-matching donors should not be returned in results");
-
-        _logger.LogCompletion(action);
     }
 
     public async Task SearchShouldReturnExpectedDonor(string searchRequestId, string expectedDonorCode)
     {
-        const string action = "Check search returns expected donor";
-        _logger.LogStart(action);
-
         var notification = await FetchSearchResultsNotification(searchRequestId);
         notification.SearchShouldHaveBeenSuccessful();
 
@@ -127,8 +116,6 @@ internal class SearchTestSteps : SearchTestStepsBase
 
         var donorResult = searchResultSet!.GetDonorResult(expectedDonorCode);
         await DonorResultShouldBeAsExpected(donorResult, "SearchResult");
-
-        _logger.LogCompletion(action);
     }
 
     private async Task<MatchingResultsNotification> FetchMatchingResultsNotification(string searchRequestId)

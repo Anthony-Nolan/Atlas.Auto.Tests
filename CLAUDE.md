@@ -27,8 +27,7 @@ In the pipeline, the equivalent pipeline variables use `.` for nesting (e.g. `Do
 
 ## Architecture
 
-Two projects:
-- **`Atlas.Auto.Utils`** — standalone reporting library (ExtentReports wrapper: `ExtentManager`, `ExtentService`). No dependency on the test project.
+Single project:
 - **`Atlas.Auto.Tests`** — the NUnit test suite. Depends on `Atlas.Debug.Client` (talks to Atlas's HTTP APIs, including debug-only endpoints for polling internal state) and `Atlas.Client.Models`/domain types from the Atlas repo.
 
 ### Layered test structure
@@ -40,7 +39,7 @@ Each functional area (Search, RepeatSearch, Scoring, DonorImport) follows the sa
 3. **TestSteps** (`TestHelpers/TestSteps/*.cs`) — Gherkin-style, human-readable step methods (e.g. `CreateDonor`, `SubmitSearchRequest`, `MatchingShouldReturnExpectedDonor`) that combine one or more Workflow calls plus assertions. This is what test methods actually call. `DonorImportStepsForSearchTests` composes donor-import steps as a helper reused by search/scoring/repeat-search tests that need a donor set up first.
 4. **Tests** (`Tests/<Area>/*.cs`) — NUnit fixtures. Each area has a `*TestBase` (e.g. `SearchTestBase` extends `TestBase`) that resolves the wired-up `ITestSteps` for that area via `Provider.ResolveServiceOrThrow<T>()`, plus `*_HappyPathTests` / `*_ExceptionPathTests` fixtures containing the actual `[Test]`/`[TestCaseSource]` methods.
 
-Wiring: `ServiceConfiguration.CreateProvider()` (`DependencyInjection/ServiceConfiguration.cs`) builds the DI container per test-base instance — loads `appsettings.json` + user secrets, registers debug-client settings as Options, and registers every Service/Workflow/TestSteps interface. `TestBase` constructs this provider and an `ExtentTest` fixture logger in its constructor.
+Wiring: `ServiceConfiguration.CreateProvider()` (`DependencyInjection/ServiceConfiguration.cs`) builds the DI container per test-base instance — loads `appsettings.json` + user secrets, registers debug-client settings as Options, and registers every Service/Workflow/TestSteps interface. `TestBase` constructs this provider in its constructor.
 
 ### Search-family tests (Search, RepeatSearch, Scoring)
 

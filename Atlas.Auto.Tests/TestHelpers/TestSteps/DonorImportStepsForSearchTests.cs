@@ -1,17 +1,17 @@
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
-using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.DonorImport.FileSchema.Models;
 using LochNessBuilder;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal class DonorImportStepsForSearchTests
 {
     private readonly DonorImportTestSteps _donorImportTestSteps;
-    private readonly ITestLogger _logger;
+    private readonly ILogger _logger;
 
-    public DonorImportStepsForSearchTests(DonorImportTestSteps donorImportTestSteps, ITestLogger logger)
+    public DonorImportStepsForSearchTests(DonorImportTestSteps donorImportTestSteps, ILogger logger)
     {
         _donorImportTestSteps = donorImportTestSteps;
         _logger = logger;
@@ -19,8 +19,7 @@ internal class DonorImportStepsForSearchTests
 
     public async Task<string> CreateDonor(ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
     {
-        var action = $"Create test {donorType}";
-        _logger.LogStart(action);
+        _logger.LogInformation($"Create test {donorType}");
 
         const int donorCount = 1;
         var donorUpdate = DonorUpdateBuilder.Default
@@ -37,16 +36,14 @@ internal class DonorImportStepsForSearchTests
         await _donorImportTestSteps.DonorsShouldBeAvailableForSearch(donorInfo);
 
         var recordId = donorUpdate.Single().RecordId;
-        _logger.LogInfo($"Donor record id: {recordId}");
-        _logger.LogCompletion(action);
+        _logger.LogInformation($"Donor record id: {recordId}");
 
         return recordId;
     }
 
     public async Task EditDonorHla(string donorCode, ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
     {
-        var action = $"Edit HLA of test {donorType} with record id {donorCode}";
-        _logger.LogStart(action);
+        _logger.LogInformation($"Edit HLA of test {donorType} with record id {donorCode}");
 
         const int donorCount = 1;
         var donorUpdate = DonorUpdateBuilder.Default
@@ -62,15 +59,10 @@ internal class DonorImportStepsForSearchTests
         var donorInfo = donorUpdate.ToDonorDebugInfo().ToList();
         await _donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorInfo);
         await _donorImportTestSteps.MatchingAlgorithmDonorInfoShouldBe(donorInfo);
-
-        _logger.LogCompletion(action);
     }
 
     public async Task DeleteDonors(IReadOnlyCollection<string> donorCodes)
     {
-        const string action = "Delete test donors";
-        _logger.LogStart(action);
-
         var donorUpdate = DonorUpdateBuilder.Default
             .WithRecordIds(donorCodes)
             .WithChangeType(ImportDonorChangeType.Delete)
@@ -80,7 +72,5 @@ internal class DonorImportStepsForSearchTests
         await _donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCodes.Count, 0);
         await _donorImportTestSteps.DonorStoreShouldNotHaveTheseDonors(donorCodes);
         await _donorImportTestSteps.DonorsShouldNotBeAvailableForSearch(donorCodes);
-
-        _logger.LogCompletion(action);
     }
 }

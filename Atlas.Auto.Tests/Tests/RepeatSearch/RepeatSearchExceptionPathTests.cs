@@ -12,9 +12,6 @@ internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
     public async Task RepeatSearch_MissingRequiredInfo_ReturnsValidationError()
     {
         var steps = GetRepeatSearchTestSteps(nameof(RepeatSearch_MissingRequiredInfo_ReturnsValidationError));
-        const string testDescription = "Repeat search with missing required information";
-        steps.Logger.LogStart(testDescription);
         await steps.RepeatRequestMissingRequiredInfoShouldReturnValidationErrors();
-        steps.Logger.LogCompletion(testDescription);
     }
 }
