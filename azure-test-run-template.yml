@@ -21,10 +21,3 @@ jobs:
           command: 'test'
           arguments: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net10.0/Atlas.Auto.Tests.dll --no-restore --filter TestCategory=${{testCategoryJob.job}}'
 
-      - task: PublishPipelineArtifact@1
-        continueOnError: true
-        condition: always()
-        inputs:
-          targetPath: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net10.0/TestReport'
-          artifact: '${{testCategoryJob.job}}-$(System.JobAttempt)'
-          publishLocation: 'pipeline'
