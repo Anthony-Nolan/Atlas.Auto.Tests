@@ -1,21 +1,20 @@
 using Atlas.Auto.Tests.TestHelpers.Assertions.DonorImport;
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
-using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
 using Atlas.Debug.Client.Models.DonorImport;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal class DonorImportTestSteps
 {
     private readonly DonorImportWorkflow _workflow;
-    public ITestLogger Logger { get; }
+    public ILogger Logger { get; }
 
-    public DonorImportTestSteps(IServiceProvider provider, ITestLogger logger)
+    public DonorImportTestSteps(IServiceProvider provider, ILogger logger)
     {
         _workflow = new DonorImportWorkflow(provider);
         Logger = logger;
@@ -25,7 +24,7 @@ internal class DonorImportTestSteps
     {
         var request = DonorImportRequestBuilder.New.WithDiffModeFile(updates).Build();
         await _workflow.ImportDonorFile(request);
-        Logger.LogPass($"Send donor import file {request.FileName}");
+        Logger.LogInformation($"Sent donor import file {request.FileName}");
         return request;
     }
 
@@ -33,7 +32,7 @@ internal class DonorImportTestSteps
     {
         var request = DonorImportRequestBuilder.New.WithFullModeFile(updates).Build();
         await _workflow.ImportDonorFile(request);
-        Logger.LogPass($"Send donor import file {request.FileName}");
+        Logger.LogInformation($"Sent donor import file {request.FileName}");
         return request;
     }
 

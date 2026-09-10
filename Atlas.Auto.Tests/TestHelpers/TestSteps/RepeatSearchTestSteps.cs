@@ -2,7 +2,6 @@ using Atlas.Auto.Tests.TestHelpers.Assertions;
 using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.InternalModels;
-using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Settings;
 using LochNessBuilder;
@@ -13,6 +12,7 @@ using Atlas.Debug.Client.Clients;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
@@ -31,7 +31,7 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         IServiceProvider provider,
         SearchTestSteps searchTestSteps,
         DonorImportStepsForSearchTests donorImportSteps,
-        ITestLogger logger,
+        ILogger logger,
         string testName)
         : base(donorImportSteps, logger, testName)
     {
@@ -103,9 +103,6 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         string searchId,
         DonorChanges donorChanges)
     {
-        const string action = "Check repeat matching identifies expected changes";
-        _logger.LogStart(action);
-
         var notification = await FetchMatchingResultsNotification(repeatSearchId, searchId);
         notification.MatchingShouldHaveBeenSuccessful();
 
@@ -122,8 +119,6 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
             var donorResult = matchingResultSet.GetDonorResult(newlyMatchedDonor);
             await DonorResultShouldBeAsExpected(donorResult, "MatchingResult");
         }
-
-        _logger.LogCompletion(action);
     }
 
     public async Task RepeatSearchShouldHaveIdentifiedExpectedChanges(
@@ -131,9 +126,6 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         string searchId,
         DonorChanges donorChanges)
     {
-        const string action = "Check repeat search identifies expected changes";
-        _logger.LogStart(action);
-
         var notification = await FetchSearchResultsNotification(repeatSearchId, searchId);
         notification.SearchShouldHaveBeenSuccessful();
 
@@ -150,8 +142,6 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
             var donorResult = searchResultSet.GetDonorResult(newlyMatchedDonor);
             await DonorResultShouldBeAsExpected(donorResult, "SearchResult");
         }
-
-        _logger.LogCompletion(action);
     }
 
     public async Task RepeatRequestMissingRequiredInfoShouldReturnValidationErrors()

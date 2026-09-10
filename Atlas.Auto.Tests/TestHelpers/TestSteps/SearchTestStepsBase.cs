@@ -1,22 +1,22 @@
 using Atlas.Auto.Tests.TestHelpers.Extensions;
-using Atlas.Auto.Tests.TestHelpers.Logging;
 using Atlas.Client.Models.Search.Results;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal abstract class SearchTestStepsBase
 {
-    public ITestLogger Logger => _logger;
+    public ILogger Logger => _logger;
     internal DonorImportStepsForSearchTests DonorImportSteps => _donorImportSteps;
 
-    protected readonly ITestLogger _logger;
+    protected readonly ILogger _logger;
     protected readonly string _testName;
     protected readonly DonorImportStepsForSearchTests _donorImportSteps;
 
     protected SearchTestStepsBase(
         DonorImportStepsForSearchTests donorImportSteps,
-        ITestLogger logger,
+        ILogger logger,
         string testName)
     {
         _donorImportSteps = donorImportSteps;

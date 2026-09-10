@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using Atlas.Auto.Tests.TestHelpers.Logging;
+using Microsoft.Extensions.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
@@ -33,7 +33,7 @@ internal abstract class SearchTestBase : TestBase
         return new SearchTestSteps(Provider, importSteps, testLogger, testName);
     }
 
-    private DonorImportStepsForSearchTests ResolveDonorImportStepsForSearchTests(ITestLogger testLogger)
+    private DonorImportStepsForSearchTests ResolveDonorImportStepsForSearchTests(ILogger testLogger)
     {
         var donorImportTestSteps = new DonorImportTestSteps(Provider, testLogger);
         return new DonorImportStepsForSearchTests(donorImportTestSteps, testLogger);
