@@ -1,5 +1,5 @@
+using Atlas.Auto.Tests.TestHelpers.Data;
 using Atlas.Auto.Tests.TestHelpers.SourceData;
-using Atlas.Debug.Client.Models.DonorImport;
 using Atlas.DonorImport.FileSchema.Models;
 using LochNessBuilder;
 
@@ -25,7 +25,7 @@ internal static class DonorImportRequestBuilder
         UpdateMode mode,
         IEnumerable<DonorUpdate> donorUpdates)
     {
-        var contentBuilder = Builder<DonorImportFileContents>.New
+        var contentBuilder = Builder<DonorImportFile>.New
             .With(d => d.updateMode, mode)
             .WithFactory(d => d.donors, () => donorUpdates);
         return builder.WithFactory(m => m.FileContents, contentBuilder.Build);

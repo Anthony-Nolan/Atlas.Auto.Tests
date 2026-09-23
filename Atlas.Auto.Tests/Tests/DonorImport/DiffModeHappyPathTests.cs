@@ -27,9 +27,9 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
         var creationRequest = await steps.ImportDiffDonorFile(creationUpdates);
         await steps.DonorImportShouldHaveBeenSuccessful(creationRequest.FileName, donorCount, 0);
 
-        var createdDonorInfo = creationUpdates.ToDonorDebugInfo().ToList();
-        await steps.DonorStoreShouldHaveExpectedDonors(createdDonorInfo);
-        await steps.DonorsShouldBeAvailableForSearch(createdDonorInfo);
+        var createdDonorList = creationUpdates.ToList();
+        await steps.DonorStoreShouldHaveExpectedDonors(createdDonorList);
+        await steps.DonorsShouldBeAvailableForSearch(createdDonorList);
 
         var donorCodes = creationUpdates.GetExternalDonorCodes();
 
@@ -42,9 +42,9 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
         var editRequest = await steps.ImportDiffDonorFile(editUpdates);
         await steps.DonorImportShouldHaveBeenSuccessful(editRequest.FileName, donorCount, 0);
 
-        var editedDonorInfo = editUpdates.ToDonorDebugInfo().ToList();
-        await steps.DonorStoreShouldHaveExpectedDonors(editedDonorInfo);
-        await steps.MatchingAlgorithmDonorInfoShouldBe(editedDonorInfo);
+        var editedDonorList = editUpdates.ToList();
+        await steps.DonorStoreShouldHaveExpectedDonors(editedDonorList);
+        await steps.MatchingAlgorithmDonorInfoShouldBe(editedDonorList);
 
         var deletionUpdates = DonorUpdateBuilder.New
             .WithRecordIds(donorCodes)

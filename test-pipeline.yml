@@ -25,7 +25,7 @@ stages:
 
       - task: FileTransform@2
         # Pipeline must have variables that match those in appsettings.json.
-        # Use `.` to retrieve nested values, e.g., var name `DonorImport.ApiKey` would be used to fetch setting:`{ "DonorImport": { "ApiKey": "value" } }`
+        # Use `.` to retrieve nested values, e.g., var name `Azure.Authentication.ClientId` maps to `{ "Azure": { "Authentication": { "ClientId": "value" } } }`
         displayName: 'Set environment variables'
         inputs:
           folderPath: '$(System.DefaultWorkingDirectory)'
@@ -59,16 +59,32 @@ stages:
         displayName: 'Publish Test artifacts for later use in the pipeline'
         artifact: dropTestSuite
         
-- stage: runTests
-  displayName: "Run Tests"
+- stage: healthCheck
+  displayName: "Health Check"
   jobs:
   - template: azure-test-run-template.yml
     parameters:
       testCategoryJobs:
       - job: HealthCheck
+
+- stage: donorImport
+  displayName: "Donor Import"
+  dependsOn: healthCheck
+  jobs:
+  - template: azure-test-run-template.yml
+    parameters:
+      testCategoryJobs:
       - job: DonorImport_DiffModeHappyPathTests
       - job: DonorImport_DiffModeExceptionPathTests
       - job: DonorImport_FullModeExceptionPathTests
+
+- stage: searchAndScoring
+  displayName: "Search, Scoring & Repeat Search"
+  dependsOn: donorImport
+  jobs:
+  - template: azure-test-run-template.yml
+    parameters:
+      testCategoryJobs:
       - job: SearchHappyPathTests
       - job: SearchExceptionPathTests
       - job: ScoringHappyPathTests

@@ -31,15 +31,15 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         var firstImportRequest = await steps.ImportDiffDonorFile(creationUpdate);
         await steps.DonorImportShouldHaveBeenSuccessful(firstImportRequest.FileName, donorCount, 0);
 
-        var expectedDonorInfo = creationUpdate.ToDonorDebugInfo().ToList();
-        await steps.DonorStoreShouldHaveExpectedDonors(expectedDonorInfo);
-        await steps.DonorsShouldBeAvailableForSearch(expectedDonorInfo);
+        var donorList = creationUpdate.ToList();
+        await steps.DonorStoreShouldHaveExpectedDonors(donorList);
+        await steps.DonorsShouldBeAvailableForSearch(donorList);
 
         var secondImportRequest = await steps.ImportDiffDonorFile(creationUpdate);
         await steps.DonorImportShouldHaveBeenSuccessful(secondImportRequest.FileName, 0, donorCount);
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             secondImportRequest.FileName,
-            creationUpdate.ToFailureInfo(RecordIdProp, "Donor is already present in the database."));
+            creationUpdate.ToExpectedFailures(RecordIdProp, "Donor is already present in the database."));
     }
 
     [Test]
@@ -58,7 +58,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         await steps.DonorStoreShouldNotHaveTheseDonors(update.GetExternalDonorCodes());
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             request.FileName,
-            update.ToFailureInfo(RecordIdProp, "Donor is not present in the database."));
+            update.ToExpectedFailures(RecordIdProp, "Donor is not present in the database."));
     }
 
     [Test]
@@ -77,7 +77,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         await steps.DonorStoreShouldNotHaveTheseDonors(update.GetExternalDonorCodes());
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             request.FileName,
-            update.ToFailureInfo(Drb1DnaProp, Drb1FailureReason));
+            update.ToExpectedFailures(Drb1DnaProp, Drb1FailureReason));
     }
 
     [Test]
@@ -94,11 +94,11 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         var creationRequest = await steps.ImportDiffDonorFile(creationUpdate);
         await steps.DonorImportShouldHaveBeenSuccessful(creationRequest.FileName, donorCount, 0);
 
-        var expectedDonorInfo = creationUpdate.ToDonorDebugInfo().ToList();
-        var donorCode = expectedDonorInfo.GetExternalDonorCodes().ToList();
-        await steps.DonorStoreShouldHaveExpectedDonors(expectedDonorInfo);
-        await steps.HlaExpansionFailureShouldBeReportedFor(donorCode.Single(), HlaTypings.InvalidDnaForAnyLocus);
-        await steps.DonorsShouldNotBeAvailableForSearch(donorCode);
+        var donorList = creationUpdate.ToList();
+        var donorCodes = creationUpdate.GetExternalDonorCodes();
+        await steps.DonorStoreShouldHaveExpectedDonors(donorList);
+        await steps.HlaExpansionFailureShouldBeReportedFor(donorCodes.Single(), HlaTypings.InvalidDnaForAnyLocus);
+        await steps.DonorsShouldNotBeAvailableForSearch(donorCodes);
     }
 
     [Test]
@@ -121,12 +121,12 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         var request = await steps.ImportDiffDonorFile(validUpdate.Concat(invalidUpdate));
         await steps.DonorImportShouldHaveBeenSuccessful(request.FileName, validDonorCount, invalidDonorCount);
 
-        var expectValidInfo = validUpdate.ToDonorDebugInfo().ToList();
-        await steps.DonorStoreShouldHaveExpectedDonors(expectValidInfo);
-        await steps.DonorsShouldBeAvailableForSearch(expectValidInfo);
+        var validList = validUpdate.ToList();
+        await steps.DonorStoreShouldHaveExpectedDonors(validList);
+        await steps.DonorsShouldBeAvailableForSearch(validList);
         await steps.DonorStoreShouldNotHaveTheseDonors(invalidUpdate.GetExternalDonorCodes());
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             request.FileName,
-            invalidUpdate.ToFailureInfo(Drb1DnaProp, Drb1FailureReason));
+            invalidUpdate.ToExpectedFailures(Drb1DnaProp, Drb1FailureReason));
     }
 }

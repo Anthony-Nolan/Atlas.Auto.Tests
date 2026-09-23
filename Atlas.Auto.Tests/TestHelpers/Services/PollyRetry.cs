@@ -1,5 +1,4 @@
 using Atlas.Auto.Tests.TestHelpers.Settings;
-using Atlas.Debug.Client.Models.Exceptions;
 using Microsoft.Extensions.Logging;
 using Polly;
 
@@ -52,45 +51,16 @@ internal class PollyRetry
         RetryPolicy policy,
         string operationName)
     {
-        _logger.LogInformation("{OperationName:l} — starting (up to {RetryCount} retries, {IntervalSeconds}s interval)",
-            operationName, policy.RetryCount, policy.IntervalSeconds);
-
-        var lastRetry = 0;
-
-        var pollyPolicy = Policy
-            .Handle<Exception>()
-            .WaitAndRetryAsync(policy.RetryCount, _ => TimeSpan.FromSeconds(policy.IntervalSeconds),
-                onRetry: (exception, timespan, retry, _) =>
-                {
-                    lastRetry = retry;
-                    var reason = FormatFailureReason(exception);
-                    _logger.LogWarning("{Reason:l}. Retry {Retry}/{RetryCount} in {Delay}s",
-                        reason, retry, policy.RetryCount, timespan.TotalSeconds);
-                });
-
-        await pollyPolicy.ExecuteAsync(action);
-
-        if (lastRetry == 0)
-            _logger.LogInformation("{OperationName:l} — finished (no retries needed)", operationName);
-        else
-            _logger.LogInformation("{OperationName:l} — finished ({LastRetry} {RetryWord:l})",
-                operationName, lastRetry, lastRetry == 1 ? "retry" : "retries");
+        await ExecuteWithRetry<object>(async () => { await action(); return new object(); }, policy, operationName);
     }
 
     private static string FormatFailureReason(Exception? exception)
     {
         return exception switch
         {
-            HttpFunctionException httpEx => FormatHttpFunctionException(httpEx),
+            HttpRequestException httpEx => $"HTTP {(int?)httpEx.StatusCode}: {httpEx.Message}",
             not null => $"{exception.GetType().Name}: {exception.Message}",
             _ => "result was null"
         };
-    }
-
-    private static string FormatHttpFunctionException(HttpFunctionException ex)
-    {
-        var responseContent = ex.ResponseContent.ReadAsStringAsync().GetAwaiter().GetResult();
-        var formattedContent = responseContent.Length > 0 ? $"{responseContent}, " : string.Empty;
-        return $"HttpFunctionException: [{(int)ex.HttpStatusCode}, {ex.HttpStatusCode}] {formattedContent}{ex.Message}";
     }
 }

@@ -1,9 +1,11 @@
 using Atlas.Auto.Tests.TestHelpers.Assertions.DonorImport;
 using Atlas.Auto.Tests.TestHelpers.Builders;
+using Atlas.Auto.Tests.TestHelpers.Data;
+using Atlas.Auto.Tests.TestHelpers.Data.Entities;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.Workflows;
-using Atlas.Debug.Client.Models.DonorImport;
 using Atlas.DonorImport.FileSchema.Models;
+using DonorImportRequest = Atlas.Auto.Tests.TestHelpers.Data.DonorImportRequest;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 
@@ -57,11 +59,11 @@ internal class DonorImportTestSteps
         result.ImportShouldHaveFailed();
     }
 
-    public async Task DonorStoreShouldHaveExpectedDonors(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
+    public async Task DonorStoreShouldHaveExpectedDonors(IReadOnlyCollection<DonorUpdate> expectedUpdates)
     {
-        var codes = expectedDonorInfo.GetExternalDonorCodes().ToList();
+        var codes = expectedUpdates.GetExternalDonorCodes().ToList();
         var donorCheck = await CheckDonorStore(codes);
-        donorCheck.ShouldHaveExpectedDonors(expectedDonorInfo);
+        donorCheck.ShouldHaveExpectedDonors(expectedUpdates);
     }
 
     public async Task DonorStoreShouldNotHaveTheseDonors(IReadOnlyCollection<string> externalDonorCodes)
@@ -70,14 +72,14 @@ internal class DonorImportTestSteps
         donorCheck.ShouldNotHaveTheseDonors(externalDonorCodes);
     }
 
-    public async Task DonorsShouldBeAvailableForSearch(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
+    public async Task DonorsShouldBeAvailableForSearch(IReadOnlyCollection<DonorUpdate> expectedUpdates)
     {
-        var codes = expectedDonorInfo.GetExternalDonorCodes();
+        var codes = expectedUpdates.GetExternalDonorCodes();
         var codeList = string.Join(", ", codes);
         var result = await _workflow.CheckDonorsAreAvailableForSearch(codes);
         result.Should().NotBeNull(
             "Matching algorithm should confirm donors [{0}] are available for search", codeList);
-        result!.ShouldHaveExpectedDonors(expectedDonorInfo);
+        result!.ShouldHaveExpectedDonors(expectedUpdates);
     }
 
     public async Task DonorsShouldNotBeAvailableForSearch(IReadOnlyCollection<string> externalDonorCodes)
@@ -89,10 +91,10 @@ internal class DonorImportTestSteps
         result!.ShouldNotHaveTheseDonors(externalDonorCodes);
     }
 
-    public async Task MatchingAlgorithmDonorInfoShouldBe(IReadOnlyCollection<DonorDebugInfo> expectedDonorInfo)
+    public async Task MatchingAlgorithmDonorInfoShouldBe(IReadOnlyCollection<DonorUpdate> expectedUpdates)
     {
-        var codeList = string.Join(", ", expectedDonorInfo.Select(d => d.ExternalDonorCode));
-        var result = await _workflow.CheckDonorInfoInMatchingAlgorithmIsAsExpected(expectedDonorInfo);
+        var codeList = string.Join(", ", expectedUpdates.Select(d => d.RecordId));
+        var result = await _workflow.CheckDonorInfoInMatchingAlgorithmIsAsExpected(expectedUpdates);
         result.Should().NotBeNull(
             "Donor info in matching algorithm should match expected for codes [{0}]", codeList);
     }
@@ -117,17 +119,17 @@ internal class DonorImportTestSteps
     }
 
     public async Task FailedDonorUpdatesShouldHaveBeenLogged(
-        string fileName, IEnumerable<FailedDonorUpdate> expectedFailedDonorInfo)
+        string fileName, IEnumerable<DonorImportFailure> expectedFailures)
     {
-        var failureInfo = await _workflow.FetchDonorImportFailureInfo(fileName);
-        failureInfo.Should().NotBeNull(
-            "Donor import failure info should have been logged for file {0}", fileName);
-        var expectedList = expectedFailedDonorInfo.ToList();
-        failureInfo!.FileName.Should().Be(fileName, "Failure info file name should match");
-        failureInfo.FailedUpdateCount.Should().Be(expectedList.Count,
+        var failures = await _workflow.FetchDonorImportFailures(fileName);
+        failures.Should().NotBeNull(
+            "Donor import failures should have been logged for file {0}", fileName);
+        var expectedList = expectedFailures.ToList();
+        failures!.Should().HaveCount(expectedList.Count,
             "Failed update count for file {0} should be {1} but was {2}",
-            fileName, expectedList.Count, failureInfo.FailedUpdateCount);
-        failureInfo.FailedUpdates.Should().BeEquivalentTo(expectedList,
+            fileName, expectedList.Count, failures!.Count);
+        failures.Should().BeEquivalentTo(expectedList,
+            options => options.Excluding(f => f.Id).Excluding(f => f.UpdateFile).Excluding(f => f.FailureTime),
             "Failed updates for file {0} should match expected", fileName);
     }
 
@@ -139,7 +141,7 @@ internal class DonorImportTestSteps
         return result!;
     }
 
-    private async Task<DebugDonorsResult> CheckDonorStore(IReadOnlyCollection<string> donorCodes)
+    private async Task<DonorCheckResult<Donor>> CheckDonorStore(IReadOnlyCollection<string> donorCodes)
     {
         var codeList = string.Join(", ", donorCodes);
         var result = await _workflow.CheckDonorsInDonorStore(donorCodes);

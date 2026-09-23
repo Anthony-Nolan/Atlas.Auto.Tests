@@ -1,6 +1,5 @@
 using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Auto.Tests.TestHelpers.SourceData;
-using Atlas.Debug.Client.Clients;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -8,16 +7,14 @@ namespace Atlas.Auto.Tests.TestHelpers.Services;
 
 internal class TestDonorDeleter
 {
-    private readonly IDonorImportFunctionsClient _donorImportClient;
-    private readonly IMatchingAlgorithmFunctionsClient _matchingClient;
+    private readonly IDonorStoreSqlHelper _donorSqlHelper;
     private readonly PollyRetry _pollyRetry;
     private readonly RetrySettings _retry;
     private readonly ILogger<TestDonorDeleter> _logger;
 
     public TestDonorDeleter(IServiceProvider provider)
     {
-        _donorImportClient = provider.GetRequiredService<IDonorImportFunctionsClient>();
-        _matchingClient = provider.GetRequiredService<IMatchingAlgorithmFunctionsClient>();
+        _donorSqlHelper = provider.GetRequiredService<IDonorStoreSqlHelper>();
         _pollyRetry = provider.GetRequiredService<PollyRetry>();
         _retry = provider.GetRequiredService<RetrySettings>();
         _logger = provider.GetRequiredService<ILogger<TestDonorDeleter>>();
@@ -42,12 +39,12 @@ internal class TestDonorDeleter
 
     private async Task<IReadOnlyCollection<string>> GetAutoTestDonorCodes()
     {
-        var updatedBeforeDate = DateTime.UtcNow.ToString("yyyyMMdd");
+        var updatedBefore = DateTimeOffset.UtcNow;
         try
         {
             var result = await _pollyRetry.ExecuteWithRetry(
-                async () => await _donorImportClient.GetExternalDonorCodesByRegistry(
-                    TestConstants.DefaultRegistryCode, updatedBeforeDate),
+                async () => await _donorSqlHelper.GetExternalDonorCodesByRegistry(
+                    TestConstants.DefaultRegistryCode, updatedBefore),
                 _retry.Cleanup, "Fetch auto-test donor codes for cleanup");
             return result?.ToList() ?? new List<string>();
         }
@@ -63,7 +60,7 @@ internal class TestDonorDeleter
         try
         {
             await _pollyRetry.ExecuteWithRetry(
-                async () => await _donorImportClient.DeleteDonors(donorCodes),
+                async () => await _donorSqlHelper.DeleteDonorsFromDonorStore(donorCodes),
                 _retry.Cleanup, $"Delete {donorCodes.Count} donors from donor store");
             return true;
         }
@@ -79,7 +76,7 @@ internal class TestDonorDeleter
         try
         {
             await _pollyRetry.ExecuteWithRetry(
-                async () => await _matchingClient.SetDonorsAsUnavailableForSearch(donorCodes),
+                async () => await _donorSqlHelper.SetDonorsAsUnavailableForSearch(donorCodes),
                 _retry.Cleanup, $"Set {donorCodes.Count} donors as unavailable for search");
             return true;
         }

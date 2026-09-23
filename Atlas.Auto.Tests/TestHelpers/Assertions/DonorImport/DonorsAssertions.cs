@@ -1,5 +1,6 @@
-using Atlas.Debug.Client.Models.ApplicationInsights;
-using Atlas.Debug.Client.Models.DonorImport;
+using Atlas.Auto.Tests.TestHelpers.Data;
+using Atlas.Auto.Tests.TestHelpers.Data.Entities;
+using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
 
@@ -47,28 +48,41 @@ internal static class DonorsAssertions
             "Failed donor count for file {0} should be {1}", message.FileName, expectedCount);
     }
 
-    public static void ShouldHaveExpectedDonors(this DebugDonorsResult? debugResult, IReadOnlyCollection<DonorDebugInfo> expectedInfo)
+    public static void ShouldHaveExpectedDonors<T>(
+        this DonorCheckResult<T>? result,
+        IReadOnlyCollection<DonorUpdate> expectedUpdates)
+        where T : IDonorEntity
     {
-        var externalDonorCodes = expectedInfo.Select(d => d.ExternalDonorCode).ToList();
-        var codeList = string.Join(", ", externalDonorCodes);
-        debugResult.Should().NotBeNull("Donor check result should have been returned for codes [{0}]", codeList);
-        debugResult!.ReceivedDonors.Should().BeEquivalentTo(externalDonorCodes,
-            "All requested donor codes [{0}] should have been received in the response", codeList);
-        debugResult.PresentDonors.Should().BeEquivalentTo(expectedInfo,
-            "Present donors should match expected info for codes [{0}]", codeList);
-        debugResult.DonorCounts.Absent.Should().Be(0,
-            "No donors from [{0}] should be absent", codeList);
+        var codeList = string.Join(", ", expectedUpdates.Select(d => d.RecordId));
+        result.Should().NotBeNull("Donor check result should have been returned for codes [{0}]", codeList);
+        result!.AbsentDonors.Should().BeEmpty("No donors from [{0}] should be absent", codeList);
+        result.PresentDonors.Should().HaveSameCount(expectedUpdates);
+
+        foreach (var expected in expectedUpdates)
+        {
+            var actual = result.PresentDonors
+                .SingleOrDefault(d => d.ExternalDonorCode == expected.RecordId);
+            actual.Should().NotBeNull("Donor {0} should be present", expected.RecordId);
+            actual!.DonorTypeName.Should().Be(expected.DonorType.ToString(),
+                "DonorType mismatch for {0}", expected.RecordId);
+            actual.RegistryCode.Should().Be(expected.RegistryCode,
+                "RegistryCode mismatch for {0}", expected.RecordId);
+            actual.EthnicityCode.Should().Be(expected.Ethnicity,
+                "EthnicityCode mismatch for {0}", expected.RecordId);
+            actual.GetHla().Should().BeEquivalentTo(expected.Hla?.ToPhenotypeInfoTransfer(),
+                "HLA mismatch for {0}", expected.RecordId);
+        }
     }
 
-    public static void ShouldNotHaveTheseDonors(this DebugDonorsResult? debugResult, IReadOnlyCollection<string> externalDonorCodes)
+    public static void ShouldNotHaveTheseDonors<T>(
+        this DonorCheckResult<T>? result,
+        IReadOnlyCollection<string> externalDonorCodes)
     {
         var codeList = string.Join(", ", externalDonorCodes);
-        debugResult.Should().NotBeNull("Donor check result should have been returned for codes [{0}]", codeList);
-        debugResult!.ReceivedDonors.Should().BeEquivalentTo(externalDonorCodes,
-            "All requested donor codes [{0}] should have been received in the response", codeList);
-        debugResult.AbsentDonors.Should().BeEquivalentTo(externalDonorCodes,
+        result.Should().NotBeNull("Donor check result should have been returned for codes [{0}]", codeList);
+        result!.AbsentDonors.Should().BeEquivalentTo(externalDonorCodes,
             "All donors [{0}] should be absent", codeList);
-        debugResult.DonorCounts.Present.Should().Be(0,
+        result.PresentCount.Should().Be(0,
             "No donors from [{0}] should be present", codeList);
     }
 

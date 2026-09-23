@@ -8,8 +8,10 @@ using LochNessBuilder;
 using Atlas.Client.Models.Search.Requests;
 using Atlas.Client.Models.Search.Results;
 using Atlas.Client.Models.Search.Results.Matching;
-using Atlas.Debug.Client.Clients;
+using Atlas.Client.Models.Search.Results.Matching.ResultSet;
+using Atlas.Client.Models.Search.Results.ResultSet;
 using Atlas.DonorImport.FileSchema.Models;
+using Azure.Messaging.ServiceBus;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,9 +20,8 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal class RepeatSearchTestSteps : SearchTestStepsBase
 {
-    private readonly IPublicApiFunctionsClient _publicApiClient;
-    private readonly IRepeatSearchFunctionsClient _repeatSearchClient;
-    private readonly ITopLevelFunctionsClient _topLevelClient;
+    private readonly PublicApiClient _publicApiClient;
+    private readonly BlobStorageHelper _blobHelper;
     private readonly PollyRetry _pollyRetry;
     private readonly RetrySettings _retry;
     private readonly NotificationFetcher<MatchingResultsNotification> _matchingNotificationFetcher;
@@ -35,16 +36,19 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         string testName)
         : base(donorImportSteps, logger, testName)
     {
-        _publicApiClient = provider.GetRequiredService<IPublicApiFunctionsClient>();
-        _repeatSearchClient = provider.GetRequiredService<IRepeatSearchFunctionsClient>();
-        _topLevelClient = provider.GetRequiredService<ITopLevelFunctionsClient>();
+        _publicApiClient = provider.GetRequiredService<PublicApiClient>();
+        _blobHelper = provider.GetRequiredService<BlobStorageHelper>();
         _pollyRetry = provider.GetRequiredService<PollyRetry>();
         _retry = provider.GetRequiredService<RetrySettings>();
         _searchTestSteps = searchTestSteps;
+        var sbClient = provider.GetRequiredService<ServiceBusClient>();
+        var sbSettings = provider.GetRequiredService<ServiceBusSettings>();
         _matchingNotificationFetcher = new NotificationFetcher<MatchingResultsNotification>(
-            req => _repeatSearchClient.PeekMatchingResultNotifications(req), _pollyRetry, _retry.FetchMessages, "Fetch repeat matching notification");
+            sbClient, sbSettings.RepeatSearchMatchingResultsTopic, sbSettings.Subscription,
+            _pollyRetry, _retry.FetchMessages, "Fetch repeat matching notification");
         _searchNotificationFetcher = new NotificationFetcher<SearchResultsNotification>(
-            req => _topLevelClient.PeekRepeatSearchResultNotifications(req), _pollyRetry, _retry.FetchMessages, "Fetch repeat search notification");
+            sbClient, sbSettings.RepeatSearchResultsTopic, sbSettings.Subscription,
+            _pollyRetry, _retry.FetchMessages, "Fetch repeat search notification");
     }
 
     public async Task<string> CreateDonor(ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
@@ -93,9 +97,9 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
 
         result.WasSuccess.Should().BeTrue(
             "Repeat search request should have been accepted but got validation failures: {0}",
-            string.Join(", ", result.ValidationFailures?.Select(f => f.ErrorMessage) ?? Array.Empty<string>()));
+            string.Join(", ", result.ValidationFailures.Select(f => f.ErrorMessage)));
 
-        return result.ResponseOnSuccess!.RepeatSearchIdentifier;
+        return result.Response!.RepeatSearchIdentifier;
     }
 
     public async Task RepeatMatchingShouldHaveIdentifiedExpectedChanges(
@@ -107,7 +111,8 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         notification.MatchingShouldHaveBeenSuccessful();
 
         var matchingResultSet = await _pollyRetry.ExecuteWithRetry(
-            async () => await _repeatSearchClient.FetchMatchingResultSet(notification.ToDebugSearchResultsRequest()),
+            async () => await _blobHelper.DownloadResultSet<RepeatMatchingAlgorithmResultSet, MatchingAlgorithmResult>(
+                notification.BlobStorageContainerName, notification.ResultsFileName, notification.BatchFolderName),
             _retry.FetchResultSet, $"Fetch repeat matching result set for repeat search '{repeatSearchId}'");
         AssertNotNull(matchingResultSet,
             "Matching result set should have been fetched for repeat search");
@@ -130,7 +135,8 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         notification.SearchShouldHaveBeenSuccessful();
 
         var searchResultSet = await _pollyRetry.ExecuteWithRetry(
-            async () => await _topLevelClient.FetchRepeatSearchResultSet(notification.ToDebugSearchResultsRequest()),
+            async () => await _blobHelper.DownloadResultSet<RepeatSearchResultSet, SearchResult>(
+                notification.BlobStorageContainerName, notification.ResultsFileName, notification.BatchFolderName),
             _retry.FetchResultSet, $"Fetch repeat search result set for repeat search '{repeatSearchId}'");
         AssertNotNull(searchResultSet,
             "Search result set should have been fetched for repeat search");
@@ -154,7 +160,7 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         result.WasSuccess.Should().BeFalse(
             "Repeat search request should have been rejected with validation failures but was accepted");
 
-        var validationErrors = result.ValidationFailures!.ToList();
+        var validationErrors = result.ValidationFailures.ToList();
         validationErrors.ShouldContain("'Original Search Id' must not be empty.");
         validationErrors.ShouldContain("'Search Cutoff Date' must not be empty.");
     }

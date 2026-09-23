@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
-using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace Atlas.Auto.Tests.TestHelpers.Services
 {
@@ -14,7 +14,7 @@ namespace Atlas.Auto.Tests.TestHelpers.Services
         {
             var lazyFileContents = PreviouslyLoadedFiles.GetOrAdd(fileName, _ => new Lazy<Task<string>>(() => LoadFile(fileName)));
             var fileContents = await lazyFileContents.Value;
-            var result = JsonSerializer.Deserialize<T>(fileContents);
+            var result = JsonConvert.DeserializeObject<T>(fileContents);
             return result ?? throw new InvalidOperationException($"Failed to load file {fileName}");
         }
 

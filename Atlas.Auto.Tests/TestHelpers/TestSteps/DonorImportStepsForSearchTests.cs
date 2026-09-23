@@ -31,9 +31,9 @@ internal class DonorImportStepsForSearchTests
         var request = await _donorImportTestSteps.ImportDiffDonorFile(donorUpdate);
         await _donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
 
-        var donorInfo = donorUpdate.ToDonorDebugInfo().ToList();
-        await _donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorInfo);
-        await _donorImportTestSteps.DonorsShouldBeAvailableForSearch(donorInfo);
+        var donorList = donorUpdate.ToList();
+        await _donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorList);
+        await _donorImportTestSteps.DonorsShouldBeAvailableForSearch(donorList);
 
         var recordId = donorUpdate.Single().RecordId;
         _logger.LogInformation($"Donor record id: {recordId}");
@@ -56,9 +56,9 @@ internal class DonorImportStepsForSearchTests
         var request = await _donorImportTestSteps.ImportDiffDonorFile(donorUpdate);
         await _donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
 
-        var donorInfo = donorUpdate.ToDonorDebugInfo().ToList();
-        await _donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorInfo);
-        await _donorImportTestSteps.MatchingAlgorithmDonorInfoShouldBe(donorInfo);
+        var donorList = donorUpdate.ToList();
+        await _donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorList);
+        await _donorImportTestSteps.MatchingAlgorithmDonorInfoShouldBe(donorList);
     }
 
     public async Task DeleteDonors(IReadOnlyCollection<string> donorCodes)
