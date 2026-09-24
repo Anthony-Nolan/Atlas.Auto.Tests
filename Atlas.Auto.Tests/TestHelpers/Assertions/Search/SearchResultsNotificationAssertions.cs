@@ -1,5 +1,6 @@
-﻿using Atlas.Client.Models.Search.Results;
+using Atlas.Client.Models.Search.Results;
 using FluentAssertions;
+using FluentAssertions.Execution;
 
 namespace Atlas.Auto.Tests.TestHelpers.Assertions.Search
 {
@@ -8,8 +9,12 @@ namespace Atlas.Auto.Tests.TestHelpers.Assertions.Search
         public static void SearchShouldHaveBeenSuccessful(this SearchResultsNotification? notification)
         {
             notification.Should().NotBeNull();
-            notification!.WasSuccessful.Should().BeTrue();
-            notification.FailureInfo.Should().BeNull();
+
+            using (new AssertionScope())
+            {
+                notification!.WasSuccessful.Should().BeTrue();
+                notification.FailureInfo.Should().BeNull();
+            }
         }
     }
 }

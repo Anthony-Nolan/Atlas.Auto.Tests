@@ -1,5 +1,6 @@
 using Atlas.Auto.Tests.TestHelpers.Settings;
-using Atlas.Debug.Client.Models.ServiceBus;
+using Azure.Messaging.ServiceBus;
+using Newtonsoft.Json;
 
 namespace Atlas.Auto.Tests.TestHelpers.Services;
 
@@ -8,18 +9,24 @@ internal class NotificationFetcher<TNotification> where TNotification : class
     private const int PeekBatchSize = 100;
     private const int MaxPeekIterations = 50;
 
-    private readonly Func<PeekServiceBusMessagesRequest, Task<PeekServiceBusMessagesResponse<TNotification>>> _peekFunc;
+    private readonly ServiceBusClient _serviceBusClient;
+    private readonly string _topicName;
+    private readonly string _subscriptionName;
     private readonly PollyRetry _pollyRetry;
     private readonly RetryPolicy _retryPolicy;
     private readonly string _operationName;
 
     public NotificationFetcher(
-        Func<PeekServiceBusMessagesRequest, Task<PeekServiceBusMessagesResponse<TNotification>>> peekFunc,
+        ServiceBusClient serviceBusClient,
+        string topicName,
+        string subscriptionName,
         PollyRetry pollyRetry,
         RetryPolicy retryPolicy,
         string operationName)
     {
-        _peekFunc = peekFunc;
+        _serviceBusClient = serviceBusClient;
+        _topicName = topicName;
+        _subscriptionName = subscriptionName;
         _pollyRetry = pollyRetry;
         _retryPolicy = retryPolicy;
         _operationName = operationName;
@@ -37,22 +44,32 @@ internal class NotificationFetcher<TNotification> where TNotification : class
     private async Task<List<TNotification>> PeekAllMessages()
     {
         var messages = new List<TNotification>();
-        long fromSequenceNumber = 0;
+
+        await using var receiver = _serviceBusClient.CreateReceiver(_topicName, _subscriptionName);
+
+        long? fromSequenceNumber = null;
 
         for (var i = 0; i < MaxPeekIterations; i++)
         {
-            var response = await _peekFunc(new PeekServiceBusMessagesRequest
-            {
-                FromSequenceNumber = fromSequenceNumber,
-                MessageCount = PeekBatchSize
-            });
+            var batch = fromSequenceNumber.HasValue
+                ? await receiver.PeekMessagesAsync(PeekBatchSize, fromSequenceNumber.Value)
+                : await receiver.PeekMessagesAsync(PeekBatchSize);
 
-            messages.AddRange(response.PeekedMessages);
-
-            if (response.MessageCount < PeekBatchSize)
+            if (batch.Count == 0)
                 break;
 
-            fromSequenceNumber = (long)(response.LastSequenceNumber! + 1);
+            foreach (var msg in batch)
+            {
+                var body = msg.Body.ToString();
+                var parsed = JsonConvert.DeserializeObject<TNotification>(body);
+                if (parsed != null)
+                    messages.Add(parsed);
+            }
+
+            fromSequenceNumber = batch[^1].SequenceNumber + 1;
+
+            if (batch.Count < PeekBatchSize)
+                break;
         }
 
         return messages;

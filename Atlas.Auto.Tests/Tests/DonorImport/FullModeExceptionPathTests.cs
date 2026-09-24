@@ -34,6 +34,6 @@ internal class FullModeExceptionPathTests : DonorImportTestBase
         var request = await steps.ImportFullDonorFile(updates);
         await steps.DonorImportShouldHaveFailed(request.FileName);
         await steps.FullModeImportAlertShouldHaveBeenRaised(request.FileName);
-        await steps.DonorStoreShouldNotHaveTheseDonors(updates.GetExternalDonorCodes());
+        await steps.CheckDonorStoreCount(updates.GetExternalDonorCodes(), 0);
     }
 }
