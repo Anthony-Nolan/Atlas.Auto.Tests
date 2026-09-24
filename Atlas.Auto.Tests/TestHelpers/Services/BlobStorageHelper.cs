@@ -4,12 +4,20 @@ using Atlas.Auto.Tests.TestHelpers.Settings;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Atlas.Auto.Tests.TestHelpers.Services;
 
 internal class BlobStorageHelper(BlobServiceClient blobClient, BlobStorageSettings settings)
 {
-    private static readonly JsonSerializer Serializer = new();
+    private static readonly JsonSerializer Serializer = CreateSerializer();
+
+    private static JsonSerializer CreateSerializer()
+    {
+        var s = new JsonSerializer();
+        s.Converters.Add(new StringEnumConverter());
+        return s;
+    }
 
     public async Task UploadDonorFile(object fileContents, string fileName)
     {

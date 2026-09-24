@@ -19,7 +19,7 @@ internal class DonorImportStepsForSearchTests
 
     public async Task<string> CreateDonor(ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
     {
-        _logger.LogInformation($"Create test {donorType}");
+        _logger.LogInformation("Create test {DonorType}", donorType);
 
         const int donorCount = 1;
         var donorUpdate = DonorUpdateBuilder.Default
@@ -36,14 +36,14 @@ internal class DonorImportStepsForSearchTests
         await _donorImportTestSteps.DonorsShouldBeAvailableForSearch(donorList);
 
         var recordId = donorUpdate.Single().RecordId;
-        _logger.LogInformation($"Donor record id: {recordId}");
+        _logger.LogInformation("Donor record id: {RecordId}", recordId);
 
         return recordId;
     }
 
     public async Task EditDonorHla(string donorCode, ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
     {
-        _logger.LogInformation($"Edit HLA of test {donorType} with record id {donorCode}");
+        _logger.LogInformation("Edit HLA of test {DonorType} with record id {DonorCode}", donorType, donorCode);
 
         const int donorCount = 1;
         var donorUpdate = DonorUpdateBuilder.Default

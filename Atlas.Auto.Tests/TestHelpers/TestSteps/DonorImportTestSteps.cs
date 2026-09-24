@@ -26,7 +26,7 @@ internal class DonorImportTestSteps
     {
         var request = DonorImportRequestBuilder.New.WithDiffModeFile(updates).Build();
         await _workflow.ImportDonorFile(request);
-        Logger.LogInformation($"Sent donor import file {request.FileName}");
+        Logger.LogInformation("Sent donor import file {FileName}", request.FileName);
         return request;
     }
 
@@ -34,7 +34,7 @@ internal class DonorImportTestSteps
     {
         var request = DonorImportRequestBuilder.New.WithFullModeFile(updates).Build();
         await _workflow.ImportDonorFile(request);
-        Logger.LogInformation($"Sent donor import file {request.FileName}");
+        Logger.LogInformation("Sent donor import file {FileName}", request.FileName);
         return request;
     }
 

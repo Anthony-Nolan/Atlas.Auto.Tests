@@ -51,7 +51,7 @@ internal class SearchTestSteps : SearchTestStepsBase
             "Search request should have been accepted but got validation failures: {0}",
             string.Join(", ", result.ValidationFailures.Select(f => f.ErrorMessage)));
 
-        _logger.LogInformation($"Search request id: {result.Response!.SearchIdentifier}");
+        _logger.LogInformation("Search request id: {SearchIdentifier}", result.Response!.SearchIdentifier);
         return result.Response;
     }
 
