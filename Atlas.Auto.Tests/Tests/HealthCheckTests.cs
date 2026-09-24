@@ -17,6 +17,14 @@ internal class HealthCheckTests : TestBase
     {
     }
 
+    [Test, Order(0)]
+    [Category("HealthCheck")]
+    public async Task Cleanup_ShouldRemoveStaleTestDonors()
+    {
+        var deleter = new TestDonorDeleter(Provider);
+        await deleter.DeleteDonors();
+    }
+
     [Test]
     [Category("HealthCheck")]
     public async Task SqlServer_ShouldBeAccessible()

@@ -10,12 +10,12 @@ internal class PublicApiClient(HttpClient httpClient)
 {
     public async Task<SearchResponse> PostSearchRequest(SearchRequest request)
     {
-        return await PostValidatedRequest<SearchRequest, SearchInitiationResponse>("Search", request);
+        return await PostValidatedRequest("Search", request);
     }
 
     public async Task<SearchResponse> PostRepeatSearchRequest(RepeatSearchRequest request)
     {
-        return await PostValidatedRequest<RepeatSearchRequest, SearchInitiationResponse>("RepeatSearch", request);
+        return await PostValidatedRequest("RepeatSearch", request);
     }
 
     public async Task<ScoringResult> PostScore(DonorHlaScoringRequest request)
@@ -44,7 +44,7 @@ internal class PublicApiClient(HttpClient httpClient)
         return JsonConvert.DeserializeObject<TResponse>(content)!;
     }
 
-    private async Task<SearchResponse> PostValidatedRequest<TBody, TResponse>(string endpoint, TBody body)
+    private async Task<SearchResponse> PostValidatedRequest<TBody>(string endpoint, TBody body)
     {
         var json = JsonConvert.SerializeObject(body);
         var response = await httpClient.PostAsync(endpoint, new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
@@ -58,8 +58,8 @@ internal class PublicApiClient(HttpClient httpClient)
         }
 
         response.EnsureSuccessStatusCode();
-        var result = JsonConvert.DeserializeObject<TResponse>(content)!;
-        return SearchResponse.Succeeded((SearchInitiationResponse)(object)result);
+        var result = JsonConvert.DeserializeObject<SearchInitiationResponse>(content)!;
+        return SearchResponse.Succeeded(result);
     }
 }
 

@@ -52,7 +52,7 @@ internal class ScoringTestSteps
     private async Task VerifyScoringResult(string serializedResult)
     {
         await VerifyJson(serializedResult)
-            .WriteReceivedToApprovalsFolder(_testName)
-            .IgnoreVaryingSearchResultProperties();
+            .IgnoreVaryingSearchResultProperties()
+            .WriteReceivedToApprovalsFolder(_testName);
     }
 }

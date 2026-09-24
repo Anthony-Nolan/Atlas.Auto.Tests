@@ -9,6 +9,7 @@ using Atlas.DonorImport.FileSchema.Models;
 using DonorImportRequest = Atlas.Auto.Tests.TestHelpers.Data.DonorImportRequest;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Auto.Tests.TestHelpers.Workflows;
 
@@ -21,10 +22,11 @@ internal class DonorImportWorkflow
     private readonly BlobStorageHelper _blobHelper;
     private readonly PollyRetry _pollyRetry;
     private readonly RetrySettings _retry;
+    private readonly ILogger _logger;
     private readonly NotificationFetcher<DonorImportMessage> _importResultFetcher;
     private readonly NotificationFetcher<Alert> _alertFetcher;
 
-    public DonorImportWorkflow(IServiceProvider provider)
+    public DonorImportWorkflow(IServiceProvider provider, ILogger logger)
     {
         _functionAppHelper = provider.GetRequiredService<FunctionAppHelper>();
         _azureResource = provider.GetRequiredService<AzureResourceSettings>();
@@ -33,6 +35,7 @@ internal class DonorImportWorkflow
         _blobHelper = provider.GetRequiredService<BlobStorageHelper>();
         _pollyRetry = provider.GetRequiredService<PollyRetry>();
         _retry = provider.GetRequiredService<RetrySettings>();
+        _logger = logger;
         var sbClient = provider.GetRequiredService<ServiceBusClient>();
         var sbSettings = provider.GetRequiredService<ServiceBusSettings>();
         _importResultFetcher = new NotificationFetcher<DonorImportMessage>(
@@ -64,13 +67,22 @@ internal class DonorImportWorkflow
             $"import result for file '{fileName}'");
     }
 
-    public async Task<DonorCheckResult<Donor>?> CheckDonorsInDonorStore(IEnumerable<string> externalDonorCodes)
+    public async Task<DonorCheckResult<Donor>?> CheckDonorsInDonorStore(
+        IEnumerable<string> externalDonorCodes, int expectedCount)
     {
         var codes = externalDonorCodes.ToList();
         var codeList = string.Join(", ", codes);
-        return await _pollyRetry.ExecuteWithRetry(
-            async () => await _donorSqlHelper.CheckDonorsInDonorStore(codes),
-            _retry.CheckDonors, $"Check donor store for codes [{codeList}]");
+        return await _pollyRetry.ExecuteWithRetry(async () =>
+        {
+            var result = await _donorSqlHelper.CheckDonorsInDonorStore(codes);
+            if (result.PresentCount != expectedCount)
+            {
+                _logger.LogWarning("Donor store: found {PresentCount}/{ExpectedCount} donors, absent: [{AbsentDonors}]",
+                    result.PresentCount, expectedCount, string.Join(", ", result.AbsentDonors));
+                return null;
+            }
+            return result;
+        }, _retry.CheckDonors, $"Check donor store for codes [{codeList}]");
     }
 
     public async Task<DonorCheckResult<MatchingAlgorithmDonor>?> CheckDonorsAreAvailableForSearch(IEnumerable<string> externalDonorCodes)
@@ -148,7 +160,13 @@ internal class DonorImportWorkflow
         return await _pollyRetry.ExecuteWithRetry(async () =>
         {
             var result = await _donorSqlHelper.CheckDonorsInMatchingAlgorithm(codes);
-            return resultIsAsExpected(result) ? result : null;
+            if (!resultIsAsExpected(result))
+            {
+                _logger.LogWarning("Matching algorithm: {PresentCount} present, {AbsentCount} absent out of {Total} requested",
+                    result.PresentCount, result.AbsentCount, codes.Count);
+                return null;
+            }
+            return result;
         }, _retry.CheckDonorsInMatching, operationName);
     }
 

@@ -1,7 +1,6 @@
 using Atlas.Auto.Tests.TestHelpers.Data;
 using Atlas.Auto.Tests.TestHelpers.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-
 namespace Atlas.Auto.Tests.TestHelpers.Services;
 
 internal interface IDonorStoreSqlHelper
@@ -22,6 +21,7 @@ internal class DonorStoreSqlHelper(
     {
         var codes = externalDonorCodes.Distinct().ToList();
         await using var ctx = atlasFactory.CreateDbContext();
+
         var donors = await ctx.Donors
             .Where(d => codes.Contains(d.ExternalDonorCode))
             .ToListAsync();

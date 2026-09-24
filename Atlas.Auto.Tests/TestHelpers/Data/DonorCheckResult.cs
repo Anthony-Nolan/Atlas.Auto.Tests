@@ -4,7 +4,6 @@ internal class DonorCheckResult<T>
 {
     public required IReadOnlyCollection<T> PresentDonors { get; init; }
     public required IReadOnlyCollection<string> AbsentDonors { get; init; }
-    public required IReadOnlyCollection<string> ReceivedDonors { get; init; }
     public int PresentCount => PresentDonors.Count;
     public int AbsentCount => AbsentDonors.Count;
 
@@ -19,8 +18,7 @@ internal class DonorCheckResult<T>
         return new DonorCheckResult<T>
         {
             PresentDonors = foundDonors,
-            AbsentDonors = absentCodes,
-            ReceivedDonors = requestedCodes
+            AbsentDonors = absentCodes
         };
     }
 }

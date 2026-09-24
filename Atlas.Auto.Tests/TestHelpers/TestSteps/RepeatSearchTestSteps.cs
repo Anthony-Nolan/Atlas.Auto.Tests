@@ -20,10 +20,6 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal class RepeatSearchTestSteps : SearchTestStepsBase
 {
-    private readonly PublicApiClient _publicApiClient;
-    private readonly BlobStorageHelper _blobHelper;
-    private readonly PollyRetry _pollyRetry;
-    private readonly RetrySettings _retry;
     private readonly NotificationFetcher<MatchingResultsNotification> _matchingNotificationFetcher;
     private readonly NotificationFetcher<SearchResultsNotification> _searchNotificationFetcher;
     private readonly SearchTestSteps _searchTestSteps;
@@ -34,12 +30,8 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         DonorImportStepsForSearchTests donorImportSteps,
         ILogger logger,
         string testName)
-        : base(donorImportSteps, logger, testName)
+        : base(provider, donorImportSteps, logger, testName)
     {
-        _publicApiClient = provider.GetRequiredService<PublicApiClient>();
-        _blobHelper = provider.GetRequiredService<BlobStorageHelper>();
-        _pollyRetry = provider.GetRequiredService<PollyRetry>();
-        _retry = provider.GetRequiredService<RetrySettings>();
         _searchTestSteps = searchTestSteps;
         var sbClient = provider.GetRequiredService<ServiceBusClient>();
         var sbSettings = provider.GetRequiredService<ServiceBusSettings>();
@@ -49,11 +41,6 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         _searchNotificationFetcher = new NotificationFetcher<SearchResultsNotification>(
             sbClient, sbSettings.RepeatSearchResultsTopic, sbSettings.Subscription,
             _pollyRetry, _retry.FetchMessages, "Fetch repeat search notification");
-    }
-
-    public async Task<string> CreateDonor(ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
-    {
-        return await _donorImportSteps.CreateDonor(donorType, hlaBuilder);
     }
 
     public async Task EditDonorHla(string donorCode, ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)

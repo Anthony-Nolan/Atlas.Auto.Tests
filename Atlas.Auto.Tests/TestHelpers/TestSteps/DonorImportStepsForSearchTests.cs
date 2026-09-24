@@ -32,7 +32,7 @@ internal class DonorImportStepsForSearchTests
         await _donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
 
         var donorList = donorUpdate.ToList();
-        await _donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorList);
+        await _donorImportTestSteps.CheckDonorStoreCount(donorUpdate.GetExternalDonorCodes(), donorCount);
         await _donorImportTestSteps.DonorsShouldBeAvailableForSearch(donorList);
 
         var recordId = donorUpdate.Single().RecordId;
@@ -57,7 +57,7 @@ internal class DonorImportStepsForSearchTests
         await _donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
 
         var donorList = donorUpdate.ToList();
-        await _donorImportTestSteps.DonorStoreShouldHaveExpectedDonors(donorList);
+        await _donorImportTestSteps.CheckDonorStoreCount(donorUpdate.GetExternalDonorCodes(), donorCount);
         await _donorImportTestSteps.MatchingAlgorithmDonorInfoShouldBe(donorList);
     }
 
@@ -70,7 +70,7 @@ internal class DonorImportStepsForSearchTests
 
         var request = await _donorImportTestSteps.ImportDiffDonorFile(donorUpdate);
         await _donorImportTestSteps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCodes.Count, 0);
-        await _donorImportTestSteps.DonorStoreShouldNotHaveTheseDonors(donorCodes);
+        await _donorImportTestSteps.CheckDonorStoreCount(donorCodes, 0);
         await _donorImportTestSteps.DonorsShouldNotBeAvailableForSearch(donorCodes);
     }
 }

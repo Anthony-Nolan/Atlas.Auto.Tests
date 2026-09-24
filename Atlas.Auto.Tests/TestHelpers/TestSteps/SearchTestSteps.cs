@@ -3,13 +3,11 @@ using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Settings;
-using LochNessBuilder;
 using Atlas.Client.Models.Search.Requests;
 using Atlas.Client.Models.Search.Results;
 using Atlas.Client.Models.Search.Results.Matching;
 using Atlas.Client.Models.Search.Results.Matching.ResultSet;
 using Atlas.Client.Models.Search.Results.ResultSet;
-using Atlas.DonorImport.FileSchema.Models;
 using Azure.Messaging.ServiceBus;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,10 +17,6 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal class SearchTestSteps : SearchTestStepsBase
 {
-    private readonly PublicApiClient _publicApiClient;
-    private readonly BlobStorageHelper _blobHelper;
-    private readonly PollyRetry _pollyRetry;
-    private readonly RetrySettings _retry;
     private readonly NotificationFetcher<MatchingResultsNotification> _matchingNotificationFetcher;
     private readonly NotificationFetcher<SearchResultsNotification> _searchNotificationFetcher;
 
@@ -31,12 +25,8 @@ internal class SearchTestSteps : SearchTestStepsBase
         DonorImportStepsForSearchTests donorImportSteps,
         ILogger logger,
         string testName)
-        : base(donorImportSteps, logger, testName)
+        : base(provider, donorImportSteps, logger, testName)
     {
-        _publicApiClient = provider.GetRequiredService<PublicApiClient>();
-        _blobHelper = provider.GetRequiredService<BlobStorageHelper>();
-        _pollyRetry = provider.GetRequiredService<PollyRetry>();
-        _retry = provider.GetRequiredService<RetrySettings>();
         var sbClient = provider.GetRequiredService<ServiceBusClient>();
         var sbSettings = provider.GetRequiredService<ServiceBusSettings>();
         _matchingNotificationFetcher = new NotificationFetcher<MatchingResultsNotification>(
@@ -45,11 +35,6 @@ internal class SearchTestSteps : SearchTestStepsBase
         _searchNotificationFetcher = new NotificationFetcher<SearchResultsNotification>(
             sbClient, sbSettings.SearchResultsTopic, sbSettings.Subscription,
             _pollyRetry, _retry.FetchMessages, "Fetch search notification");
-    }
-
-    public async Task<string> CreateDonor(ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
-    {
-        return await _donorImportSteps.CreateDonor(donorType, hlaBuilder);
     }
 
     public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName, bool? parallelMatchPrediction = null)

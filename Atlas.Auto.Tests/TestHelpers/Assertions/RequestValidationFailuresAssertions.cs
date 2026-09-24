@@ -1,5 +1,6 @@
 using Atlas.Auto.Tests.TestHelpers.Services;
 using FluentAssertions;
+using FluentAssertions.Execution;
 
 namespace Atlas.Auto.Tests.TestHelpers.Assertions
 {
@@ -7,8 +8,11 @@ namespace Atlas.Auto.Tests.TestHelpers.Assertions
     {
         public static void ShouldContain(this IReadOnlyCollection<ValidationFailureResponse> validationFailures, string validationFailure)
         {
-            validationFailures.Should().NotBeNullOrEmpty();
-            validationFailures.Should().Contain(failure => failure.ErrorMessage == validationFailure);
+            using (new AssertionScope())
+            {
+                validationFailures.Should().NotBeNullOrEmpty();
+                validationFailures.Should().Contain(failure => failure.ErrorMessage == validationFailure);
+            }
         }
     }
 }
