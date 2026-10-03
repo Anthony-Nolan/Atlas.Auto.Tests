@@ -95,7 +95,8 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
             "Repeat search request should have been accepted but got validation failures: {0}",
             string.Join(", ", result.ValidationFailures?.Select(f => f.ErrorMessage) ?? Array.Empty<string>()));
 
-        return result.ResponseOnSuccess!.RepeatSearchIdentifier;
+        _logger.LogInformation($"Repeat search request id: {result.ResponseOnSuccess!.RepeatSearchIdentifier} (original search {originalSearchId})");
+        return result.ResponseOnSuccess.RepeatSearchIdentifier;
     }
 
     public async Task RepeatMatchingShouldHaveIdentifiedExpectedChanges(
