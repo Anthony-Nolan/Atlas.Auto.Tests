@@ -11,6 +11,10 @@ internal interface IDonorStoreSqlHelper
     Task DeleteDonorsFromDonorStore(IEnumerable<string> externalDonorCodes);
     Task SetDonorsAsUnavailableForSearch(IEnumerable<string> externalDonorCodes);
     Task<IReadOnlyCollection<DonorImportFailure>> GetDonorImportFailuresByFileName(string fileName);
+    Task<DonorImportHistoryRecord?> GetDonorImportHistoryByFileName(string fileName);
+    Task<IReadOnlyCollection<DonorLog>> GetDonorLogs(IEnumerable<string> externalDonorCodes);
+    Task<IReadOnlyCollection<PublishableDonorUpdate>> GetPublishableDonorUpdates(IEnumerable<int> donorIds);
+    Task<IReadOnlyCollection<DonorManagementLog>> GetDonorManagementLogs(IEnumerable<int> donorIds);
 }
 
 internal class DonorStoreSqlHelper(
@@ -72,6 +76,42 @@ internal class DonorStoreSqlHelper(
         await using var ctx = atlasFactory.CreateDbContext();
         return await ctx.DonorImportFailures
             .Where(f => f.UpdateFile != null && f.UpdateFile.EndsWith(fileName))
+            .ToListAsync();
+    }
+
+    public async Task<DonorImportHistoryRecord?> GetDonorImportHistoryByFileName(string fileName)
+    {
+        await using var ctx = atlasFactory.CreateDbContext();
+        return await ctx.DonorImportHistory
+            .Where(h => h.Filename.EndsWith(fileName))
+            .OrderByDescending(h => h.Id)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<IReadOnlyCollection<DonorLog>> GetDonorLogs(IEnumerable<string> externalDonorCodes)
+    {
+        var codes = externalDonorCodes.ToList();
+        await using var ctx = atlasFactory.CreateDbContext();
+        return await ctx.DonorLogs
+            .Where(l => codes.Contains(l.ExternalDonorCode))
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyCollection<PublishableDonorUpdate>> GetPublishableDonorUpdates(IEnumerable<int> donorIds)
+    {
+        var ids = donorIds.ToList();
+        await using var ctx = atlasFactory.CreateDbContext();
+        return await ctx.PublishableDonorUpdates
+            .Where(u => ids.Contains(u.DonorId))
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyCollection<DonorManagementLog>> GetDonorManagementLogs(IEnumerable<int> donorIds)
+    {
+        var ids = donorIds.ToList();
+        await using var ctx = matchingFactory.CreateDbContext();
+        return await ctx.DonorManagementLogs
+            .Where(l => ids.Contains(l.DonorId))
             .ToListAsync();
     }
 }

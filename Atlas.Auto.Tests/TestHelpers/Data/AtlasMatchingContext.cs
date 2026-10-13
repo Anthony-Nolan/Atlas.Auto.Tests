@@ -6,6 +6,7 @@ namespace Atlas.Auto.Tests.TestHelpers.Data;
 internal class AtlasMatchingContext(DbContextOptions<AtlasMatchingContext> options) : DbContext(options)
 {
     public DbSet<MatchingAlgorithmDonor> Donors { get; set; } = null!;
+    public DbSet<DonorManagementLog> DonorManagementLogs { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

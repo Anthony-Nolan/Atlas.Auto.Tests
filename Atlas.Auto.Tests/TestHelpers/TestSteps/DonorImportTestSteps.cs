@@ -53,6 +53,36 @@ internal class DonorImportTestSteps
         result.ShouldHaveFailedDonorCount(expectedFailedDonorCount);
     }
 
+    /// <summary>
+    /// File-level checks: upload event, import result message, import history and import failures.
+    /// </summary>
+    /// <returns>Upload time of the file, as recorded by Azure.</returns>
+    public async Task<DateTimeOffset> DonorImportFileShouldHaveBeenProcessed(DonorImportRequest request, int expectedDonorCount)
+    {
+        var fileName = request.FileName;
+        var uploadEvent = await _workflow.FetchFileUploadEvent(request);
+        uploadEvent.Should().NotBeNull("File upload event should have been published for file {0}", fileName);
+        (uploadEvent!.Data?.Url).Should().EndWith(fileName, "File upload event url should point to file {0}", fileName);
+
+        await DonorImportShouldHaveBeenSuccessful(fileName, expectedDonorCount, 0);
+
+        var history = await _workflow.FetchFinishedDonorImportHistory(fileName);
+        history.Should().NotBeNull("Donor import history should have been finished for file {0}", fileName);
+        using (new AssertionScope())
+        {
+            history!.FileState.Should().Be(DonorImportHistoryRecord.CompletedState,
+                "Import history state for file {0}", fileName);
+            history.FailureCount.Should().Be(0, "Import history failure count for file {0}", fileName);
+            history.ImportedDonorsCount.Should().Be(expectedDonorCount, "Import history imported donor count for file {0}", fileName);
+            history.FailedDonorCount.Should().Be(0, "Import history failed donor count for file {0}", fileName);
+        }
+
+        var failures = await _workflow.GetDonorImportFailures(fileName);
+        failures.Should().BeEmpty("No donor import failures should have been logged for file {0}", fileName);
+
+        return uploadEvent.EventTime;
+    }
+
     public async Task DonorImportShouldHaveFailed(string fileName)
     {
         var result = await FetchDonorImportResultMessage(fileName);
@@ -66,6 +96,70 @@ internal class DonorImportTestSteps
         var result = await _workflow.CheckDonorsInDonorStore(codes, expectedCount);
         result.Should().NotBeNull(
             "Donor store should have {0} donor(s) from [{1}]", expectedCount, codeList);
+    }
+
+    /// <returns>Atlas ids of the donors, by external donor code.</returns>
+    public async Task<IReadOnlyDictionary<string, int>> DonorStoreShouldHaveExpectedDonors(IReadOnlyCollection<DonorUpdate> expectedUpdates)
+    {
+        var codes = expectedUpdates.GetExternalDonorCodes();
+        var result = await _workflow.CheckDonorsInDonorStore(codes, codes.Count);
+        result.Should().NotBeNull(
+            "Donor store should have donors [{0}]", string.Join(", ", codes));
+        result!.ShouldHaveExpectedDonors(expectedUpdates);
+        return result.PresentDonors.ToDictionary(d => d.ExternalDonorCode, d => d.AtlasId);
+    }
+
+    public async Task DonorLogsShouldExist(IReadOnlyCollection<string> externalDonorCodes, bool exist)
+    {
+        var expectedCount = exist ? externalDonorCodes.Count : 0;
+        var logs = await _workflow.FetchDonorLogs(externalDonorCodes, expectedCount);
+        logs.Should().NotBeNull(
+            "Donor logs should have {0} record(s) for codes [{1}]", expectedCount, string.Join(", ", externalDonorCodes));
+    }
+
+    public async Task DonorUpdatesShouldHaveBeenPublished(IEnumerable<int> atlasIds, int expectedUpdatesPerDonor)
+    {
+        var donorIds = atlasIds.ToList();
+        var updates = await _workflow.FetchPublishedDonorUpdates(donorIds, expectedUpdatesPerDonor);
+        updates.Should().NotBeNull(
+            "Each of donors [{0}] should have {1} published update(s) in PublishableDonorUpdates",
+            string.Join(", ", donorIds), expectedUpdatesPerDonor);
+        updates.Should().HaveCount(donorIds.Count * expectedUpdatesPerDonor);
+    }
+
+    public async Task SearchableDonorUpdatesShouldHaveBeenSent(
+        IReadOnlyDictionary<string, int> atlasIdsByCode, DateTimeOffset publishedSince, bool isAvailableForSearch)
+    {
+        var donorIds = atlasIdsByCode.Values.ToList();
+        var messages = await _workflow.FetchSearchableDonorUpdates(donorIds, publishedSince);
+        messages.Should().NotBeNull(
+            "Searchable donor updates should have been sent for donor ids [{0}]", string.Join(", ", donorIds));
+
+        using (new AssertionScope())
+        {
+            messages!.Select(m => m.DonorId).Should().BeEquivalentTo(donorIds,
+                "One searchable donor update per donor should have been sent");
+            messages.Should().OnlyContain(m => m.IsAvailableForSearch == isAvailableForSearch,
+                "IsAvailableForSearch should be {0} for all donors", isAvailableForSearch);
+
+            if (isAvailableForSearch)
+            {
+                messages.Should().OnlyContain(
+                    m => m.SearchableDonorInformation != null
+                         && atlasIdsByCode.Contains(new KeyValuePair<string, int>(m.SearchableDonorInformation.ExternalDonorCode, m.DonorId)),
+                    "Searchable donor updates should carry the external donor code of donors [{0}]",
+                    string.Join(", ", atlasIdsByCode.Keys));
+            }
+        }
+    }
+
+    public async Task DonorManagementLogsShouldHaveBeenUpdated(IEnumerable<int> atlasIds, DateTimeOffset updatedSince)
+    {
+        var donorIds = atlasIds.ToList();
+        var logs = await _workflow.FetchDonorManagementLogs(donorIds, updatedSince);
+        logs.Should().NotBeNull(
+            "Matching algorithm donor management logs for donor ids [{0}] should have been updated since {1:O}",
+            string.Join(", ", donorIds), updatedSince);
     }
 
     public async Task DonorsShouldBeAvailableForSearch(IReadOnlyCollection<DonorUpdate> expectedUpdates)

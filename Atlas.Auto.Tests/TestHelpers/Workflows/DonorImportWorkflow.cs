@@ -23,7 +23,9 @@ internal class DonorImportWorkflow
     private readonly PollyRetry _pollyRetry;
     private readonly RetrySettings _retry;
     private readonly ILogger _logger;
+    private readonly NotificationFetcher<BlobCreatedEvent> _fileUploadFetcher;
     private readonly NotificationFetcher<DonorImportMessage> _importResultFetcher;
+    private readonly NotificationFetcher<SearchableDonorUpdate> _searchableDonorUpdateFetcher;
     private readonly NotificationFetcher<Alert> _alertFetcher;
 
     public DonorImportWorkflow(IServiceProvider provider, ILogger logger)
@@ -38,9 +40,15 @@ internal class DonorImportWorkflow
         _logger = logger;
         var sbClient = provider.GetRequiredService<ServiceBusClient>();
         var sbSettings = provider.GetRequiredService<ServiceBusSettings>();
+        _fileUploadFetcher = new NotificationFetcher<BlobCreatedEvent>(
+            sbClient, sbSettings.DonorImportFileUploadsTopic, sbSettings.AuditSubscription,
+            _pollyRetry, _retry.FetchMessages, "Fetch file upload event");
         _importResultFetcher = new NotificationFetcher<DonorImportMessage>(
             sbClient, sbSettings.DonorImportResultsTopic, sbSettings.Subscription,
             _pollyRetry, _retry.FetchMessages, "Fetch import result");
+        _searchableDonorUpdateFetcher = new NotificationFetcher<SearchableDonorUpdate>(
+            sbClient, sbSettings.UpdatedSearchableDonorsTopic, sbSettings.AuditSubscription,
+            _pollyRetry, _retry.FetchMessages, "Fetch searchable donor updates");
         _alertFetcher = new NotificationFetcher<Alert>(
             sbClient, sbSettings.AlertsTopic, sbSettings.Subscription,
             _pollyRetry, _retry.FetchMessages, "Fetch alert");
@@ -55,9 +63,18 @@ internal class DonorImportWorkflow
 
     public async Task ImportDonorFile(DonorImportRequest request)
     {
+        request.UploadedAt = DateTimeOffset.UtcNow;
         await _pollyRetry.ExecuteWithRetry(
             async () => await _blobHelper.UploadDonorFile(request.FileContents, request.FileName),
             _retry.ApiCall, $"Import donor file '{request.FileName}'");
+    }
+
+    public async Task<BlobCreatedEvent?> FetchFileUploadEvent(DonorImportRequest request)
+    {
+        return await _fileUploadFetcher.FetchNotification(
+            m => m.Subject.EndsWith(request.FileName),
+            $"file upload event for file '{request.FileName}'",
+            request.UploadedAt);
     }
 
     public async Task<DonorImportMessage?> FetchResultMessage(string fileName)
@@ -65,6 +82,62 @@ internal class DonorImportWorkflow
         return await _importResultFetcher.FetchNotification(
             m => m.FileName.EndsWith(fileName),
             $"import result for file '{fileName}'");
+    }
+
+    public async Task<IReadOnlyCollection<SearchableDonorUpdate>?> FetchSearchableDonorUpdates(
+        IReadOnlyCollection<int> donorIds, DateTimeOffset publishedSince)
+    {
+        return await _searchableDonorUpdateFetcher.FetchNotifications(
+            m => donorIds.Contains(m.DonorId) && m.PublishedDateTime >= publishedSince,
+            donorIds.Count,
+            $"searchable donor updates for donor ids [{string.Join(", ", donorIds)}] published since {publishedSince:O}",
+            publishedSince);
+    }
+
+    public async Task<DonorImportHistoryRecord?> FetchFinishedDonorImportHistory(string fileName)
+    {
+        return await _pollyRetry.ExecuteWithRetry(async () =>
+        {
+            var record = await _donorSqlHelper.GetDonorImportHistoryByFileName(fileName);
+            return record?.FileState == DonorImportHistoryRecord.StartedState ? null : record;
+        }, _retry.CheckDonors, $"Fetch finished donor import history for file '{fileName}'");
+    }
+
+    public async Task<IReadOnlyCollection<DonorImportFailure>> GetDonorImportFailures(string fileName)
+    {
+        return await _donorSqlHelper.GetDonorImportFailuresByFileName(fileName);
+    }
+
+    public async Task<IReadOnlyCollection<DonorLog>?> FetchDonorLogs(
+        IReadOnlyCollection<string> externalDonorCodes, int expectedCount)
+    {
+        return await _pollyRetry.ExecuteWithRetry(async () =>
+        {
+            var logs = await _donorSqlHelper.GetDonorLogs(externalDonorCodes);
+            return logs.Count == expectedCount ? logs : null;
+        }, _retry.CheckDonors, $"Fetch {expectedCount} donor log(s) for codes [{string.Join(", ", externalDonorCodes)}]");
+    }
+
+    public async Task<IReadOnlyCollection<PublishableDonorUpdate>?> FetchPublishedDonorUpdates(
+        IReadOnlyCollection<int> donorIds, int expectedUpdatesPerDonor)
+    {
+        return await _pollyRetry.ExecuteWithRetry(async () =>
+        {
+            var updates = await _donorSqlHelper.GetPublishableDonorUpdates(donorIds);
+            var allPublished = donorIds.All(id => updates.Count(u => u.DonorId == id && u.IsPublished) == expectedUpdatesPerDonor);
+            return allPublished ? updates : null;
+        }, _retry.CheckDonors, $"Fetch {expectedUpdatesPerDonor} published donor update(s) per donor for ids [{string.Join(", ", donorIds)}]");
+    }
+
+    public async Task<IReadOnlyCollection<DonorManagementLog>?> FetchDonorManagementLogs(
+        IReadOnlyCollection<int> donorIds, DateTimeOffset updatedSince)
+    {
+        return await _pollyRetry.ExecuteWithRetry(async () =>
+        {
+            var logs = await _donorSqlHelper.GetDonorManagementLogs(donorIds);
+            var allUpdated = donorIds.All(id => logs.Any(l => l.DonorId == id && l.LastUpdateDateTime >= updatedSince));
+            return allUpdated ? logs : null;
+        }, _retry.CheckDonorsInMatching, $"Fetch donor management logs for ids [{string.Join(", ", donorIds)}] updated since {updatedSince:O}");
     }
 
     public async Task<DonorCheckResult<Donor>?> CheckDonorsInDonorStore(
