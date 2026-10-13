@@ -132,11 +132,20 @@ internal class DonorImportWorkflow
     public async Task<IReadOnlyCollection<DonorManagementLog>?> FetchDonorManagementLogs(
         IReadOnlyCollection<int> donorIds, DateTimeOffset updatedSince)
     {
+        // Atlas bulk-inserts logs for new donors via an untyped DataTable, so LastUpdateDateTime goes through
+        // DateTimeOffset.ToString() and loses its fractional seconds; compare at whole-second precision.
+        var since = updatedSince.AddTicks(-(updatedSince.Ticks % TimeSpan.TicksPerSecond));
         return await _pollyRetry.ExecuteWithRetry(async () =>
         {
             var logs = await _donorSqlHelper.GetDonorManagementLogs(donorIds);
-            var allUpdated = donorIds.All(id => logs.Any(l => l.DonorId == id && l.LastUpdateDateTime >= updatedSince));
-            return allUpdated ? logs : null;
+            var allUpdated = donorIds.All(id => logs.Any(l => l.DonorId == id && l.LastUpdateDateTime >= since));
+            if (!allUpdated)
+            {
+                _logger.LogWarning("Donor management logs not yet updated since {Since:O}: [{Logs}]",
+                    since, string.Join(", ", logs.Select(l => $"{l.DonorId}@{l.LastUpdateDateTime:O}")));
+                return null;
+            }
+            return logs;
         }, _retry.CheckDonorsInMatching, $"Fetch donor management logs for ids [{string.Join(", ", donorIds)}] updated since {updatedSince:O}");
     }
 
