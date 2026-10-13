@@ -105,8 +105,8 @@ internal class DonorImportTestSteps
         var result = await _workflow.CheckDonorsInDonorStore(codes, codes.Count);
         result.Should().NotBeNull(
             "Donor store should have donors [{0}]", string.Join(", ", codes));
-        result!.ShouldHaveExpectedDonors(expectedUpdates);
-        return result.PresentDonors.ToDictionary(d => d.ExternalDonorCode, d => d.AtlasId);
+        result.ShouldHaveExpectedDonors(expectedUpdates);
+        return result!.PresentDonors.ToDictionary(d => d.ExternalDonorCode, d => d.AtlasId);
     }
 
     public async Task DonorLogsShouldExist(IReadOnlyCollection<string> externalDonorCodes, bool exist)
