@@ -1,10 +1,8 @@
-﻿using Atlas.Auto.Tests.DependencyInjection;
-using Atlas.Auto.Tests.TestHelpers.InternalModels;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Atlas.Auto.Tests.TestHelpers.Services;
+using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
-using Atlas.Auto.Tests.TestHelpers.Workflows;
-using Polly;
-using Polly.Retry;
 
 namespace Atlas.Auto.Tests.Tests.Search;
 
@@ -23,38 +21,21 @@ internal abstract class SearchTestBase : TestBase
 
     protected static async Task ExecuteWithRetry(Func<Task> action)
     {
-        var retryPipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new RetryStrategyOptions
-            {
-                MaxRetryAttempts = 2,
-                ShouldHandle = new PredicateBuilder().Handle<Exception>()
-            })
-            .Build();
-
-        await retryPipeline.ExecuteAsync(async _ => await action(), CancellationToken.None);
+        var pollyRetry = Provider.GetRequiredService<PollyRetry>();
+        var retry = Provider.GetRequiredService<RetrySettings>();
+        await pollyRetry.ExecuteWithRetry(action, retry.TestRetry, "Test-level retry");
     }
 
-    protected TestServices<ISearchTestSteps> GetSearchTestServices(string testName)
+    protected SearchTestSteps GetSearchTestSteps(string testName)
     {
         var testLogger = BuildTestLogger(testName);
-        var importStepsForSearchTests = ResolveDonorImportStepsForSearchTests(testLogger);
-        return ResolveSearchTestServices(importStepsForSearchTests, testLogger, testName);
+        var importSteps = ResolveDonorImportStepsForSearchTests(testLogger);
+        return new SearchTestSteps(Provider, importSteps, testLogger, testName);
     }
 
-    protected DonorImportStepsForSearchTests ResolveDonorImportStepsForSearchTests(ITestLogger testLogger)
+    private DonorImportStepsForSearchTests ResolveDonorImportStepsForSearchTests(ILogger testLogger)
     {
-        var donorImportWorkflow = Provider.ResolveServiceOrThrow<IDonorImportWorkflow>();
-        var donorImportTestSteps = new DonorImportTestSteps(donorImportWorkflow, testLogger);
+        var donorImportTestSteps = new DonorImportTestSteps(Provider, testLogger);
         return new DonorImportStepsForSearchTests(donorImportTestSteps, testLogger);
-    }
-
-    private TestServices<ISearchTestSteps> ResolveSearchTestServices(
-        IDonorImportStepsForSearchTests importStepsForSearchTests,
-        ITestLogger testLogger,
-        string testName)
-    {
-        var searchWorkflow = Provider.ResolveServiceOrThrow<ISearchWorkflow>();
-        var searchTestSteps = new SearchTestSteps(searchWorkflow, importStepsForSearchTests, testLogger, testName);
-        return new TestServices<ISearchTestSteps>(searchTestSteps, testLogger);
     }
 }

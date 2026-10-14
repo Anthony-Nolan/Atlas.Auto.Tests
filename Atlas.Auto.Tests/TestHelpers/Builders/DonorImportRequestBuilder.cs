@@ -1,4 +1,5 @@
-﻿using Atlas.Debug.Client.Models.DonorImport;
+using Atlas.Auto.Tests.TestHelpers.SourceData;
+using Atlas.Debug.Client.Models.DonorImport;
 using Atlas.DonorImport.FileSchema.Models;
 using LochNessBuilder;
 
@@ -7,26 +8,26 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders;
 internal static class DonorImportRequestBuilder
 {
     public static Builder<DonorImportRequest> New => Builder<DonorImportRequest>.New
-        .WithFactory(m => m.FileName, DonorImportGenerators.BuildFileName);
+        .WithFactory(m => m.FileName, () => $"{TestConstants.AutoTestTag}_{Guid.NewGuid()}.json");
 
     public static Builder<DonorImportRequest> WithDiffModeFile(
         this Builder<DonorImportRequest> builder,
         IEnumerable<DonorUpdate> donorUpdates)
-    {
-        var contentBuilder = DonorImportFileContentsBuilder.DiffMode.WithDonorUpdates(donorUpdates);
-        return builder.WithContents(contentBuilder);
-    }
+        => builder.WithContents(UpdateMode.Differential, donorUpdates);
 
     public static Builder<DonorImportRequest> WithFullModeFile(
         this Builder<DonorImportRequest> builder,
         IEnumerable<DonorUpdate> donorUpdates)
-    {
-        var contentBuilder = DonorImportFileContentsBuilder.FullMode.WithDonorUpdates(donorUpdates);
-        return builder.WithContents(contentBuilder);
-    }
+        => builder.WithContents(UpdateMode.Full, donorUpdates);
 
     private static Builder<DonorImportRequest> WithContents(
         this Builder<DonorImportRequest> builder,
-        Builder<DonorImportFileContents> contentBuilder)
-        => builder.WithFactory(m => m.FileContents, contentBuilder.Build);
+        UpdateMode mode,
+        IEnumerable<DonorUpdate> donorUpdates)
+    {
+        var contentBuilder = Builder<DonorImportFileContents>.New
+            .With(d => d.updateMode, mode)
+            .WithFactory(d => d.donors, () => donorUpdates);
+        return builder.WithFactory(m => m.FileContents, contentBuilder.Build);
+    }
 }

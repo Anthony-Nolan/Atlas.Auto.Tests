@@ -1,4 +1,5 @@
-﻿using Atlas.Auto.Tests.TestHelpers.SourceData;
+using Atlas.Auto.Tests.TestHelpers.SourceData;
+using Atlas.Common.Public.Models.GeneticData.PhenotypeInfo.TransferModels;
 using Atlas.DonorImport.FileSchema.Models;
 using LochNessBuilder;
 
@@ -6,49 +7,37 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
 {
     internal static class ImportedHlaBuilder
     {
-        public static Builder<ImportedHla> ValidDnaPhenotype => Builder<ImportedHla>.New
-            .WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaPhenotype.A))
-            .WithFactory(h => h.B, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaPhenotype.B))
-            .WithFactory(h => h.C, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaPhenotype.C))
-            .WithFactory(h => h.DPB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaPhenotype.Dpb1))
-            .WithFactory(h => h.DQB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaPhenotype.Dqb1))
-            .WithFactory(h => h.DRB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.ValidDnaPhenotype.Drb1));
+        public static Builder<ImportedHla> ValidDnaPhenotype => BuildFromPhenotype(HlaTypings.ValidDnaPhenotype);
 
-        public static Builder<ImportedHla> InvalidHlaAtAllLoci => Builder<ImportedHla>.New
-            .WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.InvalidDnaForAnyLocus))
-            .WithFactory(h => h.B, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.InvalidDnaForAnyLocus))
-            .WithFactory(h => h.C, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.InvalidDnaForAnyLocus))
-            .WithFactory(h => h.DPB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.InvalidDnaForAnyLocus))
-            .WithFactory(h => h.DQB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.InvalidDnaForAnyLocus))
-            .WithFactory(h => h.DRB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.InvalidDnaForAnyLocus));
+        public static Builder<ImportedHla> InvalidHlaAtAllLoci => BuildWithSameHlaAtAllLoci(HlaTypings.InvalidDnaForAnyLocus);
 
-        public static Builder<ImportedHla> SearchTestPhenotype => Builder<ImportedHla>.New
-            .WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchTestPhenotype.A))
-            .WithFactory(h => h.B, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchTestPhenotype.B))
-            .WithFactory(h => h.C, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchTestPhenotype.C))
-            .WithFactory(h => h.DPB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchTestPhenotype.Dpb1))
-            .WithFactory(h => h.DQB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchTestPhenotype.Dqb1))
-            .WithFactory(h => h.DRB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchTestPhenotype.Drb1));
+        public static Builder<ImportedHla> SearchTestPhenotype => BuildFromPhenotype(HlaTypings.SearchTestPhenotype);
 
-        public static Builder<ImportedHla> SearchNewPhenotype => Builder<ImportedHla>.New
-            .WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.A))
-            .WithFactory(h => h.B, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.B))
-            .WithFactory(h => h.C, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.C))
-            .WithFactory(h => h.DPB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.Dpb1))
-            .WithFactory(h => h.DQB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.Dqb1))
-            .WithFactory(h => h.DRB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchNewPhenotype.Drb1));
+        public static Builder<ImportedHla> SearchNewPhenotype => BuildFromPhenotype(HlaTypings.SearchNewPhenotype);
 
-        public static Builder<ImportedHla> AssociatedAntigenPhenotype => Builder<ImportedHla>.New
-            .WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchAssociatedPhenotype.A))
-            .WithFactory(h => h.B, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchAssociatedPhenotype.B))
-            .WithFactory(h => h.C, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchAssociatedPhenotype.C))
-            .WithFactory(h => h.DPB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchAssociatedPhenotype.Dpb1))
-            .WithFactory(h => h.DQB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchAssociatedPhenotype.Dqb1))
-            .WithFactory(h => h.DRB1, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.SearchAssociatedPhenotype.Drb1));
+        public static Builder<ImportedHla> AssociatedAntigenPhenotype => BuildFromPhenotype(HlaTypings.SearchAssociatedPhenotype);
 
-        public static Builder<ImportedHla> WithAlternativeHlaAtLocusA(this Builder<ImportedHla> builder) 
+        public static Builder<ImportedHla> WithAlternativeHlaAtLocusA(this Builder<ImportedHla> builder)
             => builder.WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.AlternativeValidDnaForLocusA));
 
         public static Builder<ImportedHla> WithNoHlaAtDrb1(this Builder<ImportedHla> builder) => builder.WithNew(h => h.DRB1);
+
+        private static Builder<ImportedHla> BuildFromPhenotype(PhenotypeInfoTransfer<string> phenotype) =>
+            Builder<ImportedHla>.New
+                .WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(phenotype.A))
+                .WithFactory(h => h.B, () => ImportedLocusBuilder.BuildLocusWithDna(phenotype.B))
+                .WithFactory(h => h.C, () => ImportedLocusBuilder.BuildLocusWithDna(phenotype.C))
+                .WithFactory(h => h.DPB1, () => ImportedLocusBuilder.BuildLocusWithDna(phenotype.Dpb1))
+                .WithFactory(h => h.DQB1, () => ImportedLocusBuilder.BuildLocusWithDna(phenotype.Dqb1))
+                .WithFactory(h => h.DRB1, () => ImportedLocusBuilder.BuildLocusWithDna(phenotype.Drb1));
+
+        private static Builder<ImportedHla> BuildWithSameHlaAtAllLoci(string dna) =>
+            Builder<ImportedHla>.New
+                .WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(dna))
+                .WithFactory(h => h.B, () => ImportedLocusBuilder.BuildLocusWithDna(dna))
+                .WithFactory(h => h.C, () => ImportedLocusBuilder.BuildLocusWithDna(dna))
+                .WithFactory(h => h.DPB1, () => ImportedLocusBuilder.BuildLocusWithDna(dna))
+                .WithFactory(h => h.DQB1, () => ImportedLocusBuilder.BuildLocusWithDna(dna))
+                .WithFactory(h => h.DRB1, () => ImportedLocusBuilder.BuildLocusWithDna(dna));
     }
 }

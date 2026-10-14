@@ -1,5 +1,6 @@
 ﻿using Atlas.Client.Models.Search.Results.Matching;
 using FluentAssertions;
+using Newtonsoft.Json;
 
 namespace Atlas.Auto.Tests.TestHelpers.Assertions.Search
 {
@@ -8,7 +9,11 @@ namespace Atlas.Auto.Tests.TestHelpers.Assertions.Search
         public static void MatchingShouldHaveBeenSuccessful(this MatchingResultsNotification? notification)
         {
             notification.Should().NotBeNull();
-            notification!.WasSuccessful.Should().BeTrue();
+            notification!.WasSuccessful.Should().BeTrue(
+                "Matching for search {0} (repeat search {1}) should have been successful but got failure: {2}",
+                notification.SearchRequestId,
+                notification.RepeatSearchRequestId ?? "n/a",
+                JsonConvert.SerializeObject(notification.FailureInfo));
             notification.FailureInfo.Should().BeNull();
         }
 

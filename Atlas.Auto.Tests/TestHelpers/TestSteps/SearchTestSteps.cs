@@ -1,105 +1,85 @@
-﻿using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
+using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.Services;
-using Atlas.Auto.Tests.TestHelpers.Workflows;
+using Atlas.Auto.Tests.TestHelpers.Settings;
+using LochNessBuilder;
 using Atlas.Client.Models.Search.Requests;
 using Atlas.Client.Models.Search.Results;
 using Atlas.Client.Models.Search.Results.Matching;
+using Atlas.Debug.Client.Clients;
 using Atlas.Debug.Client.Models.Validation;
 using Atlas.DonorImport.FileSchema.Models;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
-/// <summary>
-/// Steps for testing Atlas search.
-/// Covers arrangement and execution of the search workflow and assertion of its outcomes.
-/// </summary>
-internal interface ISearchTestSteps
+internal class SearchTestSteps : SearchTestStepsBase
 {
-    /// <summary>
-    /// Creates a donor of the specified type and returns the record id.
-    /// </summary>
-    Task<string> CreateDonor(ImportDonorType donorType);
-
-    /// <summary>
-    /// Creates a donor of the specified type with DNA phenotype containing NEW allele and returns the record id.
-    /// </summary>
-    Task<string> CreateDonorWithNew(ImportDonorType donorType);
-
-    /// <summary>
-    /// Creates a donor of the specified type with DNA phenotype containing an associated antigen and returns the record id.
-    /// </summary>
-    Task<string> CreateDonorWithAssociatedAntigen(ImportDonorType donorType);
-
-    Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName, bool? parallelMatchPrediction = null);
-
-    Task MatchingShouldReturnExpectedDonor(string searchRequestId, string expectedDonorCode);
-
-    /// <summary>
-    /// In addition to asserting <see cref="MatchingShouldReturnExpectedDonor"/>,
-    /// also checks that no longer matching codes were not returned.
-    /// </summary>
-    Task MatchingShouldOnlyReturnExpectedDonors(string searchRequestId, DonorChanges donorChanges);
-
-    Task SearchShouldReturnExpectedDonor(string searchRequestId, string expectedDonorCode);
-
-    Task<IEnumerable<RequestValidationFailure>> SubmitInvalidSearchRequest(string searchRequestFileName);
-
-    Task MatchingShouldFailHlaValidation(string searchRequestId);
-}
-
-internal class SearchTestSteps : ISearchTestSteps
-{
-    private readonly ISearchWorkflow workflow;
-    private readonly IDonorImportStepsForSearchTests donorImportSteps;
-    private readonly ITestLogger logger;
-    private readonly string testName;
+    private readonly IPublicApiFunctionsClient _publicApiClient;
+    private readonly IMatchingAlgorithmFunctionsClient _matchingClient;
+    private readonly ITopLevelFunctionsClient _topLevelClient;
+    private readonly PollyRetry _pollyRetry;
+    private readonly RetrySettings _retry;
+    private readonly NotificationFetcher<MatchingResultsNotification> _matchingNotificationFetcher;
+    private readonly NotificationFetcher<SearchResultsNotification> _searchNotificationFetcher;
 
     public SearchTestSteps(
-        ISearchWorkflow workflow,
-        IDonorImportStepsForSearchTests donorImportSteps,
-        ITestLogger logger,
+        IServiceProvider provider,
+        DonorImportStepsForSearchTests donorImportSteps,
+        ILogger logger,
         string testName)
+        : base(donorImportSteps, logger, testName)
     {
-        this.workflow = workflow;
-        this.donorImportSteps = donorImportSteps;
-        this.logger = logger;
-        this.testName = testName;
+        _publicApiClient = provider.GetRequiredService<IPublicApiFunctionsClient>();
+        _matchingClient = provider.GetRequiredService<IMatchingAlgorithmFunctionsClient>();
+        _topLevelClient = provider.GetRequiredService<ITopLevelFunctionsClient>();
+        _pollyRetry = provider.GetRequiredService<PollyRetry>();
+        _retry = provider.GetRequiredService<RetrySettings>();
+        _matchingNotificationFetcher = new NotificationFetcher<MatchingResultsNotification>(
+            req => _matchingClient.PeekMatchingResultNotifications(req), _pollyRetry, _retry.FetchMessages, "Fetch matching notification");
+        _searchNotificationFetcher = new NotificationFetcher<SearchResultsNotification>(
+            req => _topLevelClient.PeekSearchResultNotifications(req), _pollyRetry, _retry.FetchMessages, "Fetch search notification");
     }
 
-    public async Task<string> CreateDonor(ImportDonorType donorType)
+    public async Task<string> CreateDonor(ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)
     {
-        return await donorImportSteps.CreateDonorWithSearchTestPhenotype(donorType);
-    }
-
-    public async Task<string> CreateDonorWithNew(ImportDonorType donorType)
-    {
-        return await donorImportSteps.CreateDonorWithNewDnaPhenotype(donorType);
-    }
-
-    public async Task<string> CreateDonorWithAssociatedAntigen(ImportDonorType donorType)
-    {
-        return await donorImportSteps.CreateDonorWithAssociatedAntigenPhenotype(donorType);
+        return await _donorImportSteps.CreateDonor(donorType, hlaBuilder);
     }
 
     public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName, bool? parallelMatchPrediction = null)
     {
         var searchRequest = await SourceDataReader.ReadJsonFile<SearchRequest>(searchRequestFileName);
         searchRequest.ParallelMatchPrediction = parallelMatchPrediction;
-        var searchResponse = await workflow.SubmitSearchRequest(searchRequest);
-        logger.AssertResponseThenLogAndThrow(searchResponse, "Submit valid search request");
-        logger.LogInfo($"Search request id: {searchResponse.DebugResult!.SearchIdentifier}");
-        return searchResponse.DebugResult!;
+
+        var response = await _pollyRetry.ExecuteWithRetry(
+            async () => await _publicApiClient.PostSearchRequest(searchRequest),
+            _retry.ApiCall, $"Submit search request '{searchRequestFileName}'");
+        var result = AssertNotNull(response, "Search API should have responded");
+
+        result.WasSuccess.Should().BeTrue(
+            "Search request should have been accepted but got validation failures: {0}",
+            string.Join(", ", result.ValidationFailures?.Select(f => f.ErrorMessage) ?? Array.Empty<string>()));
+
+        _logger.LogInformation($"Search request id: {result.ResponseOnSuccess!.SearchIdentifier}");
+        return result.ResponseOnSuccess;
     }
 
     public async Task<IEnumerable<RequestValidationFailure>> SubmitInvalidSearchRequest(string searchRequestFileName)
     {
         var searchRequest = await SourceDataReader.ReadJsonFile<SearchRequest>(searchRequestFileName);
-        var searchResponse = await workflow.SubmitInvalidSearchRequest(searchRequest);
-        logger.AssertResponseThenLogAndThrow(searchResponse, "Submit invalid search request");
-        return searchResponse.DebugResult!;
+
+        var response = await _pollyRetry.ExecuteWithRetry(
+            async () => await _publicApiClient.PostSearchRequest(searchRequest),
+            _retry.ApiCall, $"Submit invalid search request '{searchRequestFileName}'");
+        var result = AssertNotNull(response, "Search API should have responded");
+
+        result.WasSuccess.Should().BeFalse(
+            "Search request should have been rejected with validation failures but was accepted");
+
+        return result.ValidationFailures!;
     }
 
     public async Task MatchingShouldFailHlaValidation(string searchRequestId)
@@ -110,54 +90,50 @@ internal class SearchTestSteps : ISearchTestSteps
 
     public async Task MatchingShouldReturnExpectedDonor(string searchRequestId, string expectedDonorCode)
     {
-        const string action = "Check matching returns expected donor";
-        logger.LogStart(action);
         await CheckMatchingReturnsExpectedDonors(searchRequestId, new[] { expectedDonorCode });
-        logger.LogCompletion(action);
     }
 
     public async Task MatchingShouldOnlyReturnExpectedDonors(
         string searchRequestId, DonorChanges donorChanges)
     {
-        const string action = "Check matching only returns expected donors and not non-matching donors";
-        logger.LogStart(action);
-
         var results = await CheckMatchingReturnsExpectedDonors(searchRequestId, donorChanges.NewlyMatching);
 
-        logger.AssertThenLogAndThrow(() => results
-                .Where(r => donorChanges.NoLongerMatching.Contains(r.DonorCode))
-                .Should().BeEmpty(),
-            "Check non-matching donors were not returned");
-
-        logger.LogCompletion(action);
+        results
+            .Where(r => donorChanges.NoLongerMatching.Contains(r.DonorCode))
+            .Should().BeEmpty("Non-matching donors should not be returned in results");
     }
 
     public async Task SearchShouldReturnExpectedDonor(string searchRequestId, string expectedDonorCode)
     {
-        const string action = "Check search returns expected donor";
-        logger.LogStart(action);
-
-        var notificationResponse = await workflow.FetchSearchResultsNotification(searchRequestId);
-        logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch search results notification");
-
-        var notification = notificationResponse.DebugResult!;
+        var notification = await FetchSearchResultsNotification(searchRequestId);
         notification.SearchShouldHaveBeenSuccessful();
 
-        var resultSetResponse = await workflow.FetchSearchResultSet(notification.ToDebugSearchResultsRequest());
-        logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch search result set");
+        var searchResultSet = await _pollyRetry.ExecuteWithRetry(
+            async () => await _topLevelClient.FetchSearchResultSet(notification.ToDebugSearchResultsRequest()),
+            _retry.FetchResultSet, $"Fetch search result set for request '{searchRequestId}'");
+        AssertNotNull(searchResultSet,
+            $"Search result set should have been fetched for request {searchRequestId}");
 
-        var searchResultSet = resultSetResponse.DebugResult!;
-        var donorResult = searchResultSet.GetDonorResult(expectedDonorCode);
+        var donorResult = searchResultSet!.GetDonorResult(expectedDonorCode);
         await DonorResultShouldBeAsExpected(donorResult, "SearchResult");
-
-        logger.LogCompletion(action);
     }
 
     private async Task<MatchingResultsNotification> FetchMatchingResultsNotification(string searchRequestId)
     {
-        var notificationResponse = await workflow.FetchMatchingResultsNotification(searchRequestId);
-        logger.AssertResponseThenLogAndThrow(notificationResponse, "Fetch matching results notification");
-        return notificationResponse.DebugResult!;
+        var notification = await _matchingNotificationFetcher.FetchNotification(
+            m => m.SearchRequestId == searchRequestId,
+            $"Search request '{searchRequestId}'");
+        return AssertNotNull(notification,
+            $"Matching notification should have been received for search request {searchRequestId}");
+    }
+
+    private async Task<SearchResultsNotification> FetchSearchResultsNotification(string searchRequestId)
+    {
+        var notification = await _searchNotificationFetcher.FetchNotification(
+            m => m.SearchRequestId == searchRequestId,
+            $"Search request '{searchRequestId}'");
+        return AssertNotNull(notification,
+            $"Search notification should have been received for search request {searchRequestId}");
     }
 
     private async Task<IEnumerable<MatchingAlgorithmResult>> CheckMatchingReturnsExpectedDonors(
@@ -167,30 +143,18 @@ internal class SearchTestSteps : ISearchTestSteps
         var notification = await FetchMatchingResultsNotification(searchRequestId);
         notification.MatchingShouldHaveBeenSuccessful();
 
-        var resultSetResponse = await workflow.FetchMatchingResultSet(notification.ToDebugSearchResultsRequest());
-        logger.AssertResponseThenLogAndThrow(resultSetResponse, "Fetch matching result set");
-        var matchingResultSet = resultSetResponse.DebugResult!;
+        var matchingResultSet = await _pollyRetry.ExecuteWithRetry(
+            async () => await _matchingClient.FetchMatchingResultSet(notification.ToDebugSearchResultsRequest()),
+            _retry.FetchResultSet, $"Fetch matching result set for request '{searchRequestId}'");
+        AssertNotNull(matchingResultSet,
+            $"Matching result set should have been fetched for search request {searchRequestId}");
 
         foreach (var expectedDonorCode in expectedDonorCodes)
         {
-            var donorResult = matchingResultSet.GetDonorResult(expectedDonorCode);
+            var donorResult = matchingResultSet!.GetDonorResult(expectedDonorCode);
             await DonorResultShouldBeAsExpected(donorResult, "MatchingResult");
         }
 
-        return matchingResultSet.Results;
-    }
-
-    private async Task DonorResultShouldBeAsExpected<TResult>(
-        TResult? donorResult,
-        string approvalFileNameSuffix)
-        where TResult : Result
-    {
-        logger.AssertThenLogAndThrow(() => donorResult.Should().NotBeNull(), "Select donor result");
-
-        await logger.AssertThenLogAndThrowAsync(
-            () => VerifyJson(donorResult.SerializeSingle())
-                .IgnoreVaryingSearchResultProperties()
-                .WriteReceivedToApprovalsFolder($"{testName}_{approvalFileNameSuffix}"),
-            $"Comparison of donor {donorResult!.DonorCode} to approved result");
+        return matchingResultSet!.Results;
     }
 }

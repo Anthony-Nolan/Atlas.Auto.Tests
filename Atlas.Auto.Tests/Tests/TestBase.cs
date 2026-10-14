@@ -1,29 +1,22 @@
-﻿using Atlas.Auto.Tests.DependencyInjection;
-using Atlas.Auto.Tests.TestHelpers.Services;
-using Atlas.Auto.Utils.Reporting;
-using AventStack.ExtentReports;
+using Atlas.Auto.Tests.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Auto.Tests.Tests;
 
 [Parallelizable(ParallelScope.All)]
 internal abstract class TestBase
 {
-    protected readonly IServiceProvider Provider;
+    private static readonly Lazy<IServiceProvider> LazyProvider = new(ServiceConfiguration.CreateProvider);
+    internal static IServiceProvider Provider => LazyProvider.Value;
+
     protected readonly string TestFixtureName;
-    private readonly ExtentTest extentTestForFixture;
 
     protected TestBase(string testFixtureName)
     {
-        Provider = ServiceConfiguration.CreateProvider();
         TestFixtureName = testFixtureName;
-        extentTestForFixture = ExtentManager.CreateForFixture(testFixtureName);
     }
 
-    [OneTimeTearDown]
-    public void Cleanup()
-    {
-        extentTestForFixture.Extent.Flush();
-    }
-
-    protected ITestLogger BuildTestLogger(string testName) => new TestLogger(ExtentManager.CreateForTest(TestFixtureName, testName));
+    protected ILogger BuildTestLogger(string context) =>
+        Provider.GetRequiredService<ILoggerFactory>().CreateLogger(context);
 }

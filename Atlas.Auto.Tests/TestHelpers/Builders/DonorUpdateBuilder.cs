@@ -7,7 +7,7 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
     internal static class DonorUpdateBuilder
     {
         public static Builder<DonorUpdate> New => Builder<DonorUpdate>.New
-            .WithFactory(d => d.RecordId, DonorImportGenerators.RecordIdFactory());
+            .WithFactory(d => d.RecordId, () => $"{TestConstants.RecordIdPrefix}-{Guid.NewGuid()}");
 
         /// <summary>
         /// Builder with default values set at some fields.

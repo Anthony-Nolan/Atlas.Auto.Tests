@@ -24,7 +24,7 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
         /// Intended for use in testing donor import.
         /// Use <see cref="SearchTestPhenotype"/> when testing search.
         /// </summary>
-        public static PhenotypeInfoTransfer<string> ValidDnaPhenotype = new PhenotypeInfo<string>(
+        public static readonly PhenotypeInfoTransfer<string> ValidDnaPhenotype = new PhenotypeInfo<string>(
             ValidDnaForLocusA, ValidDnaForLocusA,
             ValidDnaForLocusB, ValidDnaForLocusB,
             ValidDnaForLocusC, ValidDnaForLocusC,
@@ -42,15 +42,13 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
         /// </summary>
         public const string InvalidDnaForAnyLocus = "*999:INVALIDHLA";
 
-        public const string AssociatedAntigen = "1201";
-
         /// <summary>
         /// Phenotype constructed from two A~B~C~Q~R haplotypes within the test HF set to ensure it is deemed "represented" during match prediction.
         /// The haplotypes themselves are relatively rare in an effort to minimise the number of matches found during search.
         /// The typing has purposely been made ambiguous at loci A, B and DRB1 to encourage "genotype expansion" during match prediction.
         /// The original high resolution phenotype is available as the patient HLA within the saved search requests.
         /// </summary>
-        public static PhenotypeInfoTransfer<string> SearchTestPhenotype = new PhenotypeInfo<string>(
+        public static readonly PhenotypeInfoTransfer<string> SearchTestPhenotype = new PhenotypeInfo<string>(
             "*31:XX", "*32:XX", 
             "*14:XX", "*35:XX", 
             "*01:02", "*08:180N", 
@@ -59,7 +57,7 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
             "*03:XX", "*09:XX")
             .ToPhenotypeInfoTransfer();
 
-        public static PhenotypeInfoTransfer<string> SearchNewPhenotype = new PhenotypeInfo<string>(
+        public static readonly PhenotypeInfoTransfer<string> SearchNewPhenotype = new PhenotypeInfo<string>(
             "NEW", "*32:XX",
             "*14:XX", "*35:XX",
             "*01:02", "*08:180N",
@@ -68,7 +66,7 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
             "*03:XX", "*09:XX")
             .ToPhenotypeInfoTransfer();
 
-        public static PhenotypeInfoTransfer<string> SearchAssociatedPhenotype = new PhenotypeInfo<string>(
+        public static readonly PhenotypeInfoTransfer<string> SearchAssociatedPhenotype = new PhenotypeInfo<string>(
             "*0265", "*33:01",
             "*14:02", "*35:01",
             "*06:02", "*12",

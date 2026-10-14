@@ -1,7 +1,4 @@
-﻿using Atlas.Auto.Tests.DependencyInjection;
-using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.TestSteps;
-using Atlas.Auto.Tests.TestHelpers.Workflows;
 
 namespace Atlas.Auto.Tests.Tests.Scoring;
 
@@ -11,10 +8,8 @@ internal abstract class ScoringTestBase : TestBase
     {
     }
 
-    protected TestServices<IScoringTestSteps> GetTestServices(string testName)
+    protected ScoringTestSteps GetScoringTestSteps(string testName)
     {
-        var scoringWorkflow = Provider.ResolveServiceOrThrow<IScoringWorkflow>();
-        var testLogger = BuildTestLogger(testName);
-        return new TestServices<IScoringTestSteps>(new ScoringTestSteps(scoringWorkflow, testLogger, testName), testLogger);
+        return new ScoringTestSteps(Provider, BuildTestLogger(testName), testName);
     }
 }
