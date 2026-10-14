@@ -1,4 +1,5 @@
-﻿using Atlas.Common.Public.Models.GeneticData.PhenotypeInfo;
+﻿using Atlas.Common.Public.Models.GeneticData;
+using Atlas.Common.Public.Models.GeneticData.PhenotypeInfo;
 using Atlas.Common.Public.Models.GeneticData.PhenotypeInfo.TransferModels;
 
 namespace Atlas.Auto.Tests.TestHelpers.SourceData
@@ -36,6 +37,26 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
         /// Use for testing donor edits
         /// </summary>
         public const string AlternativeValidDnaForLocusA = "*11:11";
+
+        private static readonly PhenotypeInfo<string> ExpandedHla = new(
+            "*01:DXGWF", "*01:DXGWF",
+            "*07:DXFTK", "*07:DXFTK",
+            "*05:DUVRN", "*07:BRXNC",
+            "*03:FYKD", "*04:BYVXE",
+            "*03:BMSUA", "*06:BSBZX",
+            "*15:01:01", "*12:JV");
+
+        /// <summary>
+        /// Phenotype mostly typed with NMDP codes, so it has to be expanded on import.
+        /// Taken from QA-1926 test data.
+        /// </summary>
+        public static readonly PhenotypeInfoTransfer<string> ExpandedHlaPhenotype = ExpandedHla.ToPhenotypeInfoTransfer();
+
+        /// <summary>
+        /// <see cref="ExpandedHlaPhenotype"/> with a different typing at A position 2; use for testing donor edits.
+        /// </summary>
+        public static readonly PhenotypeInfoTransfer<string> ExpandedHlaPhenotypeWithAlternativeA2 =
+            ExpandedHla.SetPosition(Locus.A, LocusPosition.Two, "*11:01").ToPhenotypeInfoTransfer();
 
         /// <summary>
         /// This typing fits the pattern of a valid MAC but does not actually exist.

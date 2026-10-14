@@ -24,6 +24,12 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
         public static Builder<DonorUpdate> WithAlternativeDnaAtLocusA(this Builder<DonorUpdate> builder) =>
             builder.WithHla(ImportedHlaBuilder.ValidDnaPhenotype.WithAlternativeHlaAtLocusA());
 
+        public static Builder<DonorUpdate> WithExpandedHlaPhenotype(this Builder<DonorUpdate> builder) =>
+            builder.WithHla(ImportedHlaBuilder.ExpandedHlaPhenotype);
+
+        public static Builder<DonorUpdate> WithExpandedHlaPhenotypeWithAlternativeA2(this Builder<DonorUpdate> builder) =>
+            builder.WithHla(ImportedHlaBuilder.ExpandedHlaPhenotypeWithAlternativeA2);
+
         public static Builder<DonorUpdate> WithInvalidDnaAtAllLoci(this Builder<DonorUpdate> builder) =>
             builder.WithHla(ImportedHlaBuilder.InvalidHlaAtAllLoci);
 
