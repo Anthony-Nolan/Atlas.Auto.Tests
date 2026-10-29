@@ -11,6 +11,7 @@ internal class AtlasContext(DbContextOptions<AtlasContext> options) : DbContext(
     public DbSet<DonorImportHistoryRecord> DonorImportHistory { get; set; } = null!;
     public DbSet<PublishableDonorUpdate> PublishableDonorUpdates { get; set; } = null!;
     public DbSet<DataRefreshRecord> DataRefreshHistory { get; set; } = null!;
+    public DbSet<HaplotypeFrequencySet> HaplotypeFrequencySets { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

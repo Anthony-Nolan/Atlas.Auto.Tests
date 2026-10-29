@@ -26,6 +26,43 @@ internal class AppInsightsHelper(LogsQueryClient logsClient, AppInsightsSettings
         | order by DonorCount desc
         """;
 
+    private const string PrecomputedGenotypeSetUsageQuery = """
+        AppEvents
+        | where Name == "Precomputed genotype sets used"
+        | where tostring(Properties["SearchRequestId"]) == searchRequestId
+        | summarize
+            EventCount = count(),
+            PrecomputeModes = strcat_array(make_set(tostring(Properties["PrecomputeMode"])), ","),
+            UsePrecomputedGenotypeSets = strcat_array(make_set(tostring(Properties["UsePrecomputedGenotypeSets"])), ","),
+            DonorCount = tolong(sum(todouble(Measurements["DonorCount"]))),
+            PrecomputedCount = tolong(sum(todouble(Measurements["PrecomputedCount"])))
+        """;
+
+    /// <summary>
+    /// Null until App Insights has ingested at least one usage event of the search, so it can be retried.
+    /// </summary>
+    public async Task<PrecomputedGenotypeSetUsage?> GetPrecomputedGenotypeSetUsage(string searchRequestId, int daysToQuery = 1)
+    {
+        // CreateQuery quotes and escapes the id
+        var query = LogsQueryClient.CreateQuery($"let searchRequestId = {searchRequestId};") + "\n" + PrecomputedGenotypeSetUsageQuery;
+        var response = await logsClient.QueryWorkspaceAsync(
+            settings.WorkspaceId,
+            query,
+            new QueryTimeRange(TimeSpan.FromDays(daysToQuery)));
+
+        var row = response.Value.Table.Rows.SingleOrDefault();
+        var eventCount = (long)(row?[nameof(PrecomputedGenotypeSetUsage.EventCount)] ?? 0L);
+        if (row == null || eventCount == 0)
+            return null;
+
+        return new PrecomputedGenotypeSetUsage(
+            eventCount,
+            row[nameof(PrecomputedGenotypeSetUsage.PrecomputeModes)]?.ToString() ?? string.Empty,
+            row[nameof(PrecomputedGenotypeSetUsage.UsePrecomputedGenotypeSets)]?.ToString() ?? string.Empty,
+            (long)(row[nameof(PrecomputedGenotypeSetUsage.DonorCount)] ?? 0L),
+            (long)(row[nameof(PrecomputedGenotypeSetUsage.PrecomputedCount)] ?? 0L));
+    }
+
     public async Task<List<HlaExpansionFailure>> GetHlaExpansionFailures(int daysToQuery = 14)
     {
         var response = await logsClient.QueryWorkspaceAsync(

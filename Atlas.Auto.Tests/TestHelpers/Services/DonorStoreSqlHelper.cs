@@ -15,6 +15,8 @@ internal interface IDonorStoreSqlHelper
     Task<IReadOnlyCollection<DonorLog>> GetDonorLogs(IEnumerable<string> externalDonorCodes);
     Task<IReadOnlyCollection<PublishableDonorUpdate>> GetPublishableDonorUpdates(IEnumerable<int> donorIds);
     Task<IReadOnlyCollection<DonorManagementLog>> GetDonorManagementLogs(IEnumerable<int> donorIds);
+    Task<IReadOnlyCollection<PrecomputedGenotypeSet>> GetPrecomputedGenotypeSets(int donorId);
+    Task<int?> GetActiveHaplotypeFrequencySetId(string registryCode, string ethnicityCode);
 }
 
 internal class DonorStoreSqlHelper(
@@ -113,5 +115,30 @@ internal class DonorStoreSqlHelper(
         return await ctx.DonorManagementLogs
             .Where(l => ids.Contains(l.DonorId))
             .ToListAsync();
+    }
+
+    public async Task<IReadOnlyCollection<PrecomputedGenotypeSet>> GetPrecomputedGenotypeSets(int donorId)
+    {
+        await using var ctx = matchingFactory.CreateDbContext();
+        return await ctx.DonorSubjectGenotypeSets
+            .Where(l => l.DonorId == donorId)
+            .Join(ctx.SubjectGenotypeSetValues, l => l.SubjectGenotypeSetValueId, v => v.Id,
+                (l, v) => new PrecomputedGenotypeSet(
+                    l.AllowedLociKey,
+                    v.AllowedLociKey,
+                    v.HlaTypingKey,
+                    v.HaplotypeFrequencySetId,
+                    v.IsUnrepresented,
+                    v.SubjectGenotypeSetData != null))
+            .ToListAsync();
+    }
+
+    public async Task<int?> GetActiveHaplotypeFrequencySetId(string registryCode, string ethnicityCode)
+    {
+        await using var ctx = atlasFactory.CreateDbContext();
+        return await ctx.HaplotypeFrequencySets
+            .Where(s => s.Active && s.RegistryCode == registryCode && s.EthnicityCode == ethnicityCode)
+            .Select(s => (int?)s.Id)
+            .SingleOrDefaultAsync();
     }
 }

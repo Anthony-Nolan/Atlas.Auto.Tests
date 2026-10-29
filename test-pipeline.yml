@@ -87,6 +87,7 @@ stages:
       testCategoryJobs:
       - job: SearchHappyPathTests
       - job: SearchExceptionPathTests
+      - job: Search_PrecomputedGenotypeSetTests
       - job: ScoringHappyPathTests
       - job: RepeatSearchHappyPathTests_Adult
       - job: RepeatSearchHappyPathTests_Cord

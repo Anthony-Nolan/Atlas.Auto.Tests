@@ -23,8 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Atlas.Client.Models" Version="4.1.0-ci-76247" />
-    <PackageReference Include="Atlas.DonorImport.FileSchema.Models" Version="4.1.0-ci-76247" />
+    <PackageReference Include="Atlas.Client.Models" Version="4.1.0-ci-78000" />
+    <PackageReference Include="Atlas.DonorImport.FileSchema.Models" Version="4.1.0-ci-78000" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
@@ -95,6 +95,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_UsesPrecomputedGenotypeSets_SearchResult.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_UsesPrecomputedGenotypeSets_MatchingResult.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew_MatchingResult.verified.txt">
