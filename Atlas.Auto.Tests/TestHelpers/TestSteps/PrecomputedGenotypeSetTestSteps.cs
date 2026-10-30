@@ -82,6 +82,10 @@ internal class PrecomputedGenotypeSetTestSteps
         return sets;
     }
 
+    /// <summary>
+    /// The usage event counts donor inputs - donors grouped by typing - not donor ids, so it is about one donor only
+    /// when the search found that donor alone: the test searches for a typing that no other test uses.
+    /// </summary>
     public async Task PrecomputedGenotypeSetsShouldHaveBeenUsed(string searchRequestId)
     {
         // App Insights takes a few minutes to ingest an event
@@ -92,8 +96,13 @@ internal class PrecomputedGenotypeSetTestSteps
         usage.Should().NotBeNull("match prediction should send a usage event for search request {0}", searchRequestId);
         _logger.LogInformation("Precomputed genotype set usage: {Usage}", usage);
 
+        // Donor ids, not inputs: a donor left from a failed run has the same typing, so it would share this donor's input
+        usage!.DonorIdCount.Should().Be(1,
+            "the search should find only the imported donor; others with its typing are left from runs that failed before " +
+            "their edit step (the health check cleanup removes them)");
+
         // Environment setting, not a defect: ForceLive ignores the request. Warn and let the test go on to its next steps.
-        if (usage!.PrecomputeModes.Split(',').Contains("ForceLive"))
+        if (usage.PrecomputeModes.Split(',').Contains("ForceLive"))
         {
             Assert.Warn($"Precompute mode is '{usage.PrecomputeModes}' on this environment, so the search could not use " +
                         "precomputed genotype sets. Set it to DefaultLive or DefaultPrecomputed to check them.");
@@ -104,8 +113,8 @@ internal class PrecomputedGenotypeSetTestSteps
         {
             usage.UsePrecomputedGenotypeSets.Should().Be(bool.TrueString,
                 "the search asked for precomputed genotype sets; precompute mode was '{0}'", usage.PrecomputeModes);
-            usage.PrecomputedCount.Should().BeGreaterThanOrEqualTo(1,
-                "at least the imported donor should be read from its precomputed genotype set; precompute mode was '{0}'", usage.PrecomputeModes);
+            usage.PrecomputedCount.Should().Be(1,
+                "the imported donor should be read from its precomputed genotype set; precompute mode was '{0}'", usage.PrecomputeModes);
         }
     }
 }

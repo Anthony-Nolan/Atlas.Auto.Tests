@@ -35,6 +35,7 @@ internal class AppInsightsHelper(LogsQueryClient logsClient, AppInsightsSettings
             PrecomputeModes = strcat_array(make_set(tostring(Properties["PrecomputeMode"])), ","),
             UsePrecomputedGenotypeSets = strcat_array(make_set(tostring(Properties["UsePrecomputedGenotypeSets"])), ","),
             DonorCount = tolong(sum(todouble(Measurements["DonorCount"]))),
+            DonorIdCount = tolong(sum(todouble(Measurements["DonorIdCount"]))),
             PrecomputedCount = tolong(sum(todouble(Measurements["PrecomputedCount"])))
         """;
 
@@ -60,6 +61,7 @@ internal class AppInsightsHelper(LogsQueryClient logsClient, AppInsightsSettings
             row[nameof(PrecomputedGenotypeSetUsage.PrecomputeModes)]?.ToString() ?? string.Empty,
             row[nameof(PrecomputedGenotypeSetUsage.UsePrecomputedGenotypeSets)]?.ToString() ?? string.Empty,
             (long)(row[nameof(PrecomputedGenotypeSetUsage.DonorCount)] ?? 0L),
+            (long)(row[nameof(PrecomputedGenotypeSetUsage.DonorIdCount)] ?? 0L),
             (long)(row[nameof(PrecomputedGenotypeSetUsage.PrecomputedCount)] ?? 0L));
     }
 

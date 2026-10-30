@@ -8,6 +8,7 @@ internal interface IDonorStoreSqlHelper
     Task<DonorCheckResult<Donor>> CheckDonorsInDonorStore(IEnumerable<string> externalDonorCodes);
     Task<DonorCheckResult<MatchingAlgorithmDonor>> CheckDonorsInMatchingAlgorithm(IEnumerable<string> externalDonorCodes);
     Task<IEnumerable<string>> GetExternalDonorCodesByRegistry(string registryCode, DateTimeOffset updatedBefore);
+    Task<IReadOnlyCollection<string>> GetSearchableMatchingDonorCodesByRegistry(string registryCode);
     Task DeleteDonorsFromDonorStore(IEnumerable<string> externalDonorCodes);
     Task SetDonorsAsUnavailableForSearch(IEnumerable<string> externalDonorCodes);
     Task<IReadOnlyCollection<DonorImportFailure>> GetDonorImportFailuresByFileName(string fileName);
@@ -51,6 +52,17 @@ internal class DonorStoreSqlHelper(
         await using var ctx = atlasFactory.CreateDbContext();
         return await ctx.Donors
             .Where(d => d.RegistryCode == registryCode && d.LastUpdated < updatedBefore)
+            .Select(d => d.ExternalDonorCode)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyCollection<string>> GetSearchableMatchingDonorCodesByRegistry(string registryCode)
+    {
+        var donorTypes = Enum.GetValues<MatchingDonorType>();
+        await using var ctx = matchingFactory.CreateDbContext();
+        // DonorType too, so the query can seek on the (DonorType, RegistryCode) index
+        return await ctx.Donors
+            .Where(d => donorTypes.Contains(d.DonorType) && d.RegistryCode == registryCode && d.IsAvailableForSearch)
             .Select(d => d.ExternalDonorCode)
             .ToListAsync();
     }

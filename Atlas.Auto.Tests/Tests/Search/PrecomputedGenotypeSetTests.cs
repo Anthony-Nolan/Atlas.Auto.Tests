@@ -21,9 +21,13 @@ internal class PrecomputedGenotypeSetTests : SearchTestBase
     }
 
     /// <summary>
-    /// An imported donor gets a precomputed genotype set per allowed-loci combination, a search reads them and gets the
-    /// same result as the live 10/10 search, and an HLA edit replaces them with sets for the new typing.
+    /// An imported donor gets a precomputed genotype set per allowed-loci combination, a search reads them, and an HLA
+    /// edit replaces them with sets for the new typing.
     /// </summary>
+    /// <remarks>
+    /// The donor's typing is used by no other test, so the search finds only this donor and its usage event is about
+    /// it alone. The edit moves the donor off that typing, so a later run does not find it either.
+    /// </remarks>
     [Test]
     [ManualTest("QA-2881")]
     [RequiresAppInsights]
@@ -33,18 +37,18 @@ internal class PrecomputedGenotypeSetTests : SearchTestBase
         var precomputeSteps = new PrecomputedGenotypeSetTestSteps(Provider, steps.Logger);
 
         // Create
-        var donorCode = await steps.CreateDonor(ImportDonorType.Adult, ImportedHlaBuilder.SearchTestPhenotype);
+        var donorCode = await steps.CreateDonor(ImportDonorType.Adult, ImportedHlaBuilder.PrecomputeTestPhenotype);
         var donorId = await precomputeSteps.GetMatchingDonorId(donorCode);
         var createdSets = await precomputeSteps.DonorShouldHavePrecomputedGenotypeSets(donorId);
 
         // Search
-        var searchResponse = await steps.SubmitSearchRequest("search-request-donor-10_10.json", usePrecomputedGenotypeSets: true);
+        var searchResponse = await steps.SubmitSearchRequest("search-request-precompute-10_10.json", usePrecomputedGenotypeSets: true);
         await steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, donorCode);
         await steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, donorCode);
         await precomputeSteps.PrecomputedGenotypeSetsShouldHaveBeenUsed(searchResponse.SearchIdentifier);
 
         // Edit
-        await steps.DonorImportSteps.EditDonorHla(donorCode, ImportDonorType.Adult, ImportedHlaBuilder.SearchTestPhenotype.WithAlternativeHlaAtLocusA());
+        await steps.DonorImportSteps.EditDonorHla(donorCode, ImportDonorType.Adult, ImportedHlaBuilder.PrecomputeTestPhenotype.WithAlternativeHlaAtLocusA());
         await precomputeSteps.DonorShouldHavePrecomputedGenotypeSets(donorId, createdSets);
     }
 }

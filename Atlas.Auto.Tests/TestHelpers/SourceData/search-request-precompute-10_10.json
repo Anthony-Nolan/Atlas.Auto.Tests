@@ -1,0 +1,60 @@
+{
+  "SearchDonorType": 1,
+  "MatchCriteria": {
+    "DonorMismatchCount": 0,
+    "LocusMismatchCriteria": {
+      "A": 0,
+      "B": 0,
+      "C": 0,
+      "Dpb1": null,
+      "Dqb1": 0,
+      "Drb1": 0
+    },
+    "IncludeBetterMatches": false
+  },
+  "ScoringCriteria": {
+    "LociToScore": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "LociToExcludeFromAggregateScore": [
+      3
+    ]
+  },
+  "PatientEthnicityCode": "AutoTestEthnicity",
+  "PatientRegistryCode": "AutoTestRegistry",
+  "RunMatchPrediction": true,
+  "DonorRegistryCodes": [
+    "AutoTestRegistry"
+  ],
+  "SearchHlaData": {
+    "A": {
+      "Position1": "*30:02",
+      "Position2": "*68:05"
+    },
+    "B": {
+      "Position1": "*15:10",
+      "Position2": "*48:01"
+    },
+    "C": {
+      "Position1": "*04:01",
+      "Position2": "*03:03"
+    },
+    "Dpb1": {
+      "Position1": "*01:01",
+      "Position2": "*11:01"
+    },
+    "Dqb1": {
+      "Position1": "*06:02",
+      "Position2": "*04:02"
+    },
+    "Drb1": {
+      "Position1": "*11:01",
+      "Position2": "*08:02"
+    }
+  }
+}

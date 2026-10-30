@@ -4,28 +4,28 @@
       TotalMatchCount: 10,
       DonorHla: {
         A: {
-          Position1: *31:XX,
-          Position2: *32:XX
+          Position1: *30:XX,
+          Position2: *68:XX
         },
         B: {
-          Position1: *14:XX,
-          Position2: *35:XX
+          Position1: *15:XX,
+          Position2: *48:XX
         },
         C: {
-          Position1: *01:02,
-          Position2: *08:180N
+          Position1: *04:01,
+          Position2: *03:03
         },
         Dpb1: {
           Position1: *01:01,
           Position2: *11:01
         },
         Dqb1: {
-          Position1: *02:01,
-          Position2: *03:02
+          Position1: *06:02,
+          Position2: *04:02
         },
         Drb1: {
-          Position1: *03:XX,
-          Position2: *09:XX
+          Position1: *11:XX,
+          Position2: *08:XX
         }
       },
       TypedLociCount: 6
@@ -89,7 +89,7 @@
           },
           ScoreDetailsAtPositionTwo: {
             MatchConfidence: Exact,
-            MatchGrade: NullGDna,
+            MatchGrade: GDna,
             IsAntigenMatch: true
           },
           MismatchDirection: null
@@ -353,7 +353,7 @@
         },
         ScoreDetailsAtPositionTwo: {
           MatchConfidence: Exact,
-          MatchGrade: NullGDna,
+          MatchGrade: GDna,
           IsAntigenMatch: true
         },
         MismatchDirection: null
