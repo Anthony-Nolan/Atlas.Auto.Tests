@@ -1,3 +1,4 @@
+using Atlas.Auto.Tests.TestHelpers.Attributes;
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.SourceData;
@@ -81,6 +82,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
     }
 
     [Test]
+    [RequiresAppInsights]
     public async Task DonorImport_DiffMode_CreateWithInvalidHla_ReportsInvalidHla_AndDoesNotMakeDonorAvailableForSearch()
     {
         const int donorCount = 1;

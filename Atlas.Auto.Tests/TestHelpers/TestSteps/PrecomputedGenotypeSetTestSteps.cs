@@ -92,9 +92,17 @@ internal class PrecomputedGenotypeSetTestSteps
         usage.Should().NotBeNull("match prediction should send a usage event for search request {0}", searchRequestId);
         _logger.LogInformation("Precomputed genotype set usage: {Usage}", usage);
 
+        // Environment setting, not a defect: ForceLive ignores the request. Warn and let the test go on to its next steps.
+        if (usage!.PrecomputeModes.Split(',').Contains("ForceLive"))
+        {
+            Assert.Warn($"Precompute mode is '{usage.PrecomputeModes}' on this environment, so the search could not use " +
+                        "precomputed genotype sets. Set it to DefaultLive or DefaultPrecomputed to check them.");
+            return;
+        }
+
         using (new AssertionScope())
         {
-            usage!.UsePrecomputedGenotypeSets.Should().Be(bool.TrueString,
+            usage.UsePrecomputedGenotypeSets.Should().Be(bool.TrueString,
                 "the search asked for precomputed genotype sets; precompute mode was '{0}'", usage.PrecomputeModes);
             usage.PrecomputedCount.Should().BeGreaterThanOrEqualTo(1,
                 "at least the imported donor should be read from its precomputed genotype set; precompute mode was '{0}'", usage.PrecomputeModes);

@@ -66,6 +66,8 @@ stages:
     parameters:
       testCategoryJobs:
       - job: HealthCheck
+      # Prints the tests' progress output, so a ##vso warning from a health check shows on the run
+      extraTestArguments: '--logger "console;verbosity=normal"'
 
 - stage: donorImport
   displayName: "Donor Import"
@@ -87,7 +89,6 @@ stages:
       testCategoryJobs:
       - job: SearchHappyPathTests
       - job: SearchExceptionPathTests
-      - job: Search_PrecomputedGenotypeSetTests
       - job: ScoringHappyPathTests
       - job: RepeatSearchHappyPathTests_Adult
       - job: RepeatSearchHappyPathTests_Cord

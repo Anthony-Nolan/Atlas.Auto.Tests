@@ -8,10 +8,12 @@ namespace Atlas.Auto.Tests.Tests.Search;
 
 /// <summary>
 /// Needs MATCH_PREDICTION_PRECOMPUTE_MODE = DefaultLive or DefaultPrecomputed on the target Atlas: with ForceLive the
-/// search ignores the request's UsePrecomputedGenotypeSets, and the usage check fails.
+/// search ignores the request's UsePrecomputedGenotypeSets, so the usage check only warns.
 /// </summary>
 [TestFixture]
 [Category($"{TestConstants.SearchTestTag}_{nameof(PrecomputedGenotypeSetTests)}")]
+// Runs in the SearchHappyPathTests pipeline job: not worth an agent of its own
+[Category(nameof(SearchHappyPathTests))]
 internal class PrecomputedGenotypeSetTests : SearchTestBase
 {
     public PrecomputedGenotypeSetTests() : base(nameof(PrecomputedGenotypeSetTests))
@@ -24,6 +26,7 @@ internal class PrecomputedGenotypeSetTests : SearchTestBase
     /// </summary>
     [Test]
     [ManualTest("QA-2881")]
+    [RequiresAppInsights]
     public async Task Search_Donor_10_10_UsesPrecomputedGenotypeSets()
     {
         var steps = GetSearchTestSteps(nameof(Search_Donor_10_10_UsesPrecomputedGenotypeSets));

@@ -63,6 +63,20 @@ internal class AppInsightsHelper(LogsQueryClient logsClient, AppInsightsSettings
             (long)(row[nameof(PrecomputedGenotypeSetUsage.PrecomputedCount)] ?? 0L));
     }
 
+    /// <summary>
+    /// The time of the latest request any Atlas app has sent to App Insights, or null when there is none in the last day.
+    /// The function apps have timer triggers, so on a working environment there is always a recent one.
+    /// </summary>
+    public async Task<DateTimeOffset?> GetLatestRequestTime()
+    {
+        var response = await logsClient.QueryWorkspaceAsync(
+            settings.WorkspaceId,
+            "AppRequests | summarize LatestRequestTime = max(TimeGenerated)",
+            new QueryTimeRange(TimeSpan.FromDays(1)));
+
+        return response.Value.Table.Rows.SingleOrDefault()?.GetDateTimeOffset("LatestRequestTime");
+    }
+
     public async Task<List<HlaExpansionFailure>> GetHlaExpansionFailures(int daysToQuery = 14)
     {
         var response = await logsClient.QueryWorkspaceAsync(
