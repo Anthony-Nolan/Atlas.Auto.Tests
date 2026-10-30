@@ -11,20 +11,12 @@
   </PropertyGroup>
  
   <ItemGroup>
-    <EmbeddedResource Include="TestHelpers\SourceData\score-request.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-cord-4_8.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-9_10.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-associated-antigen-10_10.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-invalid-patient-hla-at-A1.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-missing-locus-A.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-10_10.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\score-batch-request.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-patient-with-new-at-A1.json" />
+    <EmbeddedResource Include="TestHelpers\SourceData\*request*.json" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Atlas.Client.Models" Version="4.1.0-ci-76247" />
-    <PackageReference Include="Atlas.DonorImport.FileSchema.Models" Version="4.1.0-ci-76247" />
+    <PackageReference Include="Atlas.Client.Models" Version="4.1.0-ci-78000" />
+    <PackageReference Include="Atlas.DonorImport.FileSchema.Models" Version="4.1.0-ci-78000" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
@@ -46,6 +38,8 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
+    <!-- Microsoft.Data.SqlClient brings 9.0.4, which has known vulnerabilities (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx) -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
     <PackageReference Include="Polly" Version="8.3.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.0" />
     <PackageReference Include="Verify.NUnit" Version="23.2.2" />
@@ -55,58 +49,7 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TestHelpers\Assertions\Approvals\Score_ScoresDonor.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\ScoreBatch_ScoresDonorBatch.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Cord_4_8_IdentifiedExpectedChanges_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Cord_4_8_IdentifiedExpectedChanges_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_Cord_4_8_ReturnsExpectedSearchResult_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_Cord_4_8_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Donor_10_10_IdentifiedExpectedChanges_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Donor_10_10_IdentifiedExpectedChanges_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_DonorWithAssociatedAntigen_10_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_DonorWithAssociatedAntigen_10_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_DonorWithNew_9_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_DonorWithNew_9_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
+    <None Update="TestHelpers\Assertions\Approvals\*.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

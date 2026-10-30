@@ -90,6 +90,7 @@ internal static class ServiceConfiguration
             Retry = { MaxRetries = 3, Mode = Azure.Core.RetryMode.Exponential }
         }));
         services.AddSingleton<AppInsightsHelper>();
+        services.AddSingleton<AppInsightsIngestionCheck>();
 
         services.AddSingleton(configuration.GetSection("Retry").Get<RetrySettings>() ?? new RetrySettings());
 

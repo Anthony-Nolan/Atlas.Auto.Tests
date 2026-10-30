@@ -78,6 +78,20 @@ namespace Atlas.Auto.Tests.TestHelpers.SourceData
             "*03:XX", "*09:XX")
             .ToPhenotypeInfoTransfer();
 
+        /// <summary>
+        /// Two haplotypes of the autotest frequency set that no other typing here uses, so a search for it finds only
+        /// the donor of the precomputed genotype set test, and its usage event counts that donor alone. Ambiguous, as
+        /// Atlas stores no precomputed genotype set for an unambiguous typing.
+        /// </summary>
+        public static readonly PhenotypeInfoTransfer<string> PrecomputeTestPhenotype = new PhenotypeInfo<string>(
+            "*30:XX", "*68:XX",
+            "*15:XX", "*48:XX",
+            "*04:01", "*03:03",
+            "*01:01", "*11:01",
+            "*06:02", "*04:02",
+            "*11:XX", "*08:XX")
+            .ToPhenotypeInfoTransfer();
+
         public static readonly PhenotypeInfoTransfer<string> SearchNewPhenotype = new PhenotypeInfo<string>(
             "NEW", "*32:XX",
             "*14:XX", "*35:XX",

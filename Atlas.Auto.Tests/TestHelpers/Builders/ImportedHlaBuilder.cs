@@ -15,6 +15,8 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
 
         public static Builder<ImportedHla> SearchNewPhenotype => BuildFromPhenotype(HlaTypings.SearchNewPhenotype);
 
+        public static Builder<ImportedHla> PrecomputeTestPhenotype => BuildFromPhenotype(HlaTypings.PrecomputeTestPhenotype);
+
         public static Builder<ImportedHla> AssociatedAntigenPhenotype => BuildFromPhenotype(HlaTypings.SearchAssociatedPhenotype);
 
         public static Builder<ImportedHla> ExpandedHlaPhenotype => BuildFromPhenotype(HlaTypings.ExpandedHlaPhenotype);

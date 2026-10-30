@@ -23,18 +23,39 @@ internal class TestDonorDeleter
     public async Task DeleteDonors()
     {
         var donorCodes = await GetAutoTestDonorCodes();
+        if (donorCodes.Count > 0)
+        {
+            var deleteResult = await TryDeleteFromDonorStore(donorCodes);
+            _logger.LogInformation("Donors deletion from donor store {Outcome:l}", deleteResult ? "was successful" : "failed");
+        }
 
-        if (donorCodes.Count == 0)
+        // Also the searchable donors no longer in the donor store: a clean-up that stopped between its two steps
+        // deleted them there but left them searchable, and the donor store query alone would never find them again.
+        var searchableCodes = donorCodes.Union(await GetSearchableAutoTestDonorCodes()).ToList();
+        if (searchableCodes.Count == 0)
         {
             _logger.LogInformation("No donor codes were returned for deletion");
             return;
         }
 
-        var deleteResult = await TryDeleteFromDonorStore(donorCodes);
-        _logger.LogInformation("Donors deletion from donor store {Outcome:l}", deleteResult ? "was successful" : "failed");
-
-        var availabilityResult = await TrySetAsUnavailable(donorCodes);
+        var availabilityResult = await TrySetAsUnavailable(searchableCodes);
         _logger.LogInformation("Setting donors as unavailable for search {Outcome:l}", availabilityResult ? "was successful" : "failed");
+    }
+
+    private async Task<IReadOnlyCollection<string>> GetSearchableAutoTestDonorCodes()
+    {
+        try
+        {
+            var result = await _pollyRetry.ExecuteWithRetry(
+                async () => await _donorSqlHelper.GetSearchableMatchingDonorCodesByRegistry(TestConstants.DefaultRegistryCode),
+                _retry.Cleanup, "Fetch searchable auto-test donor codes for cleanup");
+            return result ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch searchable donor codes for deletion");
+            return [];
+        }
     }
 
     private async Task<IReadOnlyCollection<string>> GetAutoTestDonorCodes()

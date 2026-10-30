@@ -37,10 +37,14 @@ internal class SearchTestSteps : SearchTestStepsBase
             _pollyRetry, _retry.FetchMessages, "Fetch search notification");
     }
 
-    public async Task<SearchInitiationResponse> SubmitSearchRequest(string searchRequestFileName, bool? parallelMatchPrediction = null)
+    public async Task<SearchInitiationResponse> SubmitSearchRequest(
+        string searchRequestFileName,
+        bool? parallelMatchPrediction = null,
+        bool? usePrecomputedGenotypeSets = null)
     {
         var searchRequest = await SourceDataReader.ReadJsonFile<SearchRequest>(searchRequestFileName);
         searchRequest.ParallelMatchPrediction = parallelMatchPrediction;
+        searchRequest.UsePrecomputedGenotypeSets = usePrecomputedGenotypeSets;
 
         var response = await _pollyRetry.ExecuteWithRetry(
             async () => await _publicApiClient.PostSearchRequest(searchRequest),

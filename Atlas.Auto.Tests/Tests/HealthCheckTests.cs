@@ -75,6 +75,22 @@ internal class HealthCheckTests : TestBase
         failures.Should().NotBeNull("App Insights should be queryable via Azure credentials");
     }
 
+    /// <summary>
+    /// Only warns: the tests that need App Insights skip themselves, and the rest of the pipeline should still run.
+    /// </summary>
+    [Test]
+    [Category("HealthCheck")]
+    public async Task AppInsights_ShouldBeStoringTelemetry()
+    {
+        var problem = await Provider.GetRequiredService<AppInsightsIngestionCheck>().GetProblem();
+        if (problem == null)
+            return;
+
+        // Shown as a warning on the Azure DevOps run
+        TestContext.Progress.WriteLine($"##vso[task.logissue type=warning]{problem}");
+        Assert.Warn(problem);
+    }
+
     [Test]
     [Category("HealthCheck")]
     public async Task PublicApi_ShouldBeHealthy()

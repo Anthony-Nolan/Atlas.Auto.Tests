@@ -2,6 +2,10 @@ parameters:
 - name: testCategoryJobs
   type: jobList
   default: []
+# Extra dotnet test arguments for every job in this template call
+- name: extraTestArguments
+  type: string
+  default: ''
 
 jobs:
 - ${{ each testCategoryJob in parameters.testCategoryJobs }}:
@@ -19,6 +23,6 @@ jobs:
         displayName: 'Run Tests for ${{testCategoryJob.job}}'
         inputs:
           command: 'test'
-          arguments: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net10.0/Atlas.Auto.Tests.dll --no-restore --filter TestCategory=${{testCategoryJob.job}}'
+          arguments: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net10.0/Atlas.Auto.Tests.dll --no-restore --filter TestCategory=${{testCategoryJob.job}} ${{parameters.extraTestArguments}}'
           testRunTitle: '${{testCategoryJob.job}}'
 
