@@ -47,6 +47,8 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
+    <!-- Microsoft.Data.SqlClient brings 9.0.4, which has known vulnerabilities (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx) -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
     <PackageReference Include="Polly" Version="8.3.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.0" />
     <PackageReference Include="Verify.NUnit" Version="23.2.2" />
