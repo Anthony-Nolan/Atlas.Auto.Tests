@@ -11,16 +11,7 @@
   </PropertyGroup>
  
   <ItemGroup>
-    <EmbeddedResource Include="TestHelpers\SourceData\score-request.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-cord-4_8.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-9_10.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-associated-antigen-10_10.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-invalid-patient-hla-at-A1.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-missing-locus-A.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-donor-10_10.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-precompute-10_10.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\score-batch-request.json" />
-    <EmbeddedResource Include="TestHelpers\SourceData\search-request-patient-with-new-at-A1.json" />
+    <EmbeddedResource Include="TestHelpers\SourceData\*request*.json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -58,64 +49,7 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TestHelpers\Assertions\Approvals\Score_ScoresDonor.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\ScoreBatch_ScoresDonorBatch.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Cord_4_8_IdentifiedExpectedChanges_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Cord_4_8_IdentifiedExpectedChanges_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_Cord_4_8_ReturnsExpectedSearchResult_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_Cord_4_8_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Donor_10_10_IdentifiedExpectedChanges_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\RepeatSearch_Donor_10_10_IdentifiedExpectedChanges_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_DonorWithAssociatedAntigen_10_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_DonorWithAssociatedAntigen_10_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_DonorWithNew_9_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_DonorWithNew_9_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_UsesPrecomputedGenotypeSets_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_Donor_10_10_UsesPrecomputedGenotypeSets_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResultDonorWithNew_SearchResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResult_MatchingResult.verified.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestHelpers\Assertions\Approvals\Search_PatientWithNew_9_10_ReturnsExpectedSearchResult_SearchResult.verified.txt">
+    <None Update="TestHelpers\Assertions\Approvals\*.verified.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

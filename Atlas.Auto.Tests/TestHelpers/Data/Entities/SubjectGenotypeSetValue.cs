@@ -9,7 +9,6 @@ public class SubjectGenotypeSetValue
 {
     public int Id { get; set; }
 
-    [Required]
     [MaxLength(64)]
     public string HlaTypingKey { get; set; } = null!;
 
