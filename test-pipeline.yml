@@ -2,94 +2,31 @@
 trigger: none
 pr: none
 
-pool:
-  vmImage: 'windows-latest'
-
-variables:
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
-  NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
-  
-stages: 
-- stage: build
-  displayName: "Build"
-  jobs:
-  - job:
-    displayName: 'Restore Cache and Build'
-    steps: 
-      - task: UseDotNet@2
-        displayName: 'Install .NET Core SDK'
-        inputs:
-          packageType: 'sdk'
-          version: 10.0.x
-
-      - task: FileTransform@2
-        # Pipeline must have variables that match those in appsettings.json.
-        # Use `.` to retrieve nested values, e.g., var name `Azure.Authentication.ClientId` maps to `{ "Azure": { "Authentication": { "ClientId": "value" } } }`
-        displayName: 'Set environment variables'
-        inputs:
-          folderPath: '$(System.DefaultWorkingDirectory)'
-          xmlTransformationRules: '' # Prevents task error: "Unable to apply transformation for the given package - Changes are already present in the package."
-          jsonTargetFiles: '**/appsettings.json'
-        continueOnError: false
-
-      - task: DotNetCoreCLI@2
-        displayName: 'Restore'
-        inputs:
-          command: 'restore'
-          projects: "**/Atlas.Auto.Tests.csproj"
-          feedsToUse: 'select'
-          vstsFeed: $(ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID)
-          includeNuGetOrg: true
-          
-      - task: DotNetCoreCLI@2
-        displayName: 'Build'
-        inputs:
-          command: 'build'
-          projects: '**/Atlas.Auto.Tests.csproj'
-          arguments: '--configuration $(buildConfiguration) --no-restore'
-
-      - task: CopyFiles@2
-        displayName: 'Copy Test artifacts for later use in the pipeline'
-        inputs:
-          contents: 'Atlas.Auto.Tests/bin/Release/net10.0/**'
-          targetFolder: '$(Build.ArtifactStagingDirectory)'
-
-      - publish: '$(Build.ArtifactStagingDirectory)'
-        displayName: 'Publish Test artifacts for later use in the pipeline'
-        artifact: dropTestSuite
-        
-- stage: healthCheck
-  displayName: "Health Check"
-  jobs:
-  - template: azure-test-run-template.yml
-    parameters:
-      testCategoryJobs:
-      - job: HealthCheck
+extends:
+  template: azure-test-run-template.yml
+  parameters:
+    testStages:
+    - stage: healthCheck
+      displayName: "Health Check"
+      categories:
+      - HealthCheck
       # Prints the tests' progress output, so a ##vso warning from a health check shows on the run
       extraTestArguments: '--logger "console;verbosity=normal"'
 
-- stage: donorImport
-  displayName: "Donor Import"
-  dependsOn: healthCheck
-  jobs:
-  - template: azure-test-run-template.yml
-    parameters:
-      testCategoryJobs:
-      - job: DonorImport_DiffModeHappyPathTests
-      - job: DonorImport_DiffModeExceptionPathTests
-      - job: DonorImport_FullModeExceptionPathTests
+    - stage: donorImport
+      displayName: "Donor Import"
+      categories:
+      - DonorImport_DiffModeHappyPathTests
+      - DonorImport_DiffModeExceptionPathTests
+      - DonorImport_FullModeExceptionPathTests
 
-- stage: searchAndScoring
-  displayName: "Search, Scoring & Repeat Search"
-  dependsOn: donorImport
-  jobs:
-  - template: azure-test-run-template.yml
-    parameters:
-      testCategoryJobs:
-      - job: SearchHappyPathTests
-      - job: SearchExceptionPathTests
-      - job: ScoringHappyPathTests
-      - job: RepeatSearchHappyPathTests_Adult
-      - job: RepeatSearchHappyPathTests_Cord
-      - job: RepeatSearchExceptionPathTests
+    - stage: searchAndScoring
+      displayName: "Search, Scoring & Repeat Search"
+      categories:
+      - SearchHappyPathTests
+      - Search_PrecomputedGenotypeSetTests
+      - SearchExceptionPathTests
+      - ScoringHappyPathTests
+      - RepeatSearchHappyPathTests_Adult
+      - RepeatSearchHappyPathTests_Cord
+      - RepeatSearchExceptionPathTests

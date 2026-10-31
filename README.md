@@ -33,11 +33,15 @@ The test project connects directly to Atlas infrastructure rather than through d
 - `test-pipeline.yml` is a template file for tests to be run in Azure DevOps.
 - A new pipeline should be created for each instance of the Atlas API under test, e.g., Dev, UAT, PR, etc.
 - The template file does not have any triggers or schedules: this should be set as needed for each copy of the pipeline.
-- The pipeline runs in three stages with dependencies:
+- `test-pipeline.yml` lists the stages and their test categories; `azure-test-run-template.yml` holds the build and the steps of a test stage, and `pipeline/` the scripts they run.
+- The pipeline runs in three stages, one after another:
   1. **Health Check** — verifies infrastructure accessibility (SQL, ServiceBus, Blob Storage, Azure Auth, App Insights, Public API).
-  2. **Donor Import** — runs donor import tests (depends on Health Check).
-  3. **Search, Scoring & Repeat Search** — runs all search-related tests in parallel (depends on Donor Import).
-- Make sure to extend the list of `testCategoryJobs` in the appropriate stage whenever a new Category of tests is added.
+  2. **Donor Import** — runs donor import tests.
+  3. **Search, Scoring & Repeat Search** — runs all search-related tests.
+- Each stage is one job on one agent that runs all its categories at once. The results are published as one test run per category, tagged with the stage.
+- 'Rerun failed jobs' runs only the categories that did not pass.
+- Every test run starts by removing the test donors earlier runs left behind, so two runs must not target the same Atlas at the same time.
+- Make sure to extend the list of `categories` in the appropriate stage whenever a new Category of tests is added.
 
 ### Pipeline Variables
 - Each pipeline instance must have pipeline variables that match those within `appsettings.json`.

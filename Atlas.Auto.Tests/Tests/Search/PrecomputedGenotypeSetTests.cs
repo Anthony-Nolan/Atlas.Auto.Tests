@@ -12,8 +12,6 @@ namespace Atlas.Auto.Tests.Tests.Search;
 /// </summary>
 [TestFixture]
 [Category($"{TestConstants.SearchTestTag}_{nameof(PrecomputedGenotypeSetTests)}")]
-// Runs in the SearchHappyPathTests pipeline job: not worth an agent of its own
-[Category(nameof(SearchHappyPathTests))]
 internal class PrecomputedGenotypeSetTests : SearchTestBase
 {
     public PrecomputedGenotypeSetTests() : base(nameof(PrecomputedGenotypeSetTests))

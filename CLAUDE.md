@@ -50,9 +50,10 @@ Wiring: `ServiceConfiguration.CreateProvider()` (`DependencyInjection/ServiceCon
 ### Parallelism and CI categories
 
 - Add `[Parallelizable]`/`ParallelScope.All` to new fixtures — tests must be written so they can run in parallel locally without interfering (each test typically imports its own donor).
-- Every fixture carries an NUnit `[Category]` matching its class name. In Azure DevOps (`test-pipeline.yml` + `azure-test-run-template.yml`), each Category runs as its own parallel pipeline job via `dotnet test --filter TestCategory=<name>`, but tests *within* a category run sequentially in CI. Long-running categories (>20 min, e.g. `RepeatSearch_HappyPathTests`) should be split into their own Category to avoid job timeouts.
-- When adding a new test Category, also add a corresponding job entry to `testCategoryJobs` in `test-pipeline.yml`.
-- **Cleanup strategy**: stale test donors are cleaned up by the `Cleanup_ShouldRemoveStaleTestDonors` health check test, which runs in the `healthCheck` pipeline stage before any data-dependent tests. Individual test-category jobs do NOT run blanket cleanup on startup, as parallel jobs would delete each other's donors.
+- Every fixture carries an NUnit `[Category]` matching its class name; a test method can have its own (`RepeatSearchHappyPathTests_Adult`/`_Cord`). In Azure DevOps, `test-pipeline.yml` lists the stages and their categories; `azure-test-run-template.yml` holds the pool, build and steps. Each stage is one job on one agent that runs all its categories in one `dotnet test --filter "TestCategory=A|TestCategory=B"` call, in parallel in the process. The stages run one after another.
+- The job publishes one test run per category (`pipeline/Publish-TestRunsByCategory.ps1`, from the TRX and the NUnit result XML) and tags the runs with the stage (`pipeline/Add-TestRunTags.ps1`). 'Rerun failed jobs' runs only the categories that did not pass (`pipeline/Select-TestCategories.ps1`, from the NUnit XML of the earlier attempts).
+- When adding a new test Category, also add it to `categories` of its stage in `test-pipeline.yml`.
+- **Cleanup strategy**: every test run, a pipeline rerun or a local run included, starts by removing all stale test donors (`TestDonorDeleter` in `AssemblySetup`'s `[OneTimeSetUp]`). It removes every donor of the test registry, so two test runs must not target the same Atlas at the same time: a local run against an Atlas while its pipeline runs deletes the pipeline's donors.
 
 ## Versioning against Atlas
 

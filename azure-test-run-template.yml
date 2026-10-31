@@ -1,28 +1,170 @@
-parameters: 
-- name: testCategoryJobs
-  type: jobList
+# Build, then the test stages one after another. A test stage is one job that runs all its categories in one dotnet test
+# call on one agent; the tests run in parallel in that process (LevelOfParallelism in AssemblyInfo.cs).
+# Scripts are in pipeline/ (the pipeline-scripts artifact of the build stage).
+parameters:
+# Each: stage, displayName (also the tag of its test runs), categories, and optionally extraTestArguments (more dotnet
+# test arguments).
+- name: testStages
+  type: object
   default: []
-# Extra dotnet test arguments for every job in this template call
-- name: extraTestArguments
-  type: string
-  default: ''
 
-jobs:
-- ${{ each testCategoryJob in parameters.testCategoryJobs }}:
+stages:
+- stage: build
+  displayName: "Build"
+  jobs:
   - job:
-    displayName: 'Tests run - ${{testCategoryJob.job}}'
-    timeoutInMinutes: 60
-    steps: 
-      - task: DownloadPipelineArtifact@2
-        displayName: 'Download artifact'
-        inputs: 
-          buildType: 'current'
-          targetPath: '$(Pipeline.Workspace)'
+    displayName: 'Restore Cache and Build'
+    pool:
+      vmImage: 'windows-latest'
+    variables:
+      buildConfiguration: 'Release'
+      NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
+    steps:
+      - task: UseDotNet@2
+        displayName: 'Install .NET Core SDK'
+        inputs:
+          packageType: 'sdk'
+          version: 10.0.x
+
+      - task: FileTransform@2
+        # Pipeline must have variables that match those in appsettings.json.
+        # Use `.` to retrieve nested values, e.g., var name `Azure.Authentication.ClientId` maps to `{ "Azure": { "Authentication": { "ClientId": "value" } } }`
+        displayName: 'Set environment variables'
+        inputs:
+          folderPath: '$(System.DefaultWorkingDirectory)'
+          xmlTransformationRules: '' # Prevents task error: "Unable to apply transformation for the given package - Changes are already present in the package."
+          jsonTargetFiles: '**/appsettings.json'
+        continueOnError: false
 
       - task: DotNetCoreCLI@2
-        displayName: 'Run Tests for ${{testCategoryJob.job}}'
+        displayName: 'Restore'
+        inputs:
+          command: 'restore'
+          projects: "**/Atlas.Auto.Tests.csproj"
+          feedsToUse: 'select'
+          vstsFeed: $(ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID)
+          includeNuGetOrg: true
+
+      - task: DotNetCoreCLI@2
+        displayName: 'Build'
+        inputs:
+          command: 'build'
+          projects: '**/Atlas.Auto.Tests.csproj'
+          arguments: '--configuration $(buildConfiguration) --no-restore'
+
+      - task: CopyFiles@2
+        displayName: 'Copy Test artifacts for later use in the pipeline'
+        inputs:
+          contents: 'Atlas.Auto.Tests/bin/Release/net10.0/**'
+          targetFolder: '$(Build.ArtifactStagingDirectory)'
+
+      - publish: '$(Build.ArtifactStagingDirectory)'
+        displayName: 'Publish Test artifacts for later use in the pipeline'
+        artifact: dropTestSuite
+
+      - publish: '$(System.DefaultWorkingDirectory)/pipeline'
+        displayName: 'Publish pipeline scripts'
+        artifact: pipeline-scripts
+
+# Without dependsOn a stage waits for the one before it. The stages must not overlap: every test run starts by removing
+# all test donors (AssemblySetup), those of a job running next to it too.
+- ${{ each testStage in parameters.testStages }}:
+  - stage: ${{ testStage.stage }}
+    displayName: ${{ testStage.displayName }}
+    jobs:
+    - job: Tests
+      displayName: 'Tests run'
+      pool:
+        vmImage: 'windows-latest'
+      # The test run timeout plus the steps around it
+      timeoutInMinutes: 90
+      steps:
+      - checkout: none
+
+      - download: current
+        displayName: 'Download pipeline scripts'
+        artifact: pipeline-scripts
+
+      # 'Rerun failed jobs' runs again only the categories that did not pass
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download earlier test results'
+        condition: and(succeeded(), gt(variables['System.JobAttempt'], 1))
+        continueOnError: true
+        inputs:
+          buildType: 'current'
+          itemPattern: 'test-results-${{ testStage.stage }}-*/**'
+          path: '$(Pipeline.Workspace)/earlier-test-results'
+
+      - task: PowerShell@2
+        displayName: 'Choose test categories'
+        inputs:
+          filePath: '$(Pipeline.Workspace)/pipeline-scripts/Select-TestCategories.ps1'
+          arguments: >-
+            -Categories '${{ join(',', testStage.categories) }}'
+            -PreviousResultsFolder '$(Pipeline.Workspace)/earlier-test-results'
+
+      - download: current
+        displayName: 'Download test binaries'
+        condition: and(succeeded(), eq(variables['RunsTests'], 'true'))
+        artifact: dropTestSuite
+
+      - task: UseDotNet@2
+        displayName: 'Install .NET SDK'
+        condition: and(succeeded(), eq(variables['RunsTests'], 'true'))
+        inputs:
+          packageType: 'sdk'
+          version: 10.0.x
+
+      # Published per category in the next step, from the TRX; the NUnit XML gives the categories of its tests. The TRX is
+      # not named after the stage: the TRX of a category is, and Windows file names ignore case (healthCheck, HealthCheck).
+      # The longest category, RepeatSearchHappyPathTests_Cord, takes about 10 min.
+      - task: DotNetCoreCLI@2
+        displayName: 'Run tests'
+        condition: and(succeeded(), eq(variables['RunsTests'], 'true'))
+        timeoutInMinutes: 60
         inputs:
           command: 'test'
-          arguments: '$(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net10.0/Atlas.Auto.Tests.dll --no-restore --filter TestCategory=${{testCategoryJob.job}} ${{parameters.extraTestArguments}}'
-          testRunTitle: '${{testCategoryJob.job}}'
+          publishTestResults: false
+          arguments: >-
+            $(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net10.0/Atlas.Auto.Tests.dll
+            --no-restore
+            --filter "$(TestFilter)"
+            --logger "trx;LogFileName=${{ testStage.stage }}-run.trx"
+            --results-directory "$(Agent.TempDirectory)/TestResults"
+            ${{ coalesce(testStage.extraTestArguments, '') }}
+            -- NUnit.TestOutputXml="$(Agent.TempDirectory)/TestResults/nunit"
 
+      - task: PowerShell@2
+        displayName: 'Publish test runs by category'
+        condition: and(succeededOrFailed(), eq(variables['RunsTests'], 'true'))
+        inputs:
+          filePath: '$(Pipeline.Workspace)/pipeline-scripts/Publish-TestRunsByCategory.ps1'
+          arguments: >-
+            -TrxFile '$(Agent.TempDirectory)/TestResults/${{ testStage.stage }}-run.trx'
+            -NUnitXmlFile '$(Agent.TempDirectory)/TestResults/nunit/Atlas.Auto.Tests.xml'
+            -Categories '$(TestCategories)'
+            -OtherTitle '${{ testStage.stage }}'
+
+      # Read by 'Choose test categories' of a rerun
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish test results'
+        condition: and(succeededOrFailed(), eq(variables['RunsTests'], 'true'))
+        continueOnError: true
+        inputs:
+          targetPath: '$(Agent.TempDirectory)/TestResults/nunit'
+          artifact: 'test-results-${{ testStage.stage }}-$(System.JobAttempt)'
+          publishLocation: 'pipeline'
+
+      - task: PowerShell@2
+        displayName: 'Tag test runs'
+        condition: and(succeededOrFailed(), eq(variables['RunsTests'], 'true'))
+        continueOnError: true
+        inputs:
+          filePath: '$(Pipeline.Workspace)/pipeline-scripts/Add-TestRunTags.ps1'
+          arguments: >-
+            -CollectionUri '$(System.CollectionUri)'
+            -Project '$(System.TeamProject)'
+            -BuildId $(Build.BuildId)
+            -Stage '${{ testStage.displayName }}'
+        env:
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)

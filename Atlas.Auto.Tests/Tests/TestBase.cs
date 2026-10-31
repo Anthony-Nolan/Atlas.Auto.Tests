@@ -1,5 +1,6 @@
 using Atlas.Auto.Tests.DependencyInjection;
 using Atlas.Auto.Tests.TestHelpers.Data.Entities;
+using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.DonorImport.FileSchema.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -9,8 +10,12 @@ namespace Atlas.Auto.Tests.Tests;
 [SetUpFixture]
 internal class AssemblySetup
 {
+    /// <remarks>
+    /// Removes the test donors earlier runs left behind, a failed attempt of a rerun job included. It removes every test
+    /// donor, so no two test runs may target one Atlas at the same time: the pipeline stages run one after another.
+    /// </remarks>
     [OneTimeSetUp]
-    public void SetUp()
+    public async Task SetUp()
     {
         var importDonorTypeNames = Enum.GetNames(typeof(ImportDonorType)).ToHashSet();
         Assert.That(
@@ -21,6 +26,8 @@ internal class AssemblySetup
             Enum.GetNames(typeof(MatchingDonorType)),
             Is.SubsetOf(importDonorTypeNames),
             "MatchingDonorType names must match ImportDonorType for ToString() comparison");
+
+        await new TestDonorDeleter(TestBase.Provider).DeleteDonors();
     }
 
     [OneTimeTearDown]
