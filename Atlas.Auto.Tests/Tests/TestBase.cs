@@ -12,7 +12,7 @@ internal class AssemblySetup
 {
     /// <remarks>
     /// Removes the test donors earlier runs left behind, a failed attempt of a rerun job included. It removes every test
-    /// donor, so no two test runs may target one Atlas at the same time: the pipeline stages run one after another.
+    /// donor, so no two test runs may target one Atlas at the same time: the pipeline runs them one after another.
     /// </remarks>
     [OneTimeSetUp]
     public async Task SetUp()

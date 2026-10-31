@@ -1,10 +1,11 @@
-# Build, then the test stages one after another. A test stage is one job that runs all its categories in one dotnet test
-# call on one agent; the tests run in parallel in that process (LevelOfParallelism in AssemblyInfo.cs).
+# Build, then one job on one agent that runs the test runs one after another. A test run is one dotnet test call over
+# its categories; the tests run in parallel in that process (LevelOfParallelism in AssemblyInfo.cs). A test run starts
+# only when the one before it passed.
 # Scripts are in pipeline/ (the pipeline-scripts artifact of the build stage).
 parameters:
-# Each: stage, displayName (also the tag of its test runs), categories, and optionally extraTestArguments (more dotnet
+# Each: name, displayName (also the tag of its test runs), categories, and optionally extraTestArguments (more dotnet
 # test arguments).
-- name: testStages
+- name: testRuns
   type: object
   default: []
 
@@ -66,61 +67,60 @@ stages:
         displayName: 'Publish pipeline scripts'
         artifact: pipeline-scripts
 
-# Without dependsOn a stage waits for the one before it. The stages must not overlap: every test run starts by removing
-# all test donors (AssemblySetup), those of a job running next to it too.
-- ${{ each testStage in parameters.testStages }}:
-  - stage: ${{ testStage.stage }}
-    displayName: ${{ testStage.displayName }}
-    jobs:
-    - job: Tests
-      displayName: 'Tests run'
-      pool:
-        vmImage: 'windows-latest'
-      # The test run timeout plus the steps around it
-      timeoutInMinutes: 90
-      steps:
-      - checkout: none
+# The test runs must not overlap: every one starts by removing all test donors (AssemblySetup).
+- stage: tests
+  displayName: "Tests"
+  jobs:
+  - job: Tests
+    displayName: 'Tests run'
+    pool:
+      vmImage: 'windows-latest'
+    # The test run timeouts are for a run that hangs; all the runs take about 20 min.
+    timeoutInMinutes: 120
+    steps:
+    - checkout: none
 
-      - download: current
-        displayName: 'Download pipeline scripts'
-        artifact: pipeline-scripts
+    - download: current
+      displayName: 'Download pipeline scripts'
+      artifact: pipeline-scripts
 
+    - download: current
+      displayName: 'Download test binaries'
+      artifact: dropTestSuite
+
+    - task: UseDotNet@2
+      displayName: 'Install .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: 10.0.x
+
+    - ${{ each testRun in parameters.testRuns }}:
       # 'Rerun failed jobs' runs again only the categories that did not pass
       - task: DownloadPipelineArtifact@2
-        displayName: 'Download earlier test results'
+        displayName: '${{ testRun.displayName }}: download earlier test results'
         condition: and(succeeded(), gt(variables['System.JobAttempt'], 1))
         continueOnError: true
         inputs:
           buildType: 'current'
-          itemPattern: 'test-results-${{ testStage.stage }}-*/**'
-          path: '$(Pipeline.Workspace)/earlier-test-results'
+          itemPattern: 'test-results-${{ testRun.name }}-*/**'
+          path: '$(Pipeline.Workspace)/earlier-test-results/${{ testRun.name }}'
 
+      # Sets ${{ testRun.name }}TestCategories, ${{ testRun.name }}TestFilter and ${{ testRun.name }}RunsTests
       - task: PowerShell@2
-        displayName: 'Choose test categories'
+        displayName: '${{ testRun.displayName }}: choose test categories'
         inputs:
           filePath: '$(Pipeline.Workspace)/pipeline-scripts/Select-TestCategories.ps1'
           arguments: >-
-            -Categories '${{ join(',', testStage.categories) }}'
-            -PreviousResultsFolder '$(Pipeline.Workspace)/earlier-test-results'
-
-      - download: current
-        displayName: 'Download test binaries'
-        condition: and(succeeded(), eq(variables['RunsTests'], 'true'))
-        artifact: dropTestSuite
-
-      - task: UseDotNet@2
-        displayName: 'Install .NET SDK'
-        condition: and(succeeded(), eq(variables['RunsTests'], 'true'))
-        inputs:
-          packageType: 'sdk'
-          version: 10.0.x
+            -Categories '${{ join(',', testRun.categories) }}'
+            -PreviousResultsFolder '$(Pipeline.Workspace)/earlier-test-results/${{ testRun.name }}'
+            -VariablePrefix '${{ testRun.name }}'
 
       # Published per category in the next step, from the TRX; the NUnit XML gives the categories of its tests. The TRX is
-      # not named after the stage: the TRX of a category is, and Windows file names ignore case (healthCheck, HealthCheck).
+      # not named after the test run: the TRX of a category is, and Windows file names ignore case (healthCheck, HealthCheck).
       # The longest category, RepeatSearchHappyPathTests_Cord, takes about 10 min.
       - task: DotNetCoreCLI@2
-        displayName: 'Run tests'
-        condition: and(succeeded(), eq(variables['RunsTests'], 'true'))
+        displayName: '${{ testRun.displayName }}: run tests'
+        condition: and(succeeded(), eq(variables['${{ testRun.name }}RunsTests'], 'true'))
         timeoutInMinutes: 60
         inputs:
           command: 'test'
@@ -128,36 +128,36 @@ stages:
           arguments: >-
             $(Pipeline.Workspace)/dropTestSuite/Atlas.Auto.Tests/bin/Release/net10.0/Atlas.Auto.Tests.dll
             --no-restore
-            --filter "$(TestFilter)"
-            --logger "trx;LogFileName=${{ testStage.stage }}-run.trx"
-            --results-directory "$(Agent.TempDirectory)/TestResults"
-            ${{ coalesce(testStage.extraTestArguments, '') }}
-            -- NUnit.TestOutputXml="$(Agent.TempDirectory)/TestResults/nunit"
+            --filter "$(${{ testRun.name }}TestFilter)"
+            --logger "trx;LogFileName=${{ testRun.name }}-run.trx"
+            --results-directory "$(Agent.TempDirectory)/TestResults/${{ testRun.name }}"
+            ${{ coalesce(testRun.extraTestArguments, '') }}
+            -- NUnit.TestOutputXml="$(Agent.TempDirectory)/TestResults/${{ testRun.name }}/nunit"
 
       - task: PowerShell@2
-        displayName: 'Publish test runs by category'
-        condition: and(succeededOrFailed(), eq(variables['RunsTests'], 'true'))
+        displayName: '${{ testRun.displayName }}: publish test runs by category'
+        condition: and(succeededOrFailed(), eq(variables['${{ testRun.name }}RunsTests'], 'true'))
         inputs:
           filePath: '$(Pipeline.Workspace)/pipeline-scripts/Publish-TestRunsByCategory.ps1'
           arguments: >-
-            -TrxFile '$(Agent.TempDirectory)/TestResults/${{ testStage.stage }}-run.trx'
-            -NUnitXmlFile '$(Agent.TempDirectory)/TestResults/nunit/Atlas.Auto.Tests.xml'
-            -Categories '$(TestCategories)'
-            -OtherTitle '${{ testStage.stage }}'
+            -TrxFile '$(Agent.TempDirectory)/TestResults/${{ testRun.name }}/${{ testRun.name }}-run.trx'
+            -NUnitXmlFile '$(Agent.TempDirectory)/TestResults/${{ testRun.name }}/nunit/Atlas.Auto.Tests.xml'
+            -Categories '$(${{ testRun.name }}TestCategories)'
+            -OtherTitle '${{ testRun.name }}'
 
-      # Read by 'Choose test categories' of a rerun
+      # Read by 'choose test categories' of a rerun
       - task: PublishPipelineArtifact@1
-        displayName: 'Publish test results'
-        condition: and(succeededOrFailed(), eq(variables['RunsTests'], 'true'))
+        displayName: '${{ testRun.displayName }}: publish test results'
+        condition: and(succeededOrFailed(), eq(variables['${{ testRun.name }}RunsTests'], 'true'))
         continueOnError: true
         inputs:
-          targetPath: '$(Agent.TempDirectory)/TestResults/nunit'
-          artifact: 'test-results-${{ testStage.stage }}-$(System.JobAttempt)'
+          targetPath: '$(Agent.TempDirectory)/TestResults/${{ testRun.name }}/nunit'
+          artifact: 'test-results-${{ testRun.name }}-$(System.JobAttempt)'
           publishLocation: 'pipeline'
 
       - task: PowerShell@2
-        displayName: 'Tag test runs'
-        condition: and(succeededOrFailed(), eq(variables['RunsTests'], 'true'))
+        displayName: '${{ testRun.displayName }}: tag test runs'
+        condition: and(succeededOrFailed(), eq(variables['${{ testRun.name }}RunsTests'], 'true'))
         continueOnError: true
         inputs:
           filePath: '$(Pipeline.Workspace)/pipeline-scripts/Add-TestRunTags.ps1'
@@ -165,6 +165,7 @@ stages:
             -CollectionUri '$(System.CollectionUri)'
             -Project '$(System.TeamProject)'
             -BuildId $(Build.BuildId)
-            -Stage '${{ testStage.displayName }}'
+            -PublishedRunsFile '$(Agent.TempDirectory)/TestResults/${{ testRun.name }}/published-test-runs.txt'
+            -Tag '${{ testRun.displayName }}'
         env:
           SYSTEM_ACCESSTOKEN: $(System.AccessToken)

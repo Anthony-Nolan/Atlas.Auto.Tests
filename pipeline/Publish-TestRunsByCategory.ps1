@@ -82,8 +82,6 @@ foreach ($title in @($titleOfTest.Values | Sort-Object -Unique)) {
     $part.Save($file)
     Write-Host "$title`: $($outcomes.Count) test(s), $(@($outcomes | Where-Object { $_ -eq 'Failed' }).Count) failed"
     Write-Host "##vso[results.publish type=VSTest;mergeResults=false;publishRunAttachments=true;runTitle=$title;resultFiles=$file;]"
-    if ($env:AGENT_TEMPDIRECTORY) {
-        # Add-TestRunTags.ps1 waits for these runs: the agent creates them after the command, not at once.
-        Add-Content (Join-Path $env:AGENT_TEMPDIRECTORY 'published-test-runs.txt') "$([datetime]::UtcNow.ToString('o'))`t$title"
-    }
+    # Add-TestRunTags.ps1 waits for these runs: the agent creates them after the command, not at once.
+    Add-Content (Join-Path $folder 'published-test-runs.txt') "$([datetime]::UtcNow.ToString('o'))`t$title"
 }

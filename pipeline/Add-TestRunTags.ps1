@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Tags the test runs a job has published with its stage, for the Tags filter of the Tests tab.
+    Tags the test runs one dotnet test run of the job has published, for the Tags filter of the Tests tab.
 
 .DESCRIPTION
-    The runs are those Publish-TestRunsByCategory.ps1 has published in this job, as it lists them in
-    published-test-runs.txt of the agent's temp folder. The agent creates a run some time after the publish command, so
+    The runs are those Publish-TestRunsByCategory.ps1 has published from one TRX, as it lists them in
+    published-test-runs.txt next to the TRX. The agent creates a run some time after the publish command, so
     the runs are read again until each of them is there; a run of an earlier attempt of the job has the same title, so
     only runs created since the publish count. The publish command cannot tag a run, so the tags are added through the
     REST API with the token of the job (SYSTEM_ACCESSTOKEN). A run left without tags fails the step.
@@ -13,26 +13,26 @@ param(
     [Parameter(Mandatory)] [string] $CollectionUri,
     [Parameter(Mandatory)] [string] $Project,
     [Parameter(Mandatory)] [int] $BuildId,
-    # The stage display name; a tag has only letters and digits: 'Donor Import' -> 'DonorImport'.
-    [Parameter(Mandatory)] [string] $Stage,
+    [Parameter(Mandatory)] [string] $PublishedRunsFile,
+    # A tag has only letters and digits: 'Donor Import' -> 'DonorImport'.
+    [Parameter(Mandatory)] [string] $Tag,
     [int] $WaitMinutes = 5
 )
 
 $ErrorActionPreference = 'Stop'
 
-$publishedFile = Join-Path $env:AGENT_TEMPDIRECTORY 'published-test-runs.txt'
-if (-not (Test-Path $publishedFile)) {
+if (-not (Test-Path $PublishedRunsFile)) {
     Write-Host 'No test runs published'
     return
 }
 # Title -> the time it was published.
 $publishedAt = @{}
-foreach ($line in Get-Content $publishedFile) {
+foreach ($line in Get-Content $PublishedRunsFile) {
     $time, $title = $line -split "`t", 2
     $publishedAt[$title] = [datetime]::Parse($time, $null, 'RoundtripKind')
 }
 
-$tag = -join ($Stage -split '[^A-Za-z0-9]+' | Where-Object { $_ } | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1) })
+$tag = -join ($Tag -split '[^A-Za-z0-9]+' | Where-Object { $_ } | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1) })
 $api = "$($CollectionUri.TrimEnd('/'))/$([uri]::EscapeDataString($Project))/_apis/test/runs"
 $headers = @{ Authorization = "Bearer $env:SYSTEM_ACCESSTOKEN" }
 
