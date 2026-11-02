@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-    Tags the test runs one dotnet test run of the job has published, for the Tags filter of the Tests tab.
+    Tags the test runs one dotnet test run of the job has published, for the Tags filter of the Tests tab: the run of a
+    category gets the tag of its category.
 
 .DESCRIPTION
     The runs are those Publish-TestRunsByCategory.ps1 has published from one TRX, as it lists them in
@@ -14,8 +15,8 @@ param(
     [Parameter(Mandatory)] [string] $Project,
     [Parameter(Mandatory)] [int] $BuildId,
     [Parameter(Mandatory)] [string] $PublishedRunsFile,
-    # A tag has only letters and digits: 'Donor Import' -> 'DonorImport'.
-    [Parameter(Mandatory)] [string] $Tag,
+    # JSON: tag -> its categories (categories of the test run in test-pipeline.yml).
+    [Parameter(Mandatory)] [string] $CategoriesByTag,
     [int] $WaitMinutes = 5
 )
 
@@ -32,7 +33,13 @@ foreach ($line in Get-Content $PublishedRunsFile) {
     $publishedAt[$title] = [datetime]::Parse($time, $null, 'RoundtripKind')
 }
 
-$tag = -join ($Tag -split '[^A-Za-z0-9]+' | Where-Object { $_ } | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1) })
+# Category (the title of its run) -> its tag. The run of the tests of none of the categories gets no tag.
+$tagOf = @{}
+foreach ($tag in ($CategoriesByTag | ConvertFrom-Json).PSObject.Properties) {
+    foreach ($category in $tag.Value) {
+        $tagOf[$category] = $tag.Name
+    }
+}
 $api = "$($CollectionUri.TrimEnd('/'))/$([uri]::EscapeDataString($Project))/_apis/test/runs"
 $headers = @{ Authorization = "Bearer $env:SYSTEM_ACCESSTOKEN" }
 
@@ -65,8 +72,9 @@ while ($true) {
     Start-Sleep -Seconds 15
 }
 
-$body = @{ tags = @(@{ name = $tag }) } | ConvertTo-Json -Depth 3
-foreach ($run in $runs) {
+foreach ($run in $runs | Where-Object { $tagOf.ContainsKey($_.name) }) {
+    $tag = $tagOf[$run.name]
+    $body = @{ tags = @(@{ name = $tag }) } | ConvertTo-Json -Depth 3
     Invoke-RestMethod "$api/$($run.id)?api-version=7.1" -Method Patch -Headers $headers -ContentType 'application/json' -Body $body | Out-Null
     Write-Host "$($run.name): $tag"
 }

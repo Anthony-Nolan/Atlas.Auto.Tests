@@ -38,10 +38,11 @@ The test project connects directly to Atlas infrastructure rather than through d
   1. **Health Check** — verifies infrastructure accessibility (SQL, ServiceBus, Blob Storage, Azure Auth, App Insights, Public API).
   2. **Donor Import** — runs donor import tests.
   3. **Search, Scoring & Repeat Search** — runs all search-related tests.
-- A test run runs all its categories at once. The results are published as one test run per category, tagged with its test run.
+- A test run runs all its categories at once. The results are published as one test run per category, tagged with the tag the category is listed under (HealthCheck, DonorImport, Search, Scoring, RepeatSearch).
+- The 'CPU and memory' step of each test run prints the agent's CPU and memory peaks and averages while it ran.
 - 'Rerun failed jobs' runs only the categories that did not pass.
 - Every test run starts by removing the test donors earlier runs left behind, so two runs must not target the same Atlas at the same time.
-- Make sure to extend the list of `categories` in the appropriate test run whenever a new Category of tests is added.
+- Make sure to add a new Category of tests under its tag in `categories` of the appropriate test run.
 
 ### Pipeline Variables
 - Each pipeline instance must have pipeline variables that match those within `appsettings.json`.

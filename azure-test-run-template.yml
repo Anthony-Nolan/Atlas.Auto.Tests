@@ -3,8 +3,8 @@
 # only when the one before it passed.
 # Scripts are in pipeline/ (the pipeline-scripts artifact of the build stage).
 parameters:
-# Each: name, displayName (also the tag of its test runs), categories, and optionally extraTestArguments (more dotnet
-# test arguments).
+# Each: name, displayName, categories (tag -> its categories; a category's test run gets its tag), and optionally
+# extraTestArguments (more dotnet test arguments).
 - name: testRuns
   type: object
   default: []
@@ -111,9 +111,18 @@ stages:
         inputs:
           filePath: '$(Pipeline.Workspace)/pipeline-scripts/Select-TestCategories.ps1'
           arguments: >-
-            -Categories '${{ join(',', testRun.categories) }}'
+            -CategoriesByTag $env:CATEGORIES_BY_TAG
             -PreviousResultsFolder '$(Pipeline.Workspace)/earlier-test-results/${{ testRun.name }}'
             -VariablePrefix '${{ testRun.name }}'
+        env:
+          CATEGORIES_BY_TAG: ${{ convertToJson(testRun.categories) }}
+
+      - task: PowerShell@2
+        displayName: '${{ testRun.displayName }}: start sampling CPU and memory'
+        condition: and(succeeded(), eq(variables['${{ testRun.name }}RunsTests'], 'true'))
+        inputs:
+          filePath: '$(Pipeline.Workspace)/pipeline-scripts/Measure-AgentResources.ps1'
+          arguments: -Action Start -Folder '$(Agent.TempDirectory)/resources/${{ testRun.name }}'
 
       # Published per category in the next step, from the TRX; the NUnit XML gives the categories of its tests. The TRX is
       # not named after the test run: the TRX of a category is, and Windows file names ignore case (healthCheck, HealthCheck).
@@ -133,6 +142,14 @@ stages:
             --results-directory "$(Agent.TempDirectory)/TestResults/${{ testRun.name }}"
             ${{ coalesce(testRun.extraTestArguments, '') }}
             -- NUnit.TestOutputXml="$(Agent.TempDirectory)/TestResults/${{ testRun.name }}/nunit"
+
+      - task: PowerShell@2
+        displayName: '${{ testRun.displayName }}: CPU and memory'
+        condition: and(always(), eq(variables['${{ testRun.name }}RunsTests'], 'true'))
+        continueOnError: true
+        inputs:
+          filePath: '$(Pipeline.Workspace)/pipeline-scripts/Measure-AgentResources.ps1'
+          arguments: -Action Stop -Folder '$(Agent.TempDirectory)/resources/${{ testRun.name }}'
 
       - task: PowerShell@2
         displayName: '${{ testRun.displayName }}: publish test runs by category'
@@ -166,6 +183,7 @@ stages:
             -Project '$(System.TeamProject)'
             -BuildId $(Build.BuildId)
             -PublishedRunsFile '$(Agent.TempDirectory)/TestResults/${{ testRun.name }}/published-test-runs.txt'
-            -Tag '${{ testRun.displayName }}'
+            -CategoriesByTag $env:CATEGORIES_BY_TAG
         env:
           SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          CATEGORIES_BY_TAG: ${{ convertToJson(testRun.categories) }}

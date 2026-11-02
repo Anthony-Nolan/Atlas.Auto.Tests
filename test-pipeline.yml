@@ -5,28 +5,34 @@ pr: none
 extends:
   template: azure-test-run-template.yml
   parameters:
+    # categories: tag -> its categories. Each category is published as its own test run, tagged with its tag.
     testRuns:
     - name: healthCheck
       displayName: "Health Check"
       categories:
-      - HealthCheck
+        HealthCheck:
+        - HealthCheck
       # Prints the tests' progress output, so a ##vso warning from a health check shows on the run
       extraTestArguments: '--logger "console;verbosity=normal"'
 
     - name: donorImport
       displayName: "Donor Import"
       categories:
-      - DonorImport_DiffModeHappyPathTests
-      - DonorImport_DiffModeExceptionPathTests
-      - DonorImport_FullModeExceptionPathTests
+        DonorImport:
+        - DonorImport_DiffModeHappyPathTests
+        - DonorImport_DiffModeExceptionPathTests
+        - DonorImport_FullModeExceptionPathTests
 
     - name: searchAndScoring
       displayName: "Search, Scoring & Repeat Search"
       categories:
-      - SearchHappyPathTests
-      - Search_PrecomputedGenotypeSetTests
-      - SearchExceptionPathTests
-      - ScoringHappyPathTests
-      - RepeatSearchHappyPathTests_Adult
-      - RepeatSearchHappyPathTests_Cord
-      - RepeatSearchExceptionPathTests
+        Search:
+        - SearchHappyPathTests
+        - Search_PrecomputedGenotypeSetTests
+        - SearchExceptionPathTests
+        Scoring:
+        - ScoringHappyPathTests
+        RepeatSearch:
+        - RepeatSearchHappyPathTests_Adult
+        - RepeatSearchHappyPathTests_Cord
+        - RepeatSearchExceptionPathTests

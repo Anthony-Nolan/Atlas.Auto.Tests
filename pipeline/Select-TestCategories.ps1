@@ -12,14 +12,15 @@
     and RunsTests (false when every category passed before), with the prefix VariablePrefix: a job has several test runs.
 #>
 param(
-    [Parameter(Mandatory)] [string] $Categories,
+    # JSON: tag -> its categories (categories of the test run in test-pipeline.yml).
+    [Parameter(Mandatory)] [string] $CategoriesByTag,
     [string] $PreviousResultsFolder,
     [string] $VariablePrefix
 )
 
 $ErrorActionPreference = 'Stop'
 
-$requested = @($Categories -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$requested = @(($CategoriesByTag | ConvertFrom-Json).PSObject.Properties | ForEach-Object { $_.Value })
 
 # The test-results-<test run>-<attempt> folders, oldest first.
 $attempts = @()
