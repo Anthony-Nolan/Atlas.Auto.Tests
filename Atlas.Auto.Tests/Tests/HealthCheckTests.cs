@@ -67,6 +67,7 @@ internal class HealthCheckTests : TestBase
     [TestCase("DonorImport")]
     [TestCase("Search")]
     [TestCase("RepeatSearch")]
+    [TestCase("MatchingDonorManagement")]
     public async Task FunctionApp_ShouldBeRunning(string functionAppKey)
     {
         var helper = Provider.GetRequiredService<FunctionAppHelper>();
@@ -79,10 +80,10 @@ internal class HealthCheckTests : TestBase
         state.Should().Be(RunningState, "Function app {0} should be running", appName);
 
         // Functions host: the app can be running while its host fails to start
-        var hostRunning = await pollyRetry.ExecuteWithRetry(
-            async () => await helper.GetRunningHostStartTime(appName) != null ? new object() : null,
+        var hostRunning = await pollyRetry.WaitUntil(
+            async () => await helper.GetRunningHostStartTime(appName) != null,
             retry.HealthCheck, $"Health check for {appName} host");
-        hostRunning.Should().NotBeNull("Functions host of {0} should be running", appName);
+        hostRunning.Should().BeTrue("Functions host of {0} should be running", appName);
     }
 
     [Test]

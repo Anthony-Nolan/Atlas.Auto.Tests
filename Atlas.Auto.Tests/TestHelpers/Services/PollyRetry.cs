@@ -54,6 +54,17 @@ internal class PollyRetry
         await ExecuteWithRetry<object>(async () => { await action(); return new object(); }, policy, operationName);
     }
 
+    /// <returns>True once <paramref name="condition"/> is true; false if it is still false after all retries.</returns>
+    public async Task<bool> WaitUntil(
+        Func<Task<bool>> condition,
+        RetryPolicy policy,
+        string operationName)
+    {
+        var result = await ExecuteWithRetry<object>(
+            async () => await condition() ? new object() : null, policy, operationName);
+        return result != null;
+    }
+
     private static string FormatFailureReason(Exception? exception)
     {
         return exception switch

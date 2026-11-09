@@ -89,9 +89,12 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         const int existingDonorCount = 3;
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_DeleteUntrackedDonor_SendsNotification));
 
-        var originalSetting = await steps.TurnOnUntrackedDonorDeletionNotifications();
+        // Remember the setting before changing it, so it is restored even if turning it on fails
+        var originalSetting = await steps.GetUntrackedDonorDeletionNotifications();
         try
         {
+            await steps.TurnOnUntrackedDonorDeletionNotifications(originalSetting);
+
             // Precondition: import the donors that will be deleted
             var existingDonors = DonorUpdateBuilder.Default
                 .WithExpandedHlaPhenotype()
@@ -138,7 +141,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
 
         var request = await steps.ImportDiffDonorFile(update);
         await steps.DonorImportShouldHaveBeenSuccessful(request.FileName, 0, donorCount);
-        await steps.DonorsShouldNotExist(update.GetExternalDonorCodes());
+        await steps.DonorsShouldNotBeStored(update.GetExternalDonorCodes());
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             request.FileName,
             update.ToExpectedFailures(RecordIdProp, "Donor is not present in the database."));
@@ -157,7 +160,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
 
         var request = await steps.ImportDiffDonorFile(update);
         await steps.DonorImportShouldHaveBeenSuccessful(request.FileName, 0, donorCount);
-        await steps.DonorsShouldNotExist(update.GetExternalDonorCodes());
+        await steps.DonorsShouldNotBeStored(update.GetExternalDonorCodes());
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             request.FileName,
             update.ToExpectedFailures(Drb1DnaProp, Drb1FailureReason));

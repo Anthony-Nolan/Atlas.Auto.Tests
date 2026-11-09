@@ -88,16 +88,21 @@ internal class DonorImportTestSteps
         return uploadEvent.EventTime;
     }
 
-    /// <returns>The value the setting had before, to give back to <see cref="RestoreUntrackedDonorDeletionNotifications"/>.</returns>
-    public async Task<string?> TurnOnUntrackedDonorDeletionNotifications()
+    /// <returns>The current value, to give back to <see cref="RestoreUntrackedDonorDeletionNotifications"/>.</returns>
+    public async Task<string?> GetUntrackedDonorDeletionNotifications()
     {
-        var originalValue = await _workflow.GetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting);
-        if (!bool.TryParse(originalValue, out var isOn) || !isOn)
-        {
-            await SetDonorImportSettingAndWaitForRestart(bool.TrueString.ToLowerInvariant());
-        }
-        Logger.LogInformation("{Setting:l} was '{OriginalValue:l}', now true", NotifyOnUntrackedDonorDeletionSetting, originalValue);
-        return originalValue;
+        var value = await _workflow.GetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting);
+        Logger.LogInformation("{Setting:l} is '{Value:l}'", NotifyOnUntrackedDonorDeletionSetting, value);
+        return value;
+    }
+
+    public async Task TurnOnUntrackedDonorDeletionNotifications(string? currentValue)
+    {
+        if (bool.TryParse(currentValue, out var isOn) && isOn)
+            return;
+
+        await SetDonorImportSettingAndWaitForRestart(bool.TrueString.ToLowerInvariant());
+        Logger.LogInformation("{Setting:l} turned on", NotifyOnUntrackedDonorDeletionSetting);
     }
 
     /// <summary>
@@ -115,8 +120,8 @@ internal class DonorImportTestSteps
 
     private async Task SetDonorImportSettingAndWaitForRestart(string? value)
     {
-        var restartedAt = await _workflow.SetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting, value);
-        restartedAt.Should().NotBeNull(
+        var restarted = await _workflow.SetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting, value);
+        restarted.Should().BeTrue(
             "Donor import function should have restarted after setting {0} to '{1}'", NotifyOnUntrackedDonorDeletionSetting, value);
     }
 
@@ -230,12 +235,22 @@ internal class DonorImportTestSteps
     }
 
     /// <summary>
-    /// For deleted donors and donors that failed import: not in the donor store, no donor logs, not available for search.
+    /// Not in the donor store and no donor logs.
     /// </summary>
-    public async Task DonorsShouldNotExist(IReadOnlyCollection<string> externalDonorCodes)
+    public async Task DonorsShouldNotBeStored(IReadOnlyCollection<string> externalDonorCodes)
     {
         await CheckDonorStoreCount(externalDonorCodes, 0);
         await DonorLogsShouldExist(externalDonorCodes, exist: false);
+    }
+
+    /// <summary>
+    /// Not stored and not available for search. Call it once matching has processed the file
+    /// (a deletion, or a valid donor from the same file already available for search),
+    /// otherwise the search check passes only because matching has not got there yet.
+    /// </summary>
+    public async Task DonorsShouldNotExist(IReadOnlyCollection<string> externalDonorCodes)
+    {
+        await DonorsShouldNotBeStored(externalDonorCodes);
         await DonorsShouldNotBeAvailableForSearch(externalDonorCodes);
     }
 
