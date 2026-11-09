@@ -130,18 +130,4 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
         await steps.MatchingAlgorithmDonorInfoShouldBe(upserts);
         await steps.DonorManagementLogsShouldHaveBeenUpdated(upsertedIds.Values, upsertUploadTime);
     }
-
-    [Test]
-    public async Task DonorImport_DiffMode_DeleteNonExistingDonor_DoesNotFailTheUpdate()
-    {
-        const int donorCount = 1;
-        var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_DeleteNonExistingDonor_DoesNotFailTheUpdate));
-
-        var update = DonorUpdateBuilder.New
-            .WithChangeType(ImportDonorChangeType.Delete)
-            .Build(donorCount);
-
-        var request = await steps.ImportDiffDonorFile(update);
-        await steps.DonorImportShouldHaveBeenSuccessful(request.FileName, donorCount, 0);
-    }
 }

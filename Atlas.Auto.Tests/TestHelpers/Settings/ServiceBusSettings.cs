@@ -14,6 +14,7 @@ internal class ServiceBusSettings
     public string DonorImportResultsTopic { get; set; } = "donor-import-results";
     public string UpdatedSearchableDonorsTopic { get; set; } = "updated-searchable-donors";
     public string AlertsTopic { get; set; } = "alerts";
+    public string NotificationsTopic { get; set; } = "notifications";
     public string MatchingResultsTopic { get; set; } = "matching-results-ready";
     public string SearchResultsTopic { get; set; } = "search-results-ready";
     public string RepeatSearchMatchingResultsTopic { get; set; } = "repeat-search-matching-results-ready";
