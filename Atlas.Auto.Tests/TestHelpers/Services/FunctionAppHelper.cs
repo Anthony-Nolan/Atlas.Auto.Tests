@@ -33,6 +33,12 @@ internal class FunctionAppHelper(ArmClient armClient, AzureResourceSettings reso
         await site.UpdateApplicationSettingsAsync(settings);
     }
 
+    /// <returns>App state as Azure reports it, e.g. "Running" or "Stopped".</returns>
+    public async Task<string> GetState(string functionAppName)
+    {
+        return (await GetSite(functionAppName).GetAsync()).Value.Data.State;
+    }
+
     /// <summary>
     /// Asks the Functions host for its status (admin endpoint, master key from ARM).
     /// </summary>

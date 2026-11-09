@@ -13,6 +13,8 @@ namespace Atlas.Auto.Tests.Tests;
 [Category(nameof(HealthCheckTests))]
 internal class HealthCheckTests : TestBase
 {
+    private const string RunningState = "Running";
+
     public HealthCheckTests() : base(nameof(HealthCheckTests))
     {
     }
@@ -56,6 +58,31 @@ internal class HealthCheckTests : TestBase
         var appName = azureResource.FunctionApps["DonorImport"];
         var value = await helper.GetAppSetting(appName, "DonorImport:AllowFullModeImport");
         value.Should().NotBeNull("Function App config should be readable via Azure ARM");
+    }
+
+    /// <summary>
+    /// A stopped function app makes its tests wait out every retry and fail much later; fail here instead.
+    /// </summary>
+    [Category("HealthCheck")]
+    [TestCase("DonorImport")]
+    [TestCase("Search")]
+    [TestCase("RepeatSearch")]
+    public async Task FunctionApp_ShouldBeRunning(string functionAppKey)
+    {
+        var helper = Provider.GetRequiredService<FunctionAppHelper>();
+        var appName = Provider.GetRequiredService<AzureResourceSettings>().FunctionApps[functionAppKey];
+        var pollyRetry = Provider.GetRequiredService<PollyRetry>();
+        var retry = Provider.GetRequiredService<RetrySettings>();
+
+        // Azure state: someone may have stopped the app
+        var state = await helper.GetState(appName);
+        state.Should().Be(RunningState, "Function app {0} should be running", appName);
+
+        // Functions host: the app can be running while its host fails to start
+        var hostRunning = await pollyRetry.ExecuteWithRetry(
+            async () => await helper.GetRunningHostStartTime(appName) != null ? new object() : null,
+            retry.HealthCheck, $"Health check for {appName} host");
+        hostRunning.Should().NotBeNull("Functions host of {0} should be running", appName);
     }
 
     [Test]
