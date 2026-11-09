@@ -92,8 +92,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         var originalSetting = await steps.TurnOnUntrackedDonorDeletionNotifications();
         try
         {
-            // Precondition: import the donors that will be deleted.
-            // Its processing also waits out the function restart after the setting change.
+            // Precondition: import the donors that will be deleted
             var existingDonors = DonorUpdateBuilder.Default
                 .WithExpandedHlaPhenotype()
                 .WithChangeType(ImportDonorChangeType.Create)
@@ -116,6 +115,9 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
             // Deleting an untracked donor is not a failure, only a notification
             await steps.DonorImportFileShouldHaveBeenProcessed(request, deletedCodes.Count);
             await steps.UntrackedDonorDeletionShouldHaveBeenNotified(untrackedCode, request.UploadedAt);
+
+            // The existing donors are still deleted
+            await steps.DonorsShouldNotExist(existingDonors.GetExternalDonorCodes());
         }
         finally
         {
@@ -136,7 +138,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
 
         var request = await steps.ImportDiffDonorFile(update);
         await steps.DonorImportShouldHaveBeenSuccessful(request.FileName, 0, donorCount);
-        await steps.CheckDonorStoreCount(update.GetExternalDonorCodes(), 0);
+        await steps.DonorsShouldNotExist(update.GetExternalDonorCodes());
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             request.FileName,
             update.ToExpectedFailures(RecordIdProp, "Donor is not present in the database."));
@@ -155,7 +157,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
 
         var request = await steps.ImportDiffDonorFile(update);
         await steps.DonorImportShouldHaveBeenSuccessful(request.FileName, 0, donorCount);
-        await steps.CheckDonorStoreCount(update.GetExternalDonorCodes(), 0);
+        await steps.DonorsShouldNotExist(update.GetExternalDonorCodes());
         await steps.FailedDonorUpdatesShouldHaveBeenLogged(
             request.FileName,
             update.ToExpectedFailures(Drb1DnaProp, Drb1FailureReason));
@@ -211,12 +213,10 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
 
         // Only the valid donor is stored, published and available for search
         var atlasIds = await steps.DonorStoreShouldHaveExpectedDonors([validDonor]);
-        await steps.CheckDonorStoreCount([invalidDonor.RecordId], 0);
         await steps.DonorLogsShouldExist([validDonor.RecordId], exist: true);
-        await steps.DonorLogsShouldExist([invalidDonor.RecordId], exist: false);
         await steps.DonorUpdatesShouldHaveBeenPublished(atlasIds.Values, expectedUpdatesPerDonor: 1);
         await steps.DonorsShouldBeAvailableForSearch([validDonor]);
-        await steps.DonorsShouldNotBeAvailableForSearch([invalidDonor.RecordId]);
         await steps.DonorManagementLogsShouldHaveBeenUpdated(atlasIds.Values, uploadTime);
+        await steps.DonorsShouldNotExist([invalidDonor.RecordId]);
     }
 }

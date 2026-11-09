@@ -16,6 +16,7 @@ internal class RetrySettings
     public RetryPolicy FetchAppInsightsEvents { get; set; } = new() { RetryCount = 20, IntervalSeconds = 30 };
     public RetryPolicy HealthCheck { get; set; } = new() { RetryCount = 3, IntervalSeconds = 20 };
     public RetryPolicy WakeDatabase { get; set; } = new() { RetryCount = 6, IntervalSeconds = 10 };
+    public RetryPolicy FunctionAppRestart { get; set; } = new() { RetryCount = 18, IntervalSeconds = 10 };
     public RetryPolicy Cleanup { get; set; } = new() { RetryCount = 3, IntervalSeconds = 10 };
     public RetryPolicy TestRetry { get; set; } = new() { RetryCount = 2, IntervalSeconds = 0 };
 }

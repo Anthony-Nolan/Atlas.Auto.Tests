@@ -94,20 +94,30 @@ internal class DonorImportTestSteps
         var originalValue = await _workflow.GetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting);
         if (!bool.TryParse(originalValue, out var isOn) || !isOn)
         {
-            await _workflow.SetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting, bool.TrueString.ToLowerInvariant());
+            await SetDonorImportSettingAndWaitForRestart(bool.TrueString.ToLowerInvariant());
         }
         Logger.LogInformation("{Setting:l} was '{OriginalValue:l}', now true", NotifyOnUntrackedDonorDeletionSetting, originalValue);
         return originalValue;
     }
 
+    /// <summary>
+    /// Waits for the restart too, so the next tests do not upload files while the donor import function restarts.
+    /// </summary>
     public async Task RestoreUntrackedDonorDeletionNotifications(string? originalValue)
     {
         var currentValue = await _workflow.GetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting);
         if (currentValue != originalValue)
         {
-            await _workflow.SetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting, originalValue);
+            await SetDonorImportSettingAndWaitForRestart(originalValue);
         }
         Logger.LogInformation("{Setting:l} restored to '{OriginalValue:l}'", NotifyOnUntrackedDonorDeletionSetting, originalValue);
+    }
+
+    private async Task SetDonorImportSettingAndWaitForRestart(string? value)
+    {
+        var restartedAt = await _workflow.SetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting, value);
+        restartedAt.Should().NotBeNull(
+            "Donor import function should have restarted after setting {0} to '{1}'", NotifyOnUntrackedDonorDeletionSetting, value);
     }
 
     public async Task UntrackedDonorDeletionShouldHaveBeenNotified(string externalDonorCode, DateTimeOffset sentSince)
@@ -217,6 +227,16 @@ internal class DonorImportTestSteps
         result.Should().NotBeNull(
             "Matching algorithm should confirm donors [{0}] are NOT available for search", codeList);
         result!.ShouldNotHaveTheseDonors(externalDonorCodes);
+    }
+
+    /// <summary>
+    /// For deleted donors and donors that failed import: not in the donor store, no donor logs, not available for search.
+    /// </summary>
+    public async Task DonorsShouldNotExist(IReadOnlyCollection<string> externalDonorCodes)
+    {
+        await CheckDonorStoreCount(externalDonorCodes, 0);
+        await DonorLogsShouldExist(externalDonorCodes, exist: false);
+        await DonorsShouldNotBeAvailableForSearch(externalDonorCodes);
     }
 
     public async Task MatchingAlgorithmDonorInfoShouldBe(IReadOnlyCollection<DonorUpdate> expectedUpdates)

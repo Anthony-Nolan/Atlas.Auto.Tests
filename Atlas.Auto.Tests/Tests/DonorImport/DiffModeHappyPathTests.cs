@@ -54,8 +54,7 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
 
         var deletionRequest = await steps.ImportDiffDonorFile(deletionUpdates);
         await steps.DonorImportShouldHaveBeenSuccessful(deletionRequest.FileName, donorCount, 0);
-        await steps.CheckDonorStoreCount(donorCodes, 0);
-        await steps.DonorsShouldNotBeAvailableForSearch(donorCodes);
+        await steps.DonorsShouldNotExist(donorCodes);
     }
 
     /// <summary>
@@ -98,11 +97,9 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
         var deletionRequest = await steps.ImportDiffDonorFile(deletions);
         var deletionUploadTime = await steps.DonorImportFileShouldHaveBeenProcessed(deletionRequest, 1);
 
-        await steps.CheckDonorStoreCount([deletedCode], 0);
-        await steps.DonorLogsShouldExist([deletedCode], exist: false);
+        await steps.DonorsShouldNotExist([deletedCode]);
         await steps.DonorUpdatesShouldHaveBeenPublished(deletedDonor.Values, expectedUpdatesPerDonor: 2);
         await steps.SearchableDonorUpdatesShouldHaveBeenSent(deletedDonor, deletionUploadTime, isAvailableForSearch: false);
-        await steps.DonorsShouldNotBeAvailableForSearch([deletedCode]);
         await steps.DonorManagementLogsShouldHaveBeenUpdated(deletedDonor.Values, deletionUploadTime);
 
         // Edit existing donor and upsert a new one

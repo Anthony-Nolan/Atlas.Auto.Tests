@@ -72,12 +72,29 @@ internal class DonorImportWorkflow
         return await _functionAppHelper.GetAppSetting(_azureResource.FunctionApps["DonorImport"], settingKey);
     }
 
-    public async Task SetDonorImportSetting(string settingKey, string? value)
+    /// <summary>
+    /// Azure restarts the function app to apply a setting, and the app reads its settings only on start.
+    /// So we wait for a host that started after the change; until then an old host may still process files.
+    /// </summary>
+    /// <returns>Start time of the restarted host, or null if no host started after the change in time.</returns>
+    public async Task<DateTimeOffset?> SetDonorImportSetting(string settingKey, string? value)
     {
+        var appName = _azureResource.FunctionApps["DonorImport"];
+        var changedAt = DateTimeOffset.UtcNow;
         await _pollyRetry.ExecuteWithRetry(
-            async () => await _functionAppHelper.SetAppSetting(_azureResource.FunctionApps["DonorImport"], settingKey, value),
+            async () => await _functionAppHelper.SetAppSetting(appName, settingKey, value),
             _retry.ApiCall, $"Set donor import setting '{settingKey}' to '{value ?? "(removed)"}'");
+
+        var restartedHost = await _pollyRetry.ExecuteWithRetry(async () =>
+        {
+            var hostStart = await _functionAppHelper.GetRunningHostStartTime(appName);
+            return hostStart > changedAt ? new HostStart(hostStart.Value) : null;
+        }, _retry.FunctionAppRestart, $"Wait for {appName} to restart after {changedAt:O}");
+
+        return restartedHost?.StartedAt;
     }
+
+    private record HostStart(DateTimeOffset StartedAt);
 
     public async Task ImportDonorFile(DonorImportRequest request)
     {
