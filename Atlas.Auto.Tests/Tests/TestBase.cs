@@ -27,6 +27,8 @@ internal class AssemblySetup
             Is.SubsetOf(importDonorTypeNames),
             "MatchingDonorType names must match ImportDonorType for ToString() comparison");
 
+        // Matching databases may be paused; wake them before anything queries them
+        await new MatchingDatabaseWaker(TestBase.Provider).WakeUp();
         await new TestDonorDeleter(TestBase.Provider).DeleteDonors();
     }
 

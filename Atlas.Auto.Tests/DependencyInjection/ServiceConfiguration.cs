@@ -29,6 +29,7 @@ internal static class ServiceConfiguration
 
         var services = new ServiceCollection();
         var dbConfig = configuration.GetSection("Database").Get<DatabaseConfig>() ?? new DatabaseConfig();
+        services.AddSingleton(dbConfig);
 
         services.AddLogging(builder =>
         {

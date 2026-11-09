@@ -67,6 +67,18 @@ internal class DonorImportWorkflow
         return bool.TryParse(value, out var result) && result;
     }
 
+    public async Task<string?> GetDonorImportSetting(string settingKey)
+    {
+        return await _functionAppHelper.GetAppSetting(_azureResource.FunctionApps["DonorImport"], settingKey);
+    }
+
+    public async Task SetDonorImportSetting(string settingKey, string? value)
+    {
+        await _pollyRetry.ExecuteWithRetry(
+            async () => await _functionAppHelper.SetAppSetting(_azureResource.FunctionApps["DonorImport"], settingKey, value),
+            _retry.ApiCall, $"Set donor import setting '{settingKey}' to '{value ?? "(removed)"}'");
+    }
+
     public async Task ImportDonorFile(DonorImportRequest request)
     {
         request.UploadedAt = DateTimeOffset.UtcNow;

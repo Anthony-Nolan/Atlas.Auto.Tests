@@ -13,6 +13,8 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal class DonorImportTestSteps
 {
+    private const string NotifyOnUntrackedDonorDeletionSetting = "NotificationConfiguration:NotifyOnAttemptedDeletionOfUntrackedDonor";
+
     private readonly DonorImportWorkflow _workflow;
     public ILogger Logger { get; }
 
@@ -84,6 +86,28 @@ internal class DonorImportTestSteps
         failures.Should().HaveCount(expectedFailedDonorCount, "Donor import failures logged for file {0}", fileName);
 
         return uploadEvent.EventTime;
+    }
+
+    /// <returns>The value the setting had before, to give back to <see cref="RestoreUntrackedDonorDeletionNotifications"/>.</returns>
+    public async Task<string?> TurnOnUntrackedDonorDeletionNotifications()
+    {
+        var originalValue = await _workflow.GetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting);
+        if (!bool.TryParse(originalValue, out var isOn) || !isOn)
+        {
+            await _workflow.SetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting, bool.TrueString.ToLowerInvariant());
+        }
+        Logger.LogInformation("{Setting:l} was '{OriginalValue:l}', now true", NotifyOnUntrackedDonorDeletionSetting, originalValue);
+        return originalValue;
+    }
+
+    public async Task RestoreUntrackedDonorDeletionNotifications(string? originalValue)
+    {
+        var currentValue = await _workflow.GetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting);
+        if (currentValue != originalValue)
+        {
+            await _workflow.SetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting, originalValue);
+        }
+        Logger.LogInformation("{Setting:l} restored to '{OriginalValue:l}'", NotifyOnUntrackedDonorDeletionSetting, originalValue);
     }
 
     public async Task UntrackedDonorDeletionShouldHaveBeenNotified(string externalDonorCode, DateTimeOffset sentSince)
