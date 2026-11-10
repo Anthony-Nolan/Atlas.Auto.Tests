@@ -15,6 +15,8 @@ namespace Atlas.Auto.Tests.TestHelpers.Workflows;
 
 internal class DonorImportWorkflow
 {
+    private const string UntrackedDonorDeletionSummary = "Attempted to delete donors that were not found in the Atlas database";
+
     private readonly FunctionAppHelper _functionAppHelper;
     private readonly AzureResourceSettings _azureResource;
     private readonly IDonorStoreSqlHelper _donorSqlHelper;
@@ -27,6 +29,7 @@ internal class DonorImportWorkflow
     private readonly NotificationFetcher<DonorImportMessage> _importResultFetcher;
     private readonly NotificationFetcher<SearchableDonorUpdate> _searchableDonorUpdateFetcher;
     private readonly NotificationFetcher<Alert> _alertFetcher;
+    private readonly NotificationFetcher<Notification> _notificationFetcher;
 
     public DonorImportWorkflow(IServiceProvider provider, ILogger logger)
     {
@@ -52,6 +55,9 @@ internal class DonorImportWorkflow
         _alertFetcher = new NotificationFetcher<Alert>(
             sbClient, sbSettings.AlertsTopic, sbSettings.Subscription,
             _pollyRetry, _retry.FetchMessages, "Fetch alert");
+        _notificationFetcher = new NotificationFetcher<Notification>(
+            sbClient, sbSettings.NotificationsTopic, sbSettings.Subscription,
+            _pollyRetry, _retry.FetchMessages, "Fetch notification");
     }
 
     public async Task<bool> IsFullModeImportAllowed()
@@ -59,6 +65,29 @@ internal class DonorImportWorkflow
         var appName = _azureResource.FunctionApps["DonorImport"];
         var value = await _functionAppHelper.GetAppSetting(appName, "DonorImport:AllowFullModeImport");
         return bool.TryParse(value, out var result) && result;
+    }
+
+    public async Task<string?> GetDonorImportSetting(string settingKey)
+    {
+        return await _functionAppHelper.GetAppSetting(_azureResource.FunctionApps["DonorImport"], settingKey);
+    }
+
+    /// <summary>
+    /// Azure restarts the function app to apply a setting, and the app reads its settings only on start.
+    /// So we wait for a host that started after the change; until then an old host may still process files.
+    /// </summary>
+    /// <returns>True once a host started after the change is running; false if none did in time.</returns>
+    public async Task<bool> SetDonorImportSetting(string settingKey, string? value)
+    {
+        var appName = _azureResource.FunctionApps["DonorImport"];
+        var changedAt = DateTimeOffset.UtcNow;
+        await _pollyRetry.ExecuteWithRetry(
+            async () => await _functionAppHelper.SetAppSetting(appName, settingKey, value),
+            _retry.ApiCall, $"Set donor import setting '{settingKey}' to '{value ?? "(removed)"}'");
+
+        return await _pollyRetry.WaitUntil(
+            async () => await _functionAppHelper.GetRunningHostStartTime(appName) > changedAt,
+            _retry.FunctionAppRestart, $"Wait for {appName} to restart after {changedAt:O}");
     }
 
     public async Task ImportDonorFile(DonorImportRequest request)
@@ -208,6 +237,17 @@ internal class DonorImportWorkflow
         return await _alertFetcher.FetchNotification(
             m => m.Summary.StartsWith("HLA Expansion Failure"),
             "HLA expansion failure alert");
+    }
+
+    /// <summary>
+    /// Atlas lists the donor codes it could not delete in the notification description.
+    /// </summary>
+    public async Task<Notification?> FetchUntrackedDonorDeletionNotification(string externalDonorCode, DateTimeOffset sentSince)
+    {
+        return await _notificationFetcher.FetchNotification(
+            m => m.Summary == UntrackedDonorDeletionSummary && m.Description.Contains(externalDonorCode),
+            $"untracked donor deletion notification for donor '{externalDonorCode}'",
+            sentSince);
     }
 
     public async Task<List<HlaExpansionFailure>?> FetchHlaExpansionFailuresForDonor(string externalDonorCode)

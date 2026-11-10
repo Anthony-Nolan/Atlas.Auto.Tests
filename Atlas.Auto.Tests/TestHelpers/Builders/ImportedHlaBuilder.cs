@@ -23,6 +23,15 @@ namespace Atlas.Auto.Tests.TestHelpers.Builders
 
         public static Builder<ImportedHla> ExpandedHlaPhenotypeWithAlternativeA2 => BuildFromPhenotype(HlaTypings.ExpandedHlaPhenotypeWithAlternativeA2);
 
+        /// <summary>
+        /// <see cref="ExpandedHlaPhenotype"/> with an empty first field at required locus A (QA-1928 Test Data 3).
+        /// </summary>
+        public static Builder<ImportedHla> ExpandedHlaPhenotypeWithEmptyA1 => ExpandedHlaPhenotype
+            .WithFactory(h => h.A, () => new ImportedLocus
+            {
+                Dna = new TwoFieldStringData { Field1 = string.Empty, Field2 = HlaTypings.ExpandedHlaPhenotype.A.Position2 }
+            });
+
         public static Builder<ImportedHla> WithAlternativeHlaAtLocusA(this Builder<ImportedHla> builder)
             => builder.WithFactory(h => h.A, () => ImportedLocusBuilder.BuildLocusWithDna(HlaTypings.AlternativeValidDnaForLocusA));
 

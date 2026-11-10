@@ -13,6 +13,8 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal class DonorImportTestSteps
 {
+    private const string NotifyOnUntrackedDonorDeletionSetting = "NotificationConfiguration:NotifyOnAttemptedDeletionOfUntrackedDonor";
+
     private readonly DonorImportWorkflow _workflow;
     public ILogger Logger { get; }
 
@@ -54,17 +56,19 @@ internal class DonorImportTestSteps
     }
 
     /// <summary>
-    /// File-level checks: upload event, import result message, import history and import failures.
+    /// File-level checks: upload event, import result message, import history and the number of import failures.
+    /// Check what the failures say with <see cref="FailedDonorUpdatesShouldHaveBeenLogged"/>.
     /// </summary>
     /// <returns>Upload time of the file, as recorded by Azure.</returns>
-    public async Task<DateTimeOffset> DonorImportFileShouldHaveBeenProcessed(DonorImportRequest request, int expectedDonorCount)
+    public async Task<DateTimeOffset> DonorImportFileShouldHaveBeenProcessed(
+        DonorImportRequest request, int expectedDonorCount, int expectedFailedDonorCount = 0)
     {
         var fileName = request.FileName;
         var uploadEvent = await _workflow.FetchFileUploadEvent(request);
         uploadEvent.Should().NotBeNull("File upload event should have been published for file {0}", fileName);
         (uploadEvent!.Data?.Url).Should().EndWith(fileName, "File upload event url should point to file {0}", fileName);
 
-        await DonorImportShouldHaveBeenSuccessful(fileName, expectedDonorCount, 0);
+        await DonorImportShouldHaveBeenSuccessful(fileName, expectedDonorCount, expectedFailedDonorCount);
 
         var history = await _workflow.FetchFinishedDonorImportHistory(fileName);
         history.Should().NotBeNull("Donor import history should have been finished for file {0}", fileName);
@@ -72,15 +76,64 @@ internal class DonorImportTestSteps
         {
             history!.FileState.Should().Be(DonorImportHistoryRecord.CompletedState,
                 "Import history state for file {0}", fileName);
+            // FailureCount counts failed attempts to process the whole file, not failed donors
             history.FailureCount.Should().Be(0, "Import history failure count for file {0}", fileName);
             history.ImportedDonorsCount.Should().Be(expectedDonorCount, "Import history imported donor count for file {0}", fileName);
-            history.FailedDonorCount.Should().Be(0, "Import history failed donor count for file {0}", fileName);
+            history.FailedDonorCount.Should().Be(expectedFailedDonorCount, "Import history failed donor count for file {0}", fileName);
         }
 
         var failures = await _workflow.GetDonorImportFailures(fileName);
-        failures.Should().BeEmpty("No donor import failures should have been logged for file {0}", fileName);
+        failures.Should().HaveCount(expectedFailedDonorCount, "Donor import failures logged for file {0}", fileName);
 
         return uploadEvent.EventTime;
+    }
+
+    /// <returns>The current value, to give back to <see cref="RestoreUntrackedDonorDeletionNotifications"/>.</returns>
+    public async Task<string?> GetUntrackedDonorDeletionNotifications()
+    {
+        var value = await _workflow.GetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting);
+        Logger.LogInformation("{Setting:l} is '{Value:l}'", NotifyOnUntrackedDonorDeletionSetting, value);
+        return value;
+    }
+
+    public async Task TurnOnUntrackedDonorDeletionNotifications(string? currentValue)
+    {
+        if (bool.TryParse(currentValue, out var isOn) && isOn)
+            return;
+
+        await SetDonorImportSettingAndWaitForRestart(bool.TrueString.ToLowerInvariant());
+        Logger.LogInformation("{Setting:l} turned on", NotifyOnUntrackedDonorDeletionSetting);
+    }
+
+    /// <summary>
+    /// Waits for the restart too, so the next tests do not upload files while the donor import function restarts.
+    /// </summary>
+    public async Task RestoreUntrackedDonorDeletionNotifications(string? originalValue)
+    {
+        var currentValue = await _workflow.GetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting);
+        if (currentValue != originalValue)
+        {
+            await SetDonorImportSettingAndWaitForRestart(originalValue);
+        }
+        Logger.LogInformation("{Setting:l} restored to '{OriginalValue:l}'", NotifyOnUntrackedDonorDeletionSetting, originalValue);
+    }
+
+    private async Task SetDonorImportSettingAndWaitForRestart(string? value)
+    {
+        var restarted = await _workflow.SetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting, value);
+        restarted.Should().BeTrue(
+            "Donor import function should have restarted after setting {0} to '{1}'", NotifyOnUntrackedDonorDeletionSetting, value);
+    }
+
+    public async Task UntrackedDonorDeletionShouldHaveBeenNotified(string externalDonorCode, DateTimeOffset sentSince)
+    {
+        var notification = await _workflow.FetchUntrackedDonorDeletionNotification(externalDonorCode, sentSince);
+        notification.Should().NotBeNull(
+            "Untracked donor deletion notification should have been sent for donor {0}", externalDonorCode);
+
+        // Only the untracked donor should be listed, not the donors that were deleted
+        notification!.Description.Should().EndWith($"Donor ids: {externalDonorCode}.",
+            "Notification should list only untracked donor {0}", externalDonorCode);
     }
 
     public async Task DonorImportShouldHaveFailed(string fileName)
@@ -179,6 +232,26 @@ internal class DonorImportTestSteps
         result.Should().NotBeNull(
             "Matching algorithm should confirm donors [{0}] are NOT available for search", codeList);
         result!.ShouldNotHaveTheseDonors(externalDonorCodes);
+    }
+
+    /// <summary>
+    /// Not in the donor store and no donor logs.
+    /// </summary>
+    public async Task DonorsShouldNotBeStored(IReadOnlyCollection<string> externalDonorCodes)
+    {
+        await CheckDonorStoreCount(externalDonorCodes, 0);
+        await DonorLogsShouldExist(externalDonorCodes, exist: false);
+    }
+
+    /// <summary>
+    /// Not stored and not available for search. Call it once matching has processed the file
+    /// (a deletion, or a valid donor from the same file already available for search),
+    /// otherwise the search check passes only because matching has not got there yet.
+    /// </summary>
+    public async Task DonorsShouldNotExist(IReadOnlyCollection<string> externalDonorCodes)
+    {
+        await DonorsShouldNotBeStored(externalDonorCodes);
+        await DonorsShouldNotBeAvailableForSearch(externalDonorCodes);
     }
 
     public async Task MatchingAlgorithmDonorInfoShouldBe(IReadOnlyCollection<DonorUpdate> expectedUpdates)
