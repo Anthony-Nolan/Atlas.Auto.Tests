@@ -13,6 +13,12 @@ internal class RetrySettings
     public RetryPolicy FetchMessages { get; set; } = new() { RetryCount = 10, IntervalSeconds = 20 };
     public RetryPolicy CheckDonors { get; set; } = new() { RetryCount = 10, IntervalSeconds = 20 };
     public RetryPolicy CheckDonorsInMatching { get; set; } = new() { RetryCount = 20, IntervalSeconds = 20 };
+
+    /// <summary>
+    /// Waits for the search tracking function to store a search's last event. A dead-lettered event holds back
+    /// the next events of its search while Service Bus redelivers it (~1 min on DEV).
+    /// </summary>
+    public RetryPolicy CheckSearchTracking { get; set; } = new() { RetryCount = 12, IntervalSeconds = 20 };
     public RetryPolicy FetchAppInsightsEvents { get; set; } = new() { RetryCount = 20, IntervalSeconds = 30 };
     public RetryPolicy HealthCheck { get; set; } = new() { RetryCount = 3, IntervalSeconds = 20 };
     public RetryPolicy WakeDatabase { get; set; } = new() { RetryCount = 6, IntervalSeconds = 10 };

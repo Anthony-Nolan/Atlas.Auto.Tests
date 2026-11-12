@@ -28,6 +28,13 @@ namespace Atlas.Auto.Tests.TestHelpers.Assertions.Search
             }
         }
 
+        public static void MatchingShouldHaveFailedValidation(
+            this MatchingResultsNotification? notification, string expectedValidationError)
+        {
+            notification.MatchingShouldHaveFailed();
+            notification!.FailureInfo!.ValidationError.Should().Be(expectedValidationError);
+        }
+
         public static void MatchingShouldHaveFailed(this MatchingResultsNotification? notification)
         {
             notification.Should().NotBeNull();

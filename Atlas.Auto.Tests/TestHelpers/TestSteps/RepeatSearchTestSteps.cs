@@ -113,6 +113,13 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         }
     }
 
+    public async Task RepeatMatchingShouldHaveFailedValidation(
+        string repeatSearchId, string searchId, string expectedValidationError)
+    {
+        var notification = await FetchMatchingResultsNotification(repeatSearchId, searchId);
+        notification.MatchingShouldHaveFailedValidation(expectedValidationError);
+    }
+
     public async Task RepeatSearchShouldHaveIdentifiedExpectedChanges(
         string repeatSearchId,
         string searchId,
