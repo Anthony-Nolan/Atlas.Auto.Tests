@@ -21,12 +21,8 @@ internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
 
     /// <summary>
     /// QA-2921: the public API accepts a repeat search of a search Atlas has no record of; matching then fails validation,
-    /// and search tracking records the failure with every event sent and none dead-lettered.
+    /// and search tracking records the failure: one failed attempt, no match prediction, every event sent and none dead-lettered.
     /// </summary>
-    /// <remarks>
-    /// Fails until ATL-545 is fixed: Atlas sends no attempt-started event for this failure, so search tracking cannot
-    /// store the completed attempt and dead-letters that event.
-    /// </remarks>
     [Test]
     [ManualTest("QA-1980")]
     [AutoTest("QA-2921")]
@@ -42,15 +38,17 @@ internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
             "search-request-donor-10_10.json", originalSearchId, DateTimeOffset.UtcNow);
         await steps.RepeatMatchingShouldHaveFailedValidation(repeatSearchId, originalSearchId, expectedFailure.Message);
 
-        // Search tracking stores the failure under the repeat search ID
+        // Search tracking stores the failure under the repeat search ID, the failed attempt and no match prediction
         var tracking = await steps.SearchTracking.SearchShouldHaveFinished(repeatSearchId);
         tracking.MatchingShouldHaveFailed(expectedFailure, originalSearchId);
+        await steps.SearchTracking.OneFailedAttemptShouldHaveBeenStored(tracking, expectedFailure);
+        await steps.SearchTracking.MatchPredictionShouldNotHaveBeenStored(tracking);
 
-        // Every event went through search-tracking-events and was processed.
-        // No attempt-started event: validation fails before the attempt starts.
+        // Every event went through search-tracking-events and was processed
         await steps.SearchTracking.EventsShouldHaveBeenSent(tracking, originalSearchId,
         [
             SearchTrackingEventTypes.SearchRequested,
+            SearchTrackingEventTypes.MatchingAlgorithmAttemptStarted,
             SearchTrackingEventTypes.MatchingAlgorithmCompleted,
             SearchTrackingEventTypes.MatchPredictionResultsSent
         ]);
