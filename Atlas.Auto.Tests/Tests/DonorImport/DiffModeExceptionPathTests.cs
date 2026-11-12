@@ -26,6 +26,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
     /// </summary>
     [Test]
     [ManualTest("QA-1928")]
+    [AutoTest("QA-2907")]
     public async Task DonorImport_DiffMode_CreateExistingDonor_FailsOnlyThatDonor()
     {
         const int newDonorCount = 2;
@@ -84,6 +85,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
     [Test]
     [NonParallelizable]
     [ManualTest("QA-1928")]
+    [AutoTest("QA-2908")]
     public async Task DonorImport_DiffMode_DeleteUntrackedDonor_SendsNotification()
     {
         const int existingDonorCount = 3;
@@ -194,6 +196,7 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
     /// </summary>
     [Test]
     [ManualTest("QA-1928")]
+    [AutoTest("QA-2909")]
     public async Task DonorImport_DiffMode_DonorWithoutRequiredLocus_IsNotImported()
     {
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_DonorWithoutRequiredLocus_IsNotImported));

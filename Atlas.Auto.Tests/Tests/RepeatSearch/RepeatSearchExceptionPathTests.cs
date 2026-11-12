@@ -29,6 +29,7 @@ internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
     /// </remarks>
     [Test]
     [ManualTest("QA-1980")]
+    [AutoTest("QA-2921")]
     public async Task RepeatSearch_UnknownOriginalSearch_FailsValidation()
     {
         var steps = GetRepeatSearchTestSteps(nameof(RepeatSearch_UnknownOriginalSearch_FailsValidation));

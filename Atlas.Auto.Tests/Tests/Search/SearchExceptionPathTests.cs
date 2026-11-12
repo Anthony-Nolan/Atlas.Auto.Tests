@@ -31,6 +31,7 @@ internal class SearchExceptionPathTests : SearchTestBase
     /// </summary>
     [Test]
     [ManualTest("QA-1980")]
+    [AutoTest("QA-2920")]
     public async Task Search_InvalidPatientHla_FailsDuringMatching()
     {
         // HLA at A position 1 of the request file
