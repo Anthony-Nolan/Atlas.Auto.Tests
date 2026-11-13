@@ -32,30 +32,35 @@ internal class SearchTrackingTestSteps
     }
 
     /// <summary>
-    /// Waits until search tracking has stored the search's last event (results sent), so later checks see every event.
+    /// Waits until search tracking has stored both the search's last event (results sent) and its one failed attempt,
+    /// then checks what it stored about the failure.
     /// </summary>
     /// <param name="searchId">Search or repeat search ID.</param>
-    public async Task<SearchTrackingRequest> SearchShouldHaveFinished(string searchId)
+    /// <param name="originalSearchId">Null for a new search; the original search ID for a repeat search.</param>
+    public async Task<SearchTrackingRequest> MatchingFailureShouldHaveBeenTracked(
+        string searchId, ExpectedMatchingFailure expected, string? originalSearchId)
     {
-        var request = await _pollyRetry.ExecuteWithRetry(async () =>
-        {
-            var found = await _sqlHelper.GetSearchRequest(searchId);
-            return found?.ResultsSent == true ? found : null;
-        }, _retry.CheckSearchTracking, $"Wait for search tracking to store results sent for search '{searchId}'");
+        // Search request and attempt are stored by different events, so wait for both in one loop
+        var tracked = await _pollyRetry.ExecuteWithRetry(
+            () => ReadTrackedFailure(searchId, onlyWhenStored: true),
+            _retry.CheckSearchTracking, $"Wait for search tracking to store the failure of search '{searchId}'");
 
-        request.Should().NotBeNull(
-            "search tracking should have stored that the results of search {0} were sent", searchId);
-        _logger.LogInformation("Search tracking request id: {SearchTrackingRequestId}", request!.Id);
-        return request;
+        // Timed out: read what is there, so the failure shows it
+        tracked ??= await ReadTrackedFailure(searchId, onlyWhenStored: false);
+
+        tracked!.Request.Should().NotBeNull("search tracking should have stored search {0}", searchId);
+        _logger.LogInformation("Search tracking request id: {SearchTrackingRequestId}", tracked.Request!.Id);
+        tracked.Attempts.Should().ContainSingle("matching should have run once for search {0}", searchId);
+
+        tracked.Request.MatchingShouldHaveFailed(expected, originalSearchId);
+        tracked.Attempts.Single().ShouldHaveFailedBeforeMatching(expected);
+        return tracked.Request;
     }
 
-    public async Task OneFailedAttemptShouldHaveBeenStored(SearchTrackingRequest request, ExpectedMatchingFailure expected)
-    {
-        var attempts = await _sqlHelper.GetMatchingAlgorithmAttempts(request.Id);
-        attempts.Should().ContainSingle("matching should have run once for search {0}", request.SearchIdentifier);
-        attempts.Single().ShouldHaveFailedBeforeMatching(expected);
-    }
-
+    /// <summary>
+    /// Call after <see cref="EventsShouldHaveBeenSent"/> has shown that no MatchPredictionStarted event was sent:
+    /// only that event makes search tracking store a match prediction, so after it the table cannot change.
+    /// </summary>
     public async Task MatchPredictionShouldNotHaveBeenStored(SearchTrackingRequest request)
     {
         var matchPredictions = await _sqlHelper.GetMatchPredictions(request.Id);
@@ -85,7 +90,7 @@ internal class SearchTrackingTestSteps
     }
 
     /// <summary>
-    /// Call after <see cref="SearchShouldHaveFinished"/>: until then an event may still be redelivered.
+    /// Call after <see cref="MatchingFailureShouldHaveBeenTracked"/>: until then an event may still be redelivered.
     /// </summary>
     public async Task EventsShouldNotHaveBeenDeadLettered(SearchTrackingRequest request)
     {
@@ -93,6 +98,21 @@ internal class SearchTrackingTestSteps
         deadLettered.Select(e => e.EventType).Should().BeEmpty(
             "search tracking should have processed every event of search {0}", request.SearchIdentifier);
     }
+
+    /// <param name="onlyWhenStored">
+    /// True: null until results are sent and exactly one failed attempt is stored. False: whatever is stored now.
+    /// </param>
+    private async Task<TrackedFailure?> ReadTrackedFailure(string searchId, bool onlyWhenStored)
+    {
+        var request = await _sqlHelper.GetSearchRequest(searchId);
+        var attempts = request == null ? [] : await _sqlHelper.GetMatchingAlgorithmAttempts(request.Id);
+
+        var stored = request?.ResultsSent == true && attempts.Count == 1 && attempts.Single().IsSuccessful == false;
+        return stored || !onlyWhenStored ? new TrackedFailure(request, attempts) : null;
+    }
+
+    private record TrackedFailure(
+        SearchTrackingRequest? Request, IReadOnlyCollection<SearchTrackingMatchingAlgorithmAttempt> Attempts);
 
     private static void EventShouldHaveProperties(SearchTrackingEventMessage trackingEvent, string? originalSearchId)
     {

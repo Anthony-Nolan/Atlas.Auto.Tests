@@ -38,11 +38,9 @@ internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
             "search-request-donor-10_10.json", originalSearchId, DateTimeOffset.UtcNow);
         await steps.RepeatMatchingShouldHaveFailedValidation(repeatSearchId, originalSearchId, expectedFailure.Message);
 
-        // Search tracking stores the failure under the repeat search ID, the failed attempt and no match prediction
-        var tracking = await steps.SearchTracking.SearchShouldHaveFinished(repeatSearchId);
-        tracking.MatchingShouldHaveFailed(expectedFailure, originalSearchId);
-        await steps.SearchTracking.OneFailedAttemptShouldHaveBeenStored(tracking, expectedFailure);
-        await steps.SearchTracking.MatchPredictionShouldNotHaveBeenStored(tracking);
+        // Search tracking stores the failure under the repeat search ID and the failed attempt
+        var tracking = await steps.SearchTracking.MatchingFailureShouldHaveBeenTracked(
+            repeatSearchId, expectedFailure, originalSearchId);
 
         // Every event went through search-tracking-events and was processed
         await steps.SearchTracking.EventsShouldHaveBeenSent(tracking, originalSearchId,
@@ -53,5 +51,8 @@ internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
             SearchTrackingEventTypes.MatchPredictionResultsSent
         ]);
         await steps.SearchTracking.EventsShouldNotHaveBeenDeadLettered(tracking);
+
+        // No MatchPredictionStarted among the events, so no match prediction can be stored
+        await steps.SearchTracking.MatchPredictionShouldNotHaveBeenStored(tracking);
     }
 }

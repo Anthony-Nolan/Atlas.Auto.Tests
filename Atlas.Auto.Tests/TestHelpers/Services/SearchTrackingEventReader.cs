@@ -18,6 +18,7 @@ internal class SearchTrackingEventReader(ServiceBusClient serviceBusClient, Serv
         await using var receiver = serviceBusClient.CreateReceiver(
             settings.SearchTrackingEventsTopic, settings.AuditSubscription);
         var messages = await ServiceBusPeeker.PeekMessages(receiver, requestedAt);
+        ShouldHaveReadAll(messages, settings.AuditSubscription, searchIdentifier);
         return EventsOf(messages, searchIdentifier);
     }
 
@@ -31,15 +32,23 @@ internal class SearchTrackingEventReader(ServiceBusClient serviceBusClient, Serv
 
         // Dead-lettered messages keep their original enqueued time, so the queue cannot be searched by time: read it all
         var messages = await ServiceBusPeeker.PeekMessages(receiver);
-        if (messages.Count >= ServiceBusPeeker.MaxMessages)
-        {
-            throw new InvalidOperationException(
-                $"The dead-letter queue of {settings.SearchTrackingEventsTopic}/{settings.SearchTrackingSubscription} " +
-                $"holds more than {ServiceBusPeeker.MaxMessages} messages, so the test cannot tell whether search " +
-                $"{searchIdentifier} has any there. Clear the queue on this environment.");
-        }
-
+        ShouldHaveReadAll(messages, $"{settings.SearchTrackingSubscription} dead-letter queue", searchIdentifier);
         return EventsOf(messages, searchIdentifier);
+    }
+
+    /// <summary>
+    /// A peek stops at <see cref="ServiceBusPeeker.MaxMessages"/>: then more of the search's events may lie beyond,
+    /// and a partial list would let a wrong or extra event go unseen.
+    /// </summary>
+    private void ShouldHaveReadAll(IReadOnlyCollection<ServiceBusReceivedMessage> messages, string source, string searchIdentifier)
+    {
+        if (messages.Count < ServiceBusPeeker.MaxMessages)
+            return;
+
+        throw new InvalidOperationException(
+            $"{settings.SearchTrackingEventsTopic}/{source} holds more than {ServiceBusPeeker.MaxMessages} messages, " +
+            $"so the test cannot read every event of search {searchIdentifier}. " +
+            "Clear the subscription on this environment.");
     }
 
     private static List<SearchTrackingEventMessage> EventsOf(

@@ -17,17 +17,6 @@ namespace Atlas.Auto.Tests.TestHelpers.Assertions.Search
             }
         }
 
-        public static void MatchingShouldHaveFailedHlaValidation(this MatchingResultsNotification? notification)
-        {
-            notification.MatchingShouldHaveFailed();
-
-            using (new AssertionScope())
-            {
-                notification!.FailureInfo!.ValidationError.Should().NotBeNull();
-                notification.FailureInfo.ValidationError.Should().StartWith("Failed to lookup");
-            }
-        }
-
         public static void MatchingShouldHaveFailedValidation(
             this MatchingResultsNotification? notification, string expectedValidationError)
         {

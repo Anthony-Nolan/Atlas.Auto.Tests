@@ -42,13 +42,11 @@ internal class SearchExceptionPathTests : SearchTestBase
         {
             // Matching fails and says so in its notification
             var searchResponse = await steps.SubmitSearchRequest("search-request-invalid-patient-hla-at-A1.json");
-            await steps.MatchingShouldFailHlaValidation(searchResponse.SearchIdentifier);
+            await steps.MatchingShouldHaveFailedValidation(searchResponse.SearchIdentifier, expectedFailure.Message);
 
-            // Search tracking stores the failure, the failed attempt and no match prediction
-            var tracking = await steps.SearchTracking.SearchShouldHaveFinished(searchResponse.SearchIdentifier);
-            tracking.MatchingShouldHaveFailed(expectedFailure, originalSearchId: null);
-            await steps.SearchTracking.OneFailedAttemptShouldHaveBeenStored(tracking, expectedFailure);
-            await steps.SearchTracking.MatchPredictionShouldNotHaveBeenStored(tracking);
+            // Search tracking stores the failure and the failed attempt
+            var tracking = await steps.SearchTracking.MatchingFailureShouldHaveBeenTracked(
+                searchResponse.SearchIdentifier, expectedFailure, originalSearchId: null);
 
             // Every event went through search-tracking-events and was processed
             await steps.SearchTracking.EventsShouldHaveBeenSent(tracking, originalSearchId: null,
@@ -59,6 +57,9 @@ internal class SearchExceptionPathTests : SearchTestBase
                 SearchTrackingEventTypes.MatchPredictionResultsSent
             ]);
             await steps.SearchTracking.EventsShouldNotHaveBeenDeadLettered(tracking);
+
+            // No MatchPredictionStarted among the events, so no match prediction can be stored
+            await steps.SearchTracking.MatchPredictionShouldNotHaveBeenStored(tracking);
         });
     }
 
