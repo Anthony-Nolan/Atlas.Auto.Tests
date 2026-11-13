@@ -18,7 +18,7 @@ internal class SearchTrackingEventReader(ServiceBusClient serviceBusClient, Serv
         await using var receiver = serviceBusClient.CreateReceiver(
             settings.SearchTrackingEventsTopic, settings.AuditSubscription);
         var messages = await ServiceBusPeeker.PeekMessages(receiver, requestedAt);
-        ShouldHaveReadAll(messages, settings.AuditSubscription, searchIdentifier);
+        ShouldHaveReadAll(messages, $"{settings.AuditSubscription} subscription", searchIdentifier);
         return EventsOf(messages, searchIdentifier);
     }
 
@@ -46,9 +46,9 @@ internal class SearchTrackingEventReader(ServiceBusClient serviceBusClient, Serv
             return;
 
         throw new InvalidOperationException(
-            $"{settings.SearchTrackingEventsTopic}/{source} holds more than {ServiceBusPeeker.MaxMessages} messages, " +
+            $"The {settings.SearchTrackingEventsTopic} {source} holds more than {ServiceBusPeeker.MaxMessages} messages, " +
             $"so the test cannot read every event of search {searchIdentifier}. " +
-            "Clear the subscription on this environment.");
+            $"Clear the {source} on this environment.");
     }
 
     private static List<SearchTrackingEventMessage> EventsOf(

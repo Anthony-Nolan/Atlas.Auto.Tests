@@ -43,7 +43,7 @@ internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
             repeatSearchId, expectedFailure, originalSearchId);
 
         // Every event went through search-tracking-events and was processed
-        await steps.SearchTracking.EventsShouldHaveBeenSent(tracking, originalSearchId,
+        var sentEvents = await steps.SearchTracking.EventsShouldHaveBeenSent(tracking, originalSearchId,
         [
             SearchTrackingEventTypes.SearchRequested,
             SearchTrackingEventTypes.MatchingAlgorithmAttemptStarted,
@@ -52,7 +52,7 @@ internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
         ]);
         await steps.SearchTracking.EventsShouldNotHaveBeenDeadLettered(tracking);
 
-        // No MatchPredictionStarted among the events, so no match prediction can be stored
-        await steps.SearchTracking.MatchPredictionShouldNotHaveBeenStored(tracking);
+        // Match prediction never started, so none is stored
+        await steps.SearchTracking.MatchPredictionShouldNotHaveBeenStored(tracking, sentEvents);
     }
 }

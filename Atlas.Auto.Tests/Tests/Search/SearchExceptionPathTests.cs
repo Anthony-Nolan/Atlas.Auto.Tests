@@ -37,30 +37,29 @@ internal class SearchExceptionPathTests : SearchTestBase
         // HLA at A position 1 of the request file
         const string invalidHla = "invalid-hla";
         var expectedFailure = ExpectedMatchingFailure.HlaLookup(invalidHla, "A");
+        // No test-level retry: a search tracking failure that happens only sometimes is still a bug
+        var steps = GetSearchTestSteps(nameof(Search_InvalidPatientHla_FailsDuringMatching));
 
-        await RunTest(async steps =>
-        {
-            // Matching fails and says so in its notification
-            var searchResponse = await steps.SubmitSearchRequest("search-request-invalid-patient-hla-at-A1.json");
-            await steps.MatchingShouldHaveFailedValidation(searchResponse.SearchIdentifier, expectedFailure.Message);
+        // Matching fails and says so in its notification
+        var searchResponse = await steps.SubmitSearchRequest("search-request-invalid-patient-hla-at-A1.json");
+        await steps.MatchingShouldHaveFailedValidation(searchResponse.SearchIdentifier, expectedFailure.Message);
 
-            // Search tracking stores the failure and the failed attempt
-            var tracking = await steps.SearchTracking.MatchingFailureShouldHaveBeenTracked(
-                searchResponse.SearchIdentifier, expectedFailure, originalSearchId: null);
+        // Search tracking stores the failure and the failed attempt
+        var tracking = await steps.SearchTracking.MatchingFailureShouldHaveBeenTracked(
+            searchResponse.SearchIdentifier, expectedFailure, originalSearchId: null);
 
-            // Every event went through search-tracking-events and was processed
-            await steps.SearchTracking.EventsShouldHaveBeenSent(tracking, originalSearchId: null,
-            [
-                SearchTrackingEventTypes.SearchRequested,
-                SearchTrackingEventTypes.MatchingAlgorithmAttemptStarted,
-                SearchTrackingEventTypes.MatchingAlgorithmCompleted,
-                SearchTrackingEventTypes.MatchPredictionResultsSent
-            ]);
-            await steps.SearchTracking.EventsShouldNotHaveBeenDeadLettered(tracking);
+        // Every event went through search-tracking-events and was processed
+        var sentEvents = await steps.SearchTracking.EventsShouldHaveBeenSent(tracking, originalSearchId: null,
+        [
+            SearchTrackingEventTypes.SearchRequested,
+            SearchTrackingEventTypes.MatchingAlgorithmAttemptStarted,
+            SearchTrackingEventTypes.MatchingAlgorithmCompleted,
+            SearchTrackingEventTypes.MatchPredictionResultsSent
+        ]);
+        await steps.SearchTracking.EventsShouldNotHaveBeenDeadLettered(tracking);
 
-            // No MatchPredictionStarted among the events, so no match prediction can be stored
-            await steps.SearchTracking.MatchPredictionShouldNotHaveBeenStored(tracking);
-        });
+        // Match prediction never started, so none is stored
+        await steps.SearchTracking.MatchPredictionShouldNotHaveBeenStored(tracking, sentEvents);
     }
 
     private async Task RunTest(

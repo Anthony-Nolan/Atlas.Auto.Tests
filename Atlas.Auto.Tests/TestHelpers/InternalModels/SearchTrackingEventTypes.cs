@@ -9,6 +9,9 @@ internal static class SearchTrackingEventTypes
     public const string MatchingAlgorithmAttemptStarted = "MatchingAlgorithmAttemptStarted";
     public const string MatchingAlgorithmCompleted = "MatchingAlgorithmCompleted";
 
+    /// <summary>The only event that makes search tracking store a match prediction.</summary>
+    public const string MatchPredictionStarted = "MatchPredictionStarted";
+
     /// <summary>Sent with the final results notification, the failure notification included.</summary>
     public const string MatchPredictionResultsSent = "MatchPredictionResultsSent";
 
