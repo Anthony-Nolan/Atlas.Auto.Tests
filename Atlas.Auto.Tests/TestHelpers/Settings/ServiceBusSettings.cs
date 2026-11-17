@@ -19,4 +19,10 @@ internal class ServiceBusSettings
     public string SearchResultsTopic { get; set; } = "search-results-ready";
     public string RepeatSearchMatchingResultsTopic { get; set; } = "repeat-search-matching-results-ready";
     public string RepeatSearchResultsTopic { get; set; } = "repeat-search-results-ready";
+    public string SearchTrackingEventsTopic { get; set; } = "search-tracking-events";
+
+    /// <summary>
+    /// The search tracking function reads it; a message it fails to process ends up in its dead-letter queue.
+    /// </summary>
+    public string SearchTrackingSubscription { get; set; } = "search-tracking";
 }

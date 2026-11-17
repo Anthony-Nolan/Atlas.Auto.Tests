@@ -74,10 +74,10 @@ internal class SearchTestSteps : SearchTestStepsBase
         return result.ValidationFailures;
     }
 
-    public async Task MatchingShouldFailHlaValidation(string searchRequestId)
+    public async Task MatchingShouldHaveFailedValidation(string searchRequestId, string expectedValidationError)
     {
         var notification = await FetchMatchingResultsNotification(searchRequestId);
-        notification.MatchingShouldHaveFailedHlaValidation();
+        notification.MatchingShouldHaveFailedValidation(expectedValidationError);
     }
 
     public async Task MatchingShouldReturnExpectedDonor(string searchRequestId, string expectedDonorCode)

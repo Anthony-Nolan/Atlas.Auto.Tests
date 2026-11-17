@@ -63,6 +63,7 @@ internal class DiffModeHappyPathTests : DonorImportTestBase
     /// </summary>
     [Test]
     [ManualTest("QA-1926")]
+    [AutoTest("QA-2857")]
     public async Task DonorImport_DiffMode_CreateDeleteUpsertWithExpandedHla_PropagatesUpdates()
     {
         const int donorCount = 3;

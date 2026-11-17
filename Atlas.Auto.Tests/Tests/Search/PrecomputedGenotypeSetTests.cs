@@ -27,7 +27,7 @@ internal class PrecomputedGenotypeSetTests : SearchTestBase
     /// it alone. The edit moves the donor off that typing, so a later run does not find it either.
     /// </remarks>
     [Test]
-    [ManualTest("QA-2881")]
+    [AutoTest("QA-2881")]
     [RequiresAppInsights]
     public async Task Search_Donor_10_10_UsesPrecomputedGenotypeSets()
     {

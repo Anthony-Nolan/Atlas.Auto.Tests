@@ -63,10 +63,12 @@ internal static class ServiceConfiguration
                 sp.GetRequiredService<ILoggerFactory>()));
 
         services.AddSingleton<IDonorStoreSqlHelper, DonorStoreSqlHelper>();
+        services.AddSingleton<SearchTrackingSqlHelper>();
 
         var sbSettings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>() ?? new ServiceBusSettings();
         services.AddSingleton(sbSettings);
         services.AddSingleton(new ServiceBusClient(sbSettings.ConnectionString));
+        services.AddSingleton<SearchTrackingEventReader>();
 
         var blobSettings = configuration.GetSection("BlobStorage").Get<BlobStorageSettings>() ?? new BlobStorageSettings();
         services.AddSingleton(blobSettings);

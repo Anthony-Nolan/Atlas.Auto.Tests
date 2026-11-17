@@ -62,7 +62,8 @@ The test project connects directly to Atlas infrastructure rather than through d
   - `Database.Sql`, `Database.SqlA`, `Database.SqlB`
   - `PublicApi.ApiKey`
 - Non-secret variables:
-  - `Azure.SubscriptionId`, `Azure.ResourceGroupName`, `Azure.FunctionApps.DonorImport`
+  - `Azure.SubscriptionId`, `Azure.ResourceGroupName`
+  - `Azure.FunctionApps.DonorImport`, `Azure.FunctionApps.Search`, `Azure.FunctionApps.RepeatSearch`, `Azure.FunctionApps.MatchingDonorManagement`, `Azure.FunctionApps.SearchTracking`
   - `AppInsights.WorkspaceId`
   - `PublicApi.BaseUrl`
 - The name/id of the Atlas artifacts feed must be set using the variable, `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.

@@ -16,6 +16,9 @@ internal abstract class SearchTestStepsBase
     public ILogger Logger => _logger;
     internal DonorImportStepsForSearchTests DonorImportSteps => _donorImportSteps;
 
+    /// <summary>What the search tracking function recorded about a search.</summary>
+    public SearchTrackingTestSteps SearchTracking { get; }
+
     protected readonly ILogger _logger;
     protected readonly string _testName;
     protected readonly DonorImportStepsForSearchTests _donorImportSteps;
@@ -34,6 +37,7 @@ internal abstract class SearchTestStepsBase
         _logger = logger;
         _testName = testName;
         _publicApiClient = provider.GetRequiredService<PublicApiClient>();
+        SearchTracking = new SearchTrackingTestSteps(provider, logger);
         _blobHelper = provider.GetRequiredService<BlobStorageHelper>();
         _pollyRetry = provider.GetRequiredService<PollyRetry>();
         _retry = provider.GetRequiredService<RetrySettings>();

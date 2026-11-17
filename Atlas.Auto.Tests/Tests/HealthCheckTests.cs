@@ -68,6 +68,7 @@ internal class HealthCheckTests : TestBase
     [TestCase("Search")]
     [TestCase("RepeatSearch")]
     [TestCase("MatchingDonorManagement")]
+    [TestCase("SearchTracking")]
     public async Task FunctionApp_ShouldBeRunning(string functionAppKey)
     {
         var helper = Provider.GetRequiredService<FunctionAppHelper>();
