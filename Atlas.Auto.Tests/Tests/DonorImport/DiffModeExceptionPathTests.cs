@@ -80,10 +80,13 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
     /// and sends a notification about the untracked donor.
     /// </summary>
     /// <remarks>
-    /// The notification is off by default on some environments; AssemblySetup turns it on for the test run
-    /// (<see cref="FunctionAppTestSettings"/>).
+    /// Changes an app setting of the donor import function for the run (AssemblySetup, <see cref="FunctionAppTestSettings"/>):
+    /// NotificationConfiguration:NotifyOnAttemptedDeletionOfUntrackedDonor = true (deployed on DEV, UAT and LIVE: false,
+    /// release variable TF_VAR_DONOR_IMPORT_NOTIFICATIONS_ON_DELETION_OF_INVALID_DONOR).
+    /// Skipped when Azure:ChangeFunctionAppSettings is false.
     /// </remarks>
     [Test]
+    [RequiresAppSetting(FunctionAppTestSettings.NotifyOnUntrackedDonorDeletion)]
     [ManualTest("QA-1928")]
     [AutoTest("QA-2908")]
     public async Task DonorImport_DiffMode_DeleteUntrackedDonor_SendsNotification()

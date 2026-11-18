@@ -6,7 +6,8 @@ using Newtonsoft.Json;
 namespace Atlas.Auto.Tests.TestHelpers.Services;
 
 /// <summary>
-/// Sets <see cref="FunctionAppTestSettings"/> on the function apps before the tests and restores the deployed values after them.
+/// Sets the <see cref="FunctionAppTestSettings"/> of one function app before the tests that need them, and restores the deployed
+/// values after them. Changing a setting restarts the function app, so call it from a [OneTimeSetUp] that no test of that app overlaps.
 /// </summary>
 /// <remarks>
 /// The deployed values are kept on the function app itself, in the <see cref="OriginalSettingsMarker"/> app setting, not in memory:
@@ -21,25 +22,14 @@ internal class FunctionAppTestSettingsSwitcher(IServiceProvider provider)
     private readonly AzureResourceSettings _azureResource = provider.GetRequiredService<AzureResourceSettings>();
     private readonly ILogger _logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger<FunctionAppTestSettingsSwitcher>();
 
-    /// <summary>
-    /// One update per app, so each restarts once; the apps restart at the same time.
-    /// </summary>
-    public async Task SetTestValues()
+    /// <param name="appKey">Function app key, as in Azure:FunctionApps and <see cref="FunctionAppTestSettings.Values"/>.</param>
+    public async Task SetTestValues(string appKey)
     {
-        await Task.WhenAll(FunctionAppTestSettings.Values.Select(app => SetTestValues(app.Key, app.Value)));
-    }
+        if (!ChangeAllowed(appKey))
+            return;
 
-    /// <summary>
-    /// Waits for the restarts too, so the next run does not start while the function apps restart.
-    /// </summary>
-    public async Task Restore()
-    {
-        await Task.WhenAll(FunctionAppTestSettings.Values.Keys.Select(Restore));
-    }
-
-    private async Task SetTestValues(string appKey, IReadOnlyDictionary<string, string?> testValues)
-    {
         var appName = _azureResource.FunctionApps[appKey];
+        var testValues = FunctionAppTestSettings.Values[appKey];
         var current = await ReadSettings(appName, [.. testValues.Keys, OriginalSettingsMarker]);
 
         // A marker left by a run that stopped before its teardown holds the deployed values; the current ones are the test values
@@ -58,8 +48,14 @@ internal class FunctionAppTestSettingsSwitcher(IServiceProvider provider)
         await SetIfChanged(appName, current, newValues);
     }
 
-    private async Task Restore(string appKey)
+    /// <summary>
+    /// Waits for the restart too, so the next tests or run do not start while the function app restarts.
+    /// </summary>
+    public async Task Restore(string appKey)
     {
+        if (!ChangeAllowed(appKey))
+            return;
+
         var appName = _azureResource.FunctionApps[appKey];
         var marker = await _functionAppHelper.GetAppSetting(appName, OriginalSettingsMarker);
         if (marker == null)
@@ -73,6 +69,18 @@ internal class FunctionAppTestSettingsSwitcher(IServiceProvider provider)
         var newValues = new Dictionary<string, string?>(deployed) { [OriginalSettingsMarker] = null };
         var current = await ReadSettings(appName, newValues.Keys);
         await SetIfChanged(appName, current, newValues);
+    }
+
+    /// <summary>
+    /// Azure:ChangeFunctionAppSettings: false leaves the function apps as they are; the tests that need the settings are skipped.
+    /// </summary>
+    private bool ChangeAllowed(string appKey)
+    {
+        if (_azureResource.ChangeFunctionAppSettings)
+            return true;
+
+        _logger.LogInformation("Azure:ChangeFunctionAppSettings is false: {AppKey:l} settings are left as they are", appKey);
+        return false;
     }
 
     private async Task<IReadOnlyDictionary<string, string?>> ReadSettings(string appName, IEnumerable<string> settingKeys)
@@ -91,7 +99,10 @@ internal class FunctionAppTestSettingsSwitcher(IServiceProvider provider)
     {
         if (newValues.All(v => currentValues[v.Key] == v.Value))
         {
+            // A run stopped right after it changed them may have left the function app restarting
             _logger.LogInformation("{AppName:l} settings are already set", appName);
+            if (!await _functionAppHelper.WaitForRunningHost(appName))
+                throw new InvalidOperationException($"{appName} host is not running");
             return;
         }
 

@@ -10,6 +10,8 @@ namespace Atlas.Auto.Tests.Tests;
 [SetUpFixture]
 internal class AssemblySetup
 {
+    private const string DonorImportApp = "DonorImport";
+
     /// <remarks>
     /// Removes the test donors earlier runs left behind, a failed attempt of a rerun job included. It removes every test
     /// donor, so no two test runs may target one Atlas at the same time: the pipeline runs them one after another.
@@ -31,17 +33,22 @@ internal class AssemblySetup
         await new MatchingDatabaseWaker(TestBase.Provider).WakeUp();
         await new TestDonorDeleter(TestBase.Provider).DeleteDonors();
 
-        // Settings some tests need, set once for all tests: changing one restarts its function app
-        await new FunctionAppTestSettingsSwitcher(TestBase.Provider).SetTestValues();
+        // Set before any test: changing it restarts the donor import function, and tests of every area import donors
+        await new FunctionAppTestSettingsSwitcher(TestBase.Provider).SetTestValues(DonorImportApp);
     }
 
     [OneTimeTearDown]
     public async Task TearDown()
     {
-        // Restores the deployed values the setup kept on each function app
-        await new FunctionAppTestSettingsSwitcher(TestBase.Provider).Restore();
-
-        (TestBase.Provider as IDisposable)?.Dispose();
+        try
+        {
+            // Restores the deployed values the setup kept on the function app
+            await new FunctionAppTestSettingsSwitcher(TestBase.Provider).Restore(DonorImportApp);
+        }
+        finally
+        {
+            (TestBase.Provider as IDisposable)?.Dispose();
+        }
     }
 }
 

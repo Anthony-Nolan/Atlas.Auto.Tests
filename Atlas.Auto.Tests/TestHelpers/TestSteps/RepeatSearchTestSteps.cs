@@ -21,8 +21,13 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal class RepeatSearchTestSteps : SearchTestStepsBase
 {
-    // From the scheduled time of a message to the start of its run: Service Bus delivery and the function picking it up
-    private static readonly TimeSpan MaxRunDelay = TimeSpan.FromMinutes(1);
+    // The repeat search function takes the start time of a run before it checks the wait (it reads the HLA version and the
+    // data refresh record first), so the attempt can start a little before the maximum wait is over
+    private static readonly TimeSpan StartBeforeWaitCheck = TimeSpan.FromSeconds(5);
+
+    // From the scheduled time of the last message to the start of its run: Service Bus delivery and the function picking it up.
+    // Below FunctionAppTestSettings.ShortWaitInterval, so most of a run one wait interval later fails the check.
+    private static readonly TimeSpan DeliveryMargin = TimeSpan.FromSeconds(10);
 
     private readonly NotificationFetcher<MatchingResultsNotification> _matchingNotificationFetcher;
     private readonly NotificationFetcher<SearchResultsNotification> _searchNotificationFetcher;
@@ -48,15 +53,17 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
     }
 
     /// <summary>
-    /// The failed attempt started after the wait: no earlier than the maximum wait from the first request,
-    /// and no later than one more wait interval after it. AssemblySetup sets the short wait of <see cref="FunctionAppTestSettings"/>.
+    /// The failed attempt started after the wait. The last check before the maximum wait is over publishes the request again
+    /// one wait interval ahead, so the run starts between (max wait − <see cref="StartBeforeWaitCheck"/>) and
+    /// (max wait + wait interval + <see cref="DeliveryMargin"/>) from the first request.
+    /// RepeatSearchSetup sets the short wait of <see cref="FunctionAppTestSettings"/>.
     /// </summary>
     public async Task RepeatMatchingShouldHaveWaitedForOriginalResults(SearchTrackingRequest tracking)
     {
         await SearchTracking.AttemptShouldHaveStartedAfterWait(
             tracking,
-            FunctionAppTestSettings.ShortMaxWait,
-            FunctionAppTestSettings.ShortMaxWait + FunctionAppTestSettings.ShortWaitInterval + MaxRunDelay);
+            FunctionAppTestSettings.ShortMaxWait - StartBeforeWaitCheck,
+            FunctionAppTestSettings.ShortMaxWait + FunctionAppTestSettings.ShortWaitInterval + DeliveryMargin);
     }
 
     public async Task EditDonorHla(string donorCode, ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)

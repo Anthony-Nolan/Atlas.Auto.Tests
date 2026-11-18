@@ -44,14 +44,30 @@ internal class FunctionAppHelper(
     public async Task<bool> SetAppSettingsAndWaitForRestart(string functionAppName, IReadOnlyDictionary<string, string?> values)
     {
         var description = string.Join(", ", values.Select(v => $"'{v.Key}' = '{v.Value ?? "(removed)"}'"));
-        var changedAt = DateTimeOffset.UtcNow;
-        await pollyRetry.ExecuteWithRetry(
-            async () => await SetAppSettings(functionAppName, values),
-            retry.ApiCall, $"Set {functionAppName} settings {description}");
+        var changedAt = DateTimeOffset.MinValue;
+        await pollyRetry.ExecuteWithRetry(async () =>
+        {
+            // Taken in the attempt that succeeds: Azure may have applied an attempt that timed out on our side,
+            // and the host it restarted would otherwise pass for the restart of this one
+            var attemptStartedAt = DateTimeOffset.UtcNow;
+            await SetAppSettings(functionAppName, values);
+            changedAt = attemptStartedAt;
+        }, retry.ApiCall, $"Set {functionAppName} settings {description}");
 
         return await pollyRetry.WaitUntil(
             async () => await GetRunningHostStartTime(functionAppName) > changedAt,
             retry.FunctionAppRestart, $"Wait for {functionAppName} to restart after {changedAt:O}");
+    }
+
+    /// <summary>
+    /// For settings that are already set: an earlier change may still be restarting the function app.
+    /// </summary>
+    /// <returns>True once a host is running; false if none is in time.</returns>
+    public async Task<bool> WaitForRunningHost(string functionAppName)
+    {
+        return await pollyRetry.WaitUntil(
+            async () => await GetRunningHostStartTime(functionAppName) != null,
+            retry.FunctionAppRestart, $"Wait for {functionAppName} host to run");
     }
 
     /// <returns>App state as Azure reports it, e.g. "Running" or "Stopped".</returns>

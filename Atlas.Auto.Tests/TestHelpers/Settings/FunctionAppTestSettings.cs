@@ -3,9 +3,10 @@ using System.Globalization;
 namespace Atlas.Auto.Tests.TestHelpers.Settings;
 
 /// <summary>
-/// App settings some tests need on the Atlas function apps. AssemblySetup sets them all before the tests and restores
-/// the original values after them, one restart per function app. They change nothing the other tests rely on,
-/// so every test still runs in parallel.
+/// App settings some tests need on the Atlas function apps, marked with RequiresAppSetting. A [OneTimeSetUp] sets them before
+/// the tests of their area (DonorImport: AssemblySetup, RepeatSearch: RepeatSearchSetup) and restores the deployed values
+/// after them, one restart per function app. They change nothing the other tests rely on, so every test still runs in parallel.
+/// Azure:ChangeFunctionAppSettings false: nothing is changed and those tests are skipped.
 /// </summary>
 internal static class FunctionAppTestSettings
 {

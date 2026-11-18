@@ -26,9 +26,14 @@ internal class RepeatSearchExceptionPathTests : RepeatSearchTestBase
     /// one failed attempt, no match prediction, every event sent and none dead-lettered.
     /// </summary>
     /// <remarks>
-    /// On DEV the wait is 24 h; AssemblySetup sets a short one for the test run (<see cref="FunctionAppTestSettings"/>).
+    /// Changes app settings of the repeat search function for the run (RepeatSearchSetup, <see cref="FunctionAppTestSettings"/>):
+    /// RepeatSearch:OriginalResultsWaitIntervalSeconds = 20 (deployed on DEV: 300) and
+    /// RepeatSearch:MaxWaitForOriginalResultsMinutes = 1 (deployed on DEV: 1440, so the test would wait 24 h).
+    /// Skipped when Azure:ChangeFunctionAppSettings is false.
     /// </remarks>
     [Test]
+    [RequiresAppSetting(FunctionAppTestSettings.OriginalResultsWaitInterval)]
+    [RequiresAppSetting(FunctionAppTestSettings.MaxWaitForOriginalResults)]
     [ManualTest("QA-1980")]
     [AutoTest("QA-2921")]
     public async Task RepeatSearch_UnknownOriginalSearch_FailsValidationAfterWait()
