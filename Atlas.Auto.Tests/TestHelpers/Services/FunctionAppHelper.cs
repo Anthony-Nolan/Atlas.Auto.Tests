@@ -5,7 +5,8 @@ using Newtonsoft.Json.Linq;
 
 namespace Atlas.Auto.Tests.TestHelpers.Services;
 
-internal class FunctionAppHelper(ArmClient armClient, AzureResourceSettings resourceSettings)
+internal class FunctionAppHelper(
+    ArmClient armClient, AzureResourceSettings resourceSettings, PollyRetry pollyRetry, RetrySettings retry)
 {
     private const string RunningHostState = "Running";
     private static readonly HttpClient HostStatusClient = new();
@@ -17,20 +18,40 @@ internal class FunctionAppHelper(ArmClient armClient, AzureResourceSettings reso
     }
 
     /// <summary>
-    /// Sets the app setting, or removes it when <paramref name="value"/> is null.
-    /// Azure restarts the function app to apply the change.
+    /// Sets the app settings in one update, so the function app restarts once; a null value removes its setting.
     /// </summary>
-    public async Task SetAppSetting(string functionAppName, string settingKey, string? value)
+    public async Task SetAppSettings(string functionAppName, IReadOnlyDictionary<string, string?> values)
     {
         var site = GetSite(functionAppName);
         var settings = (await site.GetApplicationSettingsAsync()).Value;
 
-        if (value == null)
-            settings.Properties.Remove(settingKey);
-        else
-            settings.Properties[settingKey] = value;
+        foreach (var (settingKey, value) in values)
+        {
+            if (value == null)
+                settings.Properties.Remove(settingKey);
+            else
+                settings.Properties[settingKey] = value;
+        }
 
         await site.UpdateApplicationSettingsAsync(settings);
+    }
+
+    /// <summary>
+    /// Azure restarts the function app to apply a setting, and the app reads its settings only on start.
+    /// So we wait for a host that started after the change; until then an old host may still process messages.
+    /// </summary>
+    /// <returns>True once a host started after the change is running; false if none did in time.</returns>
+    public async Task<bool> SetAppSettingsAndWaitForRestart(string functionAppName, IReadOnlyDictionary<string, string?> values)
+    {
+        var description = string.Join(", ", values.Select(v => $"'{v.Key}' = '{v.Value ?? "(removed)"}'"));
+        var changedAt = DateTimeOffset.UtcNow;
+        await pollyRetry.ExecuteWithRetry(
+            async () => await SetAppSettings(functionAppName, values),
+            retry.ApiCall, $"Set {functionAppName} settings {description}");
+
+        return await pollyRetry.WaitUntil(
+            async () => await GetRunningHostStartTime(functionAppName) > changedAt,
+            retry.FunctionAppRestart, $"Wait for {functionAppName} to restart after {changedAt:O}");
     }
 
     /// <returns>App state as Azure reports it, e.g. "Running" or "Stopped".</returns>

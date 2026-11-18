@@ -1,4 +1,5 @@
 using Atlas.Auto.Tests.TestHelpers.Assertions;
+using Atlas.Auto.Tests.TestHelpers.Data.Entities;
 using Atlas.Auto.Tests.TestHelpers.Assertions.Search;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.InternalModels;
@@ -20,6 +21,9 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal class RepeatSearchTestSteps : SearchTestStepsBase
 {
+    // From the scheduled time of a message to the start of its run: Service Bus delivery and the function picking it up
+    private static readonly TimeSpan MaxRunDelay = TimeSpan.FromMinutes(1);
+
     private readonly NotificationFetcher<MatchingResultsNotification> _matchingNotificationFetcher;
     private readonly NotificationFetcher<SearchResultsNotification> _searchNotificationFetcher;
     private readonly SearchTestSteps _searchTestSteps;
@@ -41,6 +45,18 @@ internal class RepeatSearchTestSteps : SearchTestStepsBase
         _searchNotificationFetcher = new NotificationFetcher<SearchResultsNotification>(
             sbClient, sbSettings.RepeatSearchResultsTopic, sbSettings.Subscription,
             _pollyRetry, _retry.FetchMessages, "Fetch repeat search notification");
+    }
+
+    /// <summary>
+    /// The failed attempt started after the wait: no earlier than the maximum wait from the first request,
+    /// and no later than one more wait interval after it. AssemblySetup sets the short wait of <see cref="FunctionAppTestSettings"/>.
+    /// </summary>
+    public async Task RepeatMatchingShouldHaveWaitedForOriginalResults(SearchTrackingRequest tracking)
+    {
+        await SearchTracking.AttemptShouldHaveStartedAfterWait(
+            tracking,
+            FunctionAppTestSettings.ShortMaxWait,
+            FunctionAppTestSettings.ShortMaxWait + FunctionAppTestSettings.ShortWaitInterval + MaxRunDelay);
     }
 
     public async Task EditDonorHla(string donorCode, ImportDonorType donorType, Builder<ImportedHla> hlaBuilder)

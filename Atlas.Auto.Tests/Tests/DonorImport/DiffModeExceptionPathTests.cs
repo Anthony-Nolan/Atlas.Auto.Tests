@@ -2,6 +2,7 @@ using Atlas.Auto.Tests.TestHelpers.Attributes;
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.Auto.Tests.TestHelpers.Extensions;
 using Atlas.Auto.Tests.TestHelpers.SourceData;
+using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.DonorImport.FileSchema.Models;
 
 namespace Atlas.Auto.Tests.Tests.DonorImport;
@@ -79,11 +80,10 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
     /// and sends a notification about the untracked donor.
     /// </summary>
     /// <remarks>
-    /// The notification is off by default on some environments, so the test turns it on and restores it afterwards.
-    /// Changing an app setting restarts the donor import function, which would break other tests' imports: hence non-parallel.
+    /// The notification is off by default on some environments; AssemblySetup turns it on for the test run
+    /// (<see cref="FunctionAppTestSettings"/>).
     /// </remarks>
     [Test]
-    [NonParallelizable]
     [ManualTest("QA-1928")]
     [AutoTest("QA-2908")]
     public async Task DonorImport_DiffMode_DeleteUntrackedDonor_SendsNotification()
@@ -91,43 +91,32 @@ internal class DiffModeExceptionPathTests : DonorImportTestBase
         const int existingDonorCount = 3;
         var steps = GetDonorImportTestSteps(nameof(DonorImport_DiffMode_DeleteUntrackedDonor_SendsNotification));
 
-        // Remember the setting before changing it, so it is restored even if turning it on fails
-        var originalSetting = await steps.GetUntrackedDonorDeletionNotifications();
-        try
-        {
-            await steps.TurnOnUntrackedDonorDeletionNotifications(originalSetting);
+        // Precondition: import the donors that will be deleted
+        var existingDonors = DonorUpdateBuilder.Default
+            .WithExpandedHlaPhenotype()
+            .WithChangeType(ImportDonorChangeType.Create)
+            .Build(existingDonorCount)
+            .ToList();
+        var precondition = await steps.ImportDiffDonorFile(existingDonors);
+        await steps.DonorImportFileShouldHaveBeenProcessed(precondition, existingDonorCount);
+        await steps.DonorsShouldBeAvailableForSearch(existingDonors);
 
-            // Precondition: import the donors that will be deleted
-            var existingDonors = DonorUpdateBuilder.Default
-                .WithExpandedHlaPhenotype()
-                .WithChangeType(ImportDonorChangeType.Create)
-                .Build(existingDonorCount)
-                .ToList();
-            var precondition = await steps.ImportDiffDonorFile(existingDonors);
-            await steps.DonorImportFileShouldHaveBeenProcessed(precondition, existingDonorCount);
-            await steps.DonorsShouldBeAvailableForSearch(existingDonors);
+        // Delete the existing donors plus one record id that was never imported
+        var untrackedCode = DonorUpdateBuilder.New.Build().RecordId;
+        List<string> deletedCodes = [.. existingDonors.GetExternalDonorCodes(), untrackedCode];
+        var deletions = DonorUpdateBuilder.New
+            .WithRecordIds(deletedCodes)
+            .WithChangeType(ImportDonorChangeType.Delete)
+            .Build(deletedCodes.Count)
+            .ToList();
+        var request = await steps.ImportDiffDonorFile(deletions);
 
-            // Delete the existing donors plus one record id that was never imported
-            var untrackedCode = DonorUpdateBuilder.New.Build().RecordId;
-            List<string> deletedCodes = [.. existingDonors.GetExternalDonorCodes(), untrackedCode];
-            var deletions = DonorUpdateBuilder.New
-                .WithRecordIds(deletedCodes)
-                .WithChangeType(ImportDonorChangeType.Delete)
-                .Build(deletedCodes.Count)
-                .ToList();
-            var request = await steps.ImportDiffDonorFile(deletions);
+        // Deleting an untracked donor is not a failure, only a notification
+        await steps.DonorImportFileShouldHaveBeenProcessed(request, deletedCodes.Count);
+        await steps.UntrackedDonorDeletionShouldHaveBeenNotified(untrackedCode, request.UploadedAt);
 
-            // Deleting an untracked donor is not a failure, only a notification
-            await steps.DonorImportFileShouldHaveBeenProcessed(request, deletedCodes.Count);
-            await steps.UntrackedDonorDeletionShouldHaveBeenNotified(untrackedCode, request.UploadedAt);
-
-            // The existing donors are still deleted
-            await steps.DonorsShouldNotExist(existingDonors.GetExternalDonorCodes());
-        }
-        finally
-        {
-            await steps.RestoreUntrackedDonorDeletionNotifications(originalSetting);
-        }
+        // The existing donors are still deleted
+        await steps.DonorsShouldNotExist(existingDonors.GetExternalDonorCodes());
     }
 
     [Test]

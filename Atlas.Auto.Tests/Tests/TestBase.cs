@@ -30,11 +30,17 @@ internal class AssemblySetup
         // The active matching database may be paused; wake it before anything queries it
         await new MatchingDatabaseWaker(TestBase.Provider).WakeUp();
         await new TestDonorDeleter(TestBase.Provider).DeleteDonors();
+
+        // Settings some tests need, set once for all tests: changing one restarts its function app
+        await new FunctionAppTestSettingsSwitcher(TestBase.Provider).SetTestValues();
     }
 
     [OneTimeTearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
+        // Restores the deployed values the setup kept on each function app
+        await new FunctionAppTestSettingsSwitcher(TestBase.Provider).Restore();
+
         (TestBase.Provider as IDisposable)?.Dispose();
     }
 }
