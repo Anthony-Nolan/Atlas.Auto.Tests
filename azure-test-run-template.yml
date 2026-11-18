@@ -8,6 +8,11 @@ parameters:
 - name: testRuns
   type: object
   default: []
+# Azure:ChangeFunctionAppSettings of the tests: false leaves the Atlas function apps as they are and skips the tests marked
+# [RequiresAppSetting].
+- name: changeFunctionAppSettings
+  type: boolean
+  default: true
 
 stages:
 - stage: build
@@ -19,6 +24,8 @@ stages:
       vmImage: 'windows-latest'
     variables:
       buildConfiguration: 'Release'
+      # Set into appsettings.json by the 'Set environment variables' step
+      Azure.ChangeFunctionAppSettings: ${{ parameters.changeFunctionAppSettings }}
       NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
     steps:
       - task: UseDotNet@2
