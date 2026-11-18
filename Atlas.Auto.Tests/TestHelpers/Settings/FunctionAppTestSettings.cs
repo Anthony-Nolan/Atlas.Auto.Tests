@@ -41,4 +41,10 @@ internal static class FunctionAppTestSettings
                 [MaxWaitForOriginalResults] = ShortMaxWait.TotalMinutes.ToString(CultureInfo.InvariantCulture)
             }
         };
+
+    /// <returns>The function app key of a setting in <see cref="Values"/>.</returns>
+    public static string AppKeyOf(string settingKey)
+    {
+        return Values.Single(app => app.Value.ContainsKey(settingKey)).Key;
+    }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Atlas.Auto.Tests.TestHelpers.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -13,30 +14,58 @@ namespace Atlas.Auto.Tests.TestHelpers.Services;
 /// The deployed values are kept on the function app itself, in the <see cref="OriginalSettingsMarker"/> app setting, not in memory:
 /// if a run is stopped before its teardown, the next run still restores the deployed values, not the test ones it finds.
 /// Terraform owns all app settings, so a deployment removes the marker together with the test values.
+/// A set-up that fails does not fail the run: only the tests that need its settings fail (see <see cref="GetSetUpError"/>).
 /// </remarks>
 internal class FunctionAppTestSettingsSwitcher(IServiceProvider provider)
 {
     private const string OriginalSettingsMarker = "AutoTests:OriginalSettings";
 
+    // Function app key → why its test settings could not be set; read by RequiresAppSetting before each test that needs them
+    private static readonly ConcurrentDictionary<string, string> SetUpErrors = new();
+
     private readonly FunctionAppHelper _functionAppHelper = provider.GetRequiredService<FunctionAppHelper>();
     private readonly AzureResourceSettings _azureResource = provider.GetRequiredService<AzureResourceSettings>();
     private readonly ILogger _logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger<FunctionAppTestSettingsSwitcher>();
 
+    /// <returns>Why the test settings of the function app could not be set, or null if they were.</returns>
+    public static string? GetSetUpError(string appKey)
+    {
+        return SetUpErrors.GetValueOrDefault(appKey);
+    }
+
+    /// <summary>
+    /// Does not throw: a failure is logged and kept for <see cref="GetSetUpError"/>, so the other tests of the run still run.
+    /// </summary>
     /// <param name="appKey">Function app key, as in Azure:FunctionApps and <see cref="FunctionAppTestSettings.Values"/>.</param>
     public async Task SetTestValues(string appKey)
     {
         if (!ChangeAllowed(appKey))
             return;
 
+        try
+        {
+            await ApplyTestValues(appKey);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "{AppKey:l}: could not set the test settings; the tests that need them will fail", appKey);
+            SetUpErrors[appKey] = e.Message;
+        }
+    }
+
+    private async Task ApplyTestValues(string appKey)
+    {
         var appName = _azureResource.FunctionApps[appKey];
         var testValues = FunctionAppTestSettings.Values[appKey];
         var current = await ReadSettings(appName, [.. testValues.Keys, OriginalSettingsMarker]);
 
-        // A marker left by a run that stopped before its teardown holds the deployed values; the current ones are the test values
+        // A marker left by a run that stopped before its teardown holds the deployed values; the current ones are the test values.
+        // A setting it does not hold was added since, so that run did not change it: its current value is the deployed one.
         var marker = current[OriginalSettingsMarker];
-        var deployed = marker == null
-            ? testValues.Keys.ToDictionary(key => key, key => current[key])
-            : JsonConvert.DeserializeObject<Dictionary<string, string?>>(marker)!;
+        var markerValues = marker == null ? [] : JsonConvert.DeserializeObject<Dictionary<string, string?>>(marker)!;
+        var deployed = testValues.Keys.ToDictionary(
+            key => key,
+            key => markerValues.TryGetValue(key, out var deployedValue) ? deployedValue : current[key]);
         if (marker != null)
             _logger.LogWarning("{AppName:l}: an earlier run did not restore its settings; deployed values: {Deployed:l}",
                 appName, string.Join(", ", deployed));
