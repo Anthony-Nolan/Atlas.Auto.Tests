@@ -13,8 +13,6 @@ namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
 internal class DonorImportTestSteps
 {
-    private const string NotifyOnUntrackedDonorDeletionSetting = "NotificationConfiguration:NotifyOnAttemptedDeletionOfUntrackedDonor";
-
     private readonly DonorImportWorkflow _workflow;
     public ILogger Logger { get; }
 
@@ -86,43 +84,6 @@ internal class DonorImportTestSteps
         failures.Should().HaveCount(expectedFailedDonorCount, "Donor import failures logged for file {0}", fileName);
 
         return uploadEvent.EventTime;
-    }
-
-    /// <returns>The current value, to give back to <see cref="RestoreUntrackedDonorDeletionNotifications"/>.</returns>
-    public async Task<string?> GetUntrackedDonorDeletionNotifications()
-    {
-        var value = await _workflow.GetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting);
-        Logger.LogInformation("{Setting:l} is '{Value:l}'", NotifyOnUntrackedDonorDeletionSetting, value);
-        return value;
-    }
-
-    public async Task TurnOnUntrackedDonorDeletionNotifications(string? currentValue)
-    {
-        if (bool.TryParse(currentValue, out var isOn) && isOn)
-            return;
-
-        await SetDonorImportSettingAndWaitForRestart(bool.TrueString.ToLowerInvariant());
-        Logger.LogInformation("{Setting:l} turned on", NotifyOnUntrackedDonorDeletionSetting);
-    }
-
-    /// <summary>
-    /// Waits for the restart too, so the next tests do not upload files while the donor import function restarts.
-    /// </summary>
-    public async Task RestoreUntrackedDonorDeletionNotifications(string? originalValue)
-    {
-        var currentValue = await _workflow.GetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting);
-        if (currentValue != originalValue)
-        {
-            await SetDonorImportSettingAndWaitForRestart(originalValue);
-        }
-        Logger.LogInformation("{Setting:l} restored to '{OriginalValue:l}'", NotifyOnUntrackedDonorDeletionSetting, originalValue);
-    }
-
-    private async Task SetDonorImportSettingAndWaitForRestart(string? value)
-    {
-        var restarted = await _workflow.SetDonorImportSetting(NotifyOnUntrackedDonorDeletionSetting, value);
-        restarted.Should().BeTrue(
-            "Donor import function should have restarted after setting {0} to '{1}'", NotifyOnUntrackedDonorDeletionSetting, value);
     }
 
     public async Task UntrackedDonorDeletionShouldHaveBeenNotified(string externalDonorCode, DateTimeOffset sentSince)

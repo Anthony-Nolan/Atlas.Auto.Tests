@@ -2,9 +2,17 @@
 trigger: none
 pr: none
 
+# Shown as a checkbox when the pipeline is run by hand; a triggered run takes the default.
+parameters:
+- name: changeFunctionAppSettings
+  displayName: "Change Atlas function app settings for the tests that need them (restarts those apps; off: the tests are skipped)"
+  type: boolean
+  default: true
+
 extends:
   template: azure-test-run-template.yml
   parameters:
+    changeFunctionAppSettings: ${{ parameters.changeFunctionAppSettings }}
     # categories: tag -> its categories. Each category is published as its own test run, tagged with its tag.
     testRuns:
     - name: healthCheck
