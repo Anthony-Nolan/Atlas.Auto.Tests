@@ -19,16 +19,19 @@ internal class RequiresAppSettingAttribute(string settingKey) : PropertyAttribut
 {
     public const string PropertyName = "RequiresAppSetting";
 
+    /// <summary>The app setting the test needs, as in <see cref="FunctionAppTestSettings"/>.</summary>
+    public string SettingKey { get; } = settingKey;
+
     public ActionTargets Targets => ActionTargets.Test;
 
     public void BeforeTest(ITest test)
     {
         if (!TestBase.Provider.GetRequiredService<AzureResourceSettings>().ChangeFunctionAppSettings)
-            Assert.Ignore($"Needs the test value of app setting {settingKey}, but Azure:ChangeFunctionAppSettings is false");
+            Assert.Ignore($"Needs the test value of app setting {SettingKey}, but Azure:ChangeFunctionAppSettings is false");
 
-        var setUpError = FunctionAppTestSettingsSwitcher.GetSetUpError(FunctionAppTestSettings.AppKeyOf(settingKey));
+        var setUpError = FunctionAppTestSettingsSwitcher.GetSetUpError(FunctionAppTestSettings.AppKeyOf(SettingKey));
         if (setUpError != null)
-            Assert.Fail($"Needs the test value of app setting {settingKey}, but setting it failed: {setUpError}");
+            Assert.Fail($"Needs the test value of app setting {SettingKey}, but setting it failed: {setUpError}");
     }
 
     public void AfterTest(ITest test)
