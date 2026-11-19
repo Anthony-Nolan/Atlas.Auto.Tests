@@ -58,9 +58,14 @@ internal class SearchTestSteps : SearchTestStepsBase
         searchRequest.UsePrecomputedGenotypeSets = usePrecomputedGenotypeSets;
         searchRequest.RunMatchPrediction = runMatchPrediction ?? searchRequest.RunMatchPrediction;
 
+        // Taken at every try, so it ends up as the time of the try that was accepted: search tracking stores that one
         var submittedAtUtc = DateTime.UtcNow;
         var response = await _pollyRetry.ExecuteWithRetry(
-            async () => await _publicApiClient.PostSearchRequest(searchRequest),
+            async () =>
+            {
+                submittedAtUtc = DateTime.UtcNow;
+                return await _publicApiClient.PostSearchRequest(searchRequest);
+            },
             _retry.ApiCall, $"Submit search request '{searchRequestFileName}'");
         var result = AssertNotNull(response, "Search API should have responded");
 
@@ -198,6 +203,11 @@ internal class SearchTestSteps : SearchTestStepsBase
             new ServiceBusReceiverOptions { SubQueue = deadLettered ? SubQueue.DeadLetter : SubQueue.None });
         var enqueuedSince = enqueuedSinceUtc.HasValue ? new DateTimeOffset(enqueuedSinceUtc.Value, TimeSpan.Zero) : (DateTimeOffset?)null;
         var messages = await ServiceBusPeeker.PeekMessages(receiver, enqueuedSince);
+
+        // A partly read queue may hide the notification, and "not there" would pass the check by mistake
+        var source = $"{_sbSettings.MatchingResultsTopic}/{_sbSettings.MatchPredictionSubscription}" +
+                     (deadLettered ? " dead-letter queue" : "");
+        ServiceBusPeeker.ShouldHaveReadAll(messages, source, $"the matching notification of search {searchRequestId}");
 
         return messages
             .Select(m => JsonConvert.DeserializeObject<MatchingResultsNotification>(m.Body.ToString()))

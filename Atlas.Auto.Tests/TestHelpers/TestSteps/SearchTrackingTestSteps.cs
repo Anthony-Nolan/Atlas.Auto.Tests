@@ -60,8 +60,29 @@ internal class SearchTrackingTestSteps
 
         // Events: parallel match prediction runs every batch on its own, sequential runs them all in one go
         var batchRuns = matchPrediction.IsParallelMatchPrediction ? request.MatchPrediction_TotalNumberOfBatches!.Value : 1;
-        await EventsShouldHaveBeenSentInAnyOrder(request,
-            [..SearchTrackingEventTypes.SuccessfulMatching, ..SearchTrackingEventTypes.SuccessfulMatchPrediction(batchRuns)]);
+        List<string> expected =
+        [
+            ..SearchTrackingEventTypes.SuccessfulMatching,
+            ..SearchTrackingEventTypes.SuccessfulMatchPrediction(batchRuns)
+        ];
+        var sent = (await ReadEventsWithProperties(request, originalSearchId: null)).Select(e => e.EventType!).ToList();
+
+        // Every event except RunningBatchesStarted: exactly as listed, in any order
+        const string batchStarted = SearchTrackingEventTypes.MatchPredictionRunningBatchesStarted;
+        sent.Where(e => e != batchStarted).Should().BeEquivalentTo(expected.Where(e => e != batchStarted),
+            "search {0} should have sent exactly these search tracking events, each as many times as listed",
+            request.SearchIdentifier);
+
+        // RunningBatchesStarted: a parallel batch sends it at every try, so a redelivered batch that then succeeds
+        // sends it once more (RunningBatchesEnded only on success, checked above)
+        var batchStartedCount = sent.Count(e => e == batchStarted);
+        if (matchPrediction.IsParallelMatchPrediction)
+            batchStartedCount.Should().BeGreaterThanOrEqualTo(batchRuns,
+                "every batch of search {0} should have sent {1} at least once", request.SearchIdentifier, batchStarted);
+        else
+            batchStartedCount.Should().Be(batchRuns,
+                "sequential match prediction of search {0} should have sent {1} once", request.SearchIdentifier, batchStarted);
+
         await EventsShouldNotHaveBeenDeadLettered(request);
     }
 
@@ -210,10 +231,12 @@ internal class SearchTrackingTestSteps
             return isDone(stored) ? stored : null;
         }, _retry.CheckSearchTracking, $"Wait for search tracking of search '{searchId}': {waitingFor}");
 
-        if (tracking == null)
-            await SearchTrackingShouldHaveFinished(searchId, isDone, waitingFor);
+        // One more read after the wait: tracking may have finished just after the last try
+        tracking ??= await ReadTracking(searchId);
+        if (!isDone(tracking))
+            await SearchTrackingShouldHaveFinished(searchId, tracking, waitingFor);
 
-        _logger.LogInformation("Search tracking request id: {SearchTrackingRequestId}", tracking!.Request!.Id);
+        _logger.LogInformation("Search tracking request id: {SearchTrackingRequestId}", tracking.Request!.Id);
         return tracking;
     }
 
@@ -232,24 +255,37 @@ internal class SearchTrackingTestSteps
     /// Fails with what search tracking stored and which events of the search it dead-lettered:
     /// a dead-lettered event is the usual reason a search never finishes.
     /// </summary>
-    private async Task SearchTrackingShouldHaveFinished(string searchId, Func<StoredTracking, bool> isDone, string waitingFor)
+    /// <param name="stored">The last read, which is not finished.</param>
+    private async Task SearchTrackingShouldHaveFinished(string searchId, StoredTracking stored, string waitingFor)
     {
-        var stored = await ReadTracking(searchId);
-        var deadLettered = await _eventReader.GetDeadLetteredEvents(searchId);
+        var deadLettered = await DescribeDeadLetteredEvents(searchId);
 
-        isDone(stored).Should().BeTrue(
-            "search tracking should have finished search {0} ({1}); stored: request {2}, matching results sent {3}, " +
-            "results sent {4}, attempts {5} ({6} completed), match predictions {7} ({8} completed); dead-lettered events: [{9}]",
-            searchId,
-            waitingFor,
-            stored.Request?.Id.ToString() ?? "none",
-            stored.Request?.MatchingAlgorithm_ResultsSent,
-            stored.Request?.ResultsSent,
-            stored.Attempts.Count,
-            stored.Attempts.Count(a => a.CompletionTimeUtc != null),
-            stored.MatchPredictions.Count,
-            stored.MatchPredictions.Count(p => p.CompletionTimeUtc != null),
-            string.Join(", ", deadLettered.Select(e => e.EventType)));
+        Assert.Fail(
+            $"Search tracking should have finished search {searchId} ({waitingFor}); stored: " +
+            $"request {stored.Request?.Id.ToString() ?? "none"}, " +
+            $"matching results sent {stored.Request?.MatchingAlgorithm_ResultsSent}, " +
+            $"results sent {stored.Request?.ResultsSent}, " +
+            $"attempts {stored.Attempts.Count} ({stored.Attempts.Count(a => a.CompletionTimeUtc != null)} completed), " +
+            $"match predictions {stored.MatchPredictions.Count} " +
+            $"({stored.MatchPredictions.Count(p => p.CompletionTimeUtc != null)} completed); " +
+            $"dead-lettered events: {deadLettered}");
+    }
+
+    /// <summary>
+    /// For the failure message only: when the dead-letter queue cannot be read in full, the message still tells what
+    /// was stored and why the dead-lettered events are missing.
+    /// </summary>
+    private async Task<string> DescribeDeadLetteredEvents(string searchId)
+    {
+        try
+        {
+            var deadLettered = await _eventReader.GetDeadLetteredEvents(searchId);
+            return $"[{string.Join(", ", deadLettered.Select(e => e.EventType))}]";
+        }
+        catch (InvalidOperationException e)
+        {
+            return $"not read ({e.Message})";
+        }
     }
 
     /// <summary>What search tracking stored about a search: its request row, matching attempts and match predictions.</summary>

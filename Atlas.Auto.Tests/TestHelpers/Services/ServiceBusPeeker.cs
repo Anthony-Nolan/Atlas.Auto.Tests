@@ -51,6 +51,22 @@ internal static class ServiceBusPeeker
     }
 
     /// <summary>
+    /// A peek stops at <see cref="MaxMessages"/>: then the message looked for may lie beyond, so neither "found" nor
+    /// "not found" can be trusted. Call it on every peek whose result a check relies on.
+    /// </summary>
+    /// <param name="source">Topic and subscription (or dead-letter queue) that was peeked, for the message.</param>
+    /// <param name="lookingFor">What the caller looked for, for the message.</param>
+    public static void ShouldHaveReadAll(IReadOnlyCollection<ServiceBusReceivedMessage> messages, string source, string lookingFor)
+    {
+        if (messages.Count < MaxMessages)
+            return;
+
+        throw new InvalidOperationException(
+            $"{source} holds more than {MaxMessages} messages, so the test cannot read all of them to find {lookingFor}. " +
+            $"Clear {source} on this environment.");
+    }
+
+    /// <summary>
     /// Service Bus can only peek forwards from a sequence number, and peeking one message from N returns the first
     /// message with sequence number >= N. Sequence numbers and enqueued times both grow (the namespace is not partitioned),
     /// so we can binary search for the first message enqueued since <paramref name="since"/>: ~2·log2(N) single-message peeks.
