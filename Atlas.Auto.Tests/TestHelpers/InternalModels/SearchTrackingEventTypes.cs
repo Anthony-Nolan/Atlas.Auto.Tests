@@ -78,8 +78,8 @@ internal static class SearchTrackingEventTypes
     ];
 
     /// <summary>
-    /// Every event of a successful match prediction run, each batch tried once (a redelivered parallel batch sends
-    /// RunningBatchesStarted, and RunningBatchesEnded too if it failed to publish its result, once more).
+    /// Every event of a successful match prediction run with every stage tried once. A retried stage (batch
+    /// preparation, persisting results, a redelivered parallel batch) sends its Started/Ended pair again.
     /// </summary>
     /// <param name="batchRuns">How many times the batches were run: 1 for sequential, the batch count for parallel.</param>
     public static IReadOnlyList<string> SuccessfulMatchPrediction(int batchRuns) =>

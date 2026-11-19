@@ -187,16 +187,13 @@ internal class SearchTrackingTestSteps
     }
 
     /// <summary>
-    /// Every event of a search with match prediction, in any order. The running batches pair is counted on its own:
-    /// a parallel batch sends both at every try (Ended goes before its result is published, so a batch redelivered
-    /// after a failed publish sends both again), sequential match prediction sends them once around all batches.
+    /// Every event of a search with match prediction, in any order. Stages that Atlas retries from the start send
+    /// their Started/Ended pair again at every try, so those pairs are counted on their own; see
+    /// <see cref="RetriedStagePairs"/>. Every other event, results sent included, must come exactly as listed.
     /// </summary>
     private async Task SearchEventsShouldHaveBeenSent(SearchTrackingRequest request, bool isParallel)
     {
-        const string batchStarted = SearchTrackingEventTypes.MatchPredictionRunningBatchesStarted;
-        const string batchEnded = SearchTrackingEventTypes.MatchPredictionRunningBatchesEnded;
         var batches = isParallel ? request.MatchPrediction_TotalNumberOfBatches!.Value : 1;
-
         List<string> expected =
         [
             ..SearchTrackingEventTypes.SuccessfulMatching,
@@ -204,37 +201,55 @@ internal class SearchTrackingTestSteps
         ];
         var sent = (await ReadEventsWithProperties(request, originalSearchId: null)).Select(e => e.EventType).ToList();
 
-        // Every event except the running batches pair: exactly as listed
-        bool IsBatchEvent(string? eventType) => eventType is batchStarted or batchEnded;
-        sent.Where(e => !IsBatchEvent(e)).Should().BeEquivalentTo(expected.Where(e => !IsBatchEvent(e)),
+        // Every event outside the retried pairs: exactly as listed
+        var retriedPairs = RetriedStagePairs(isParallel, batches);
+        var retriedEvents = retriedPairs.SelectMany(p => new[] { p.Started, p.Ended }).ToHashSet();
+        sent.Where(e => !retriedEvents.Contains(e!)).Should().BeEquivalentTo(expected.Where(e => !retriedEvents.Contains(e)),
             "search {0} should have sent exactly these search tracking events, each as many times as listed",
             request.SearchIdentifier);
 
-        // Running batches pair
-        var startedCount = sent.Count(e => e == batchStarted);
-        var endedCount = sent.Count(e => e == batchEnded);
-        if (isParallel)
+        // Retried pairs: every try sends Started, a try that gets past its work sends Ended
+        foreach (var (started, ended, atLeast) in retriedPairs)
         {
-            startedCount.Should().BeGreaterThanOrEqualTo(batches,
-                "every batch of search {0} should have sent {1} at least once", request.SearchIdentifier, batchStarted);
-            endedCount.Should().BeGreaterThanOrEqualTo(batches,
-                "every batch of search {0} should have sent {1} at least once", request.SearchIdentifier, batchEnded);
-            endedCount.Should().BeLessThanOrEqualTo(startedCount,
-                "a batch try of search {0} sends {1} only after its {2}", request.SearchIdentifier, batchEnded, batchStarted);
+            var startedCount = sent.Count(e => e == started);
+            var endedCount = sent.Count(e => e == ended);
+
+            startedCount.Should().BeGreaterThanOrEqualTo(atLeast, "search {0} should have sent {1} at least {2} times",
+                request.SearchIdentifier, started, atLeast);
+            endedCount.Should().BeGreaterThanOrEqualTo(atLeast, "search {0} should have sent {1} at least {2} times",
+                request.SearchIdentifier, ended, atLeast);
+            endedCount.Should().BeLessThanOrEqualTo(startedCount, "a try of search {0} sends {1} only after its {2}",
+                request.SearchIdentifier, ended, started);
 
             // Not a failure, but worth seeing in pipeline logs when a test turns flaky
-            if (startedCount > batches)
+            if (startedCount > atLeast)
                 _logger.LogInformation(
-                    "Search {SearchId}: {Batches} batches sent {Started} {StartedEvent} and {Ended} {EndedEvent}: some were redelivered",
-                    request.SearchIdentifier, batches, startedCount, batchStarted, endedCount, batchEnded);
+                    "Search {SearchId}: {Started} sent {StartedCount} times, {Ended} {EndedCount}, expected {AtLeast}: the stage was retried",
+                    request.SearchIdentifier, started, startedCount, ended, endedCount, atLeast);
         }
-        else
-        {
-            startedCount.Should().Be(1, "sequential match prediction of search {0} should have sent {1} once",
-                request.SearchIdentifier, batchStarted);
-            endedCount.Should().Be(1, "sequential match prediction of search {0} should have sent {1} once",
-                request.SearchIdentifier, batchEnded);
-        }
+    }
+
+    /// <summary>
+    /// Started/Ended pairs that a successful search can send more than once:
+    /// <list type="bullet">
+    /// <item>batch preparation and persisting results: durable activities with retry (up to 5 tries), each sends
+    /// Started first and Ended after its work, so a failure after an event repeats the activity from the start;</item>
+    /// <item>running batches, parallel only: the worker sends both at every delivery of a batch (Ended goes before the
+    /// batch result is published, so a failed publish brings both again). Sequential sends them once, from activities
+    /// that only send the event, so that pair stays in the exact list.</item>
+    /// </list>
+    /// </summary>
+    /// <returns>Each pair with how many times it must come at least: once per stage, once per batch.</returns>
+    private static List<(string Started, string Ended, int AtLeast)> RetriedStagePairs(bool isParallel, int batches)
+    {
+        List<(string Started, string Ended, int AtLeast)> pairs =
+        [
+            (SearchTrackingEventTypes.MatchPredictionBatchPreparationStarted, SearchTrackingEventTypes.MatchPredictionBatchPreparationEnded, 1),
+            (SearchTrackingEventTypes.MatchPredictionPersistingResultsStarted, SearchTrackingEventTypes.MatchPredictionPersistingResultsEnded, 1)
+        ];
+        if (isParallel)
+            pairs.Add((SearchTrackingEventTypes.MatchPredictionRunningBatchesStarted, SearchTrackingEventTypes.MatchPredictionRunningBatchesEnded, batches));
+        return pairs;
     }
 
     private async Task<IReadOnlyCollection<SearchTrackingEventMessage>> ReadEventsWithProperties(
@@ -335,11 +350,16 @@ internal class SearchTrackingTestSteps
         public bool IsMatchingFinished => Request?.MatchingAlgorithm_ResultsSent == true && AttemptsCompleted;
 
         /// <summary>
-        /// Like <see cref="IsFinished"/>, and match prediction has completed too:
-        /// parallel match prediction sends its completion after the results.
+        /// Like <see cref="IsFinished"/>, and match prediction has completed too: parallel match prediction sends its
+        /// completion after the results. Search tracking stores the completion in two commits, first the request row
+        /// (MatchPrediction_IsSuccessful, batch counts), then the match prediction row (CompletionTimeUtc), and the
+        /// tables are read one after another: the request row must hold the first commit in this same read, or a read
+        /// between the two could pass with the request fields still empty.
         /// </summary>
         public bool IsMatchPredictionFinished =>
-            IsFinished && MatchPredictions.Count > 0 && MatchPredictions.All(p => p.CompletionTimeUtc != null);
+            IsFinished
+            && Request!.MatchPrediction_IsSuccessful != null
+            && MatchPredictions.Count > 0 && MatchPredictions.All(p => p.CompletionTimeUtc != null);
 
         private bool AttemptsCompleted => Attempts.Count > 0 && Attempts.All(a => a.CompletionTimeUtc != null);
     }
