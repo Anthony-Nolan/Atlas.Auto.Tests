@@ -25,4 +25,10 @@ internal class ServiceBusSettings
     /// The search tracking function reads it; a message it fails to process ends up in its dead-letter queue.
     /// </summary>
     public string SearchTrackingSubscription { get; set; } = "search-tracking";
+
+    /// <summary>
+    /// The Search function (match prediction orchestration) reads matching results from it on the matching results
+    /// topic; a message it fails to process ends up in its dead-letter queue.
+    /// </summary>
+    public string MatchPredictionSubscription { get; set; } = "match-prediction-orchestration";
 }

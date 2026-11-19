@@ -20,6 +20,11 @@ internal class SearchTestSteps : SearchTestStepsBase
     private readonly NotificationFetcher<MatchingResultsNotification> _matchingNotificationFetcher;
     private readonly NotificationFetcher<SearchResultsNotification> _searchNotificationFetcher;
 
+    private readonly MatchPredictionSubscriptionReader _matchPredictionSubscription;
+
+    /// <summary>Searches this test sent, by search ID.</summary>
+    private readonly Dictionary<string, SubmittedSearch> _submittedSearches = new();
+
     public SearchTestSteps(
         IServiceProvider provider,
         DonorImportStepsForSearchTests donorImportSteps,
@@ -29,6 +34,7 @@ internal class SearchTestSteps : SearchTestStepsBase
     {
         var sbClient = provider.GetRequiredService<ServiceBusClient>();
         var sbSettings = provider.GetRequiredService<ServiceBusSettings>();
+        _matchPredictionSubscription = provider.GetRequiredService<MatchPredictionSubscriptionReader>();
         _matchingNotificationFetcher = new NotificationFetcher<MatchingResultsNotification>(
             sbClient, sbSettings.MatchingResultsTopic, sbSettings.Subscription,
             _pollyRetry, _retry.FetchMessages, "Fetch matching notification");
@@ -37,17 +43,26 @@ internal class SearchTestSteps : SearchTestStepsBase
             _pollyRetry, _retry.FetchMessages, "Fetch search notification");
     }
 
+    /// <param name="runMatchPrediction">Overrides RunMatchPrediction of the file when set.</param>
     public async Task<SearchInitiationResponse> SubmitSearchRequest(
         string searchRequestFileName,
         bool? parallelMatchPrediction = null,
-        bool? usePrecomputedGenotypeSets = null)
+        bool? usePrecomputedGenotypeSets = null,
+        bool? runMatchPrediction = null)
     {
         var searchRequest = await SourceDataReader.ReadJsonFile<SearchRequest>(searchRequestFileName);
         searchRequest.ParallelMatchPrediction = parallelMatchPrediction;
         searchRequest.UsePrecomputedGenotypeSets = usePrecomputedGenotypeSets;
+        searchRequest.RunMatchPrediction = runMatchPrediction ?? searchRequest.RunMatchPrediction;
 
+        // Taken at every try, so it ends up as the time of the try that was accepted: search tracking stores that one
+        var submittedAtUtc = DateTime.UtcNow;
         var response = await _pollyRetry.ExecuteWithRetry(
-            async () => await _publicApiClient.PostSearchRequest(searchRequest),
+            async () =>
+            {
+                submittedAtUtc = DateTime.UtcNow;
+                return await _publicApiClient.PostSearchRequest(searchRequest);
+            },
             _retry.ApiCall, $"Submit search request '{searchRequestFileName}'");
         var result = AssertNotNull(response, "Search API should have responded");
 
@@ -56,6 +71,10 @@ internal class SearchTestSteps : SearchTestStepsBase
             string.Join(", ", result.ValidationFailures.Select(f => f.ErrorMessage)));
 
         _logger.LogInformation("Search request id: {SearchIdentifier}", result.Response!.SearchIdentifier);
+
+        // Kept for the search tracking check: what was sent is what search tracking should have stored
+        var searchIdentifier = result.Response.SearchIdentifier;
+        _submittedSearches[searchIdentifier] = new SubmittedSearch(searchIdentifier, searchRequest, submittedAtUtc);
         return result.Response;
     }
 
@@ -109,6 +128,82 @@ internal class SearchTestSteps : SearchTestStepsBase
 
         var donorResult = searchResultSet!.GetDonorResult(expectedDonorCode);
         await DonorResultShouldBeAsExpected(donorResult, "SearchResult");
+    }
+
+    /// <summary>
+    /// Matching succeeded, without checking what it found: for tests that check something else about the search.
+    /// </summary>
+    public async Task MatchingShouldHaveSucceeded(string searchRequestId)
+    {
+        var notification = await FetchMatchingResultsNotification(searchRequestId);
+        notification.MatchingShouldHaveBeenSuccessful();
+    }
+
+    /// <summary>
+    /// The search sent its final results, without checking what it found: for tests that check something else about
+    /// the search.
+    /// </summary>
+    public async Task SearchShouldHaveSucceeded(string searchRequestId)
+    {
+        var notification = await FetchSearchResultsNotification(searchRequestId);
+        notification.SearchShouldHaveBeenSuccessful();
+    }
+
+    /// <summary>
+    /// For a search with match prediction: search tracking stored all of it (QA-1888).
+    /// </summary>
+    /// <param name="expectedSearchCriteria">As the request file asks for, e.g. "10/10".</param>
+    public async Task SearchShouldHaveBeenTracked(string searchRequestId, string expectedSearchCriteria)
+    {
+        var search = GetSubmittedSearch(searchRequestId);
+        var matchingNotification = await FetchMatchingResultsNotification(searchRequestId);
+        await SearchTracking.SearchShouldHaveBeenTracked(search, expectedSearchCriteria, matchingNotification);
+    }
+
+    /// <summary>
+    /// For a search that does not run match prediction: search tracking stored matching only. Waits first for the
+    /// Search function to process the matching results: until then match prediction could still start.
+    /// </summary>
+    /// <param name="expectedSearchCriteria">As the request file asks for, e.g. "10/10".</param>
+    public async Task MatchingOnlySearchShouldHaveBeenTracked(string searchRequestId, string expectedSearchCriteria)
+    {
+        var search = GetSubmittedSearch(searchRequestId);
+        var matchingNotification = await FetchMatchingResultsNotification(searchRequestId);
+        await MatchPredictionShouldHaveProcessedMatchingResults(search);
+        await SearchTracking.MatchingOnlySearchShouldHaveBeenTracked(search, expectedSearchCriteria, matchingNotification);
+    }
+
+    /// <summary>
+    /// The Search function has processed the search's matching results: it is then that it starts match prediction
+    /// or, for a search without it, stops. A message that is no longer in its subscription and not in its dead-letter
+    /// queue was processed.
+    /// </summary>
+    private async Task MatchPredictionShouldHaveProcessedMatchingResults(SubmittedSearch search)
+    {
+        var searchId = search.SearchIdentifier;
+        var subscription = _matchPredictionSubscription.Subscription;
+
+        // Read once before the wait: a subscription too full to read fails here at once, not after the whole wait
+        var processed = !await _matchPredictionSubscription.HasMatchingNotification(searchId, search.SubmittedAtUtc);
+        if (!processed)
+            processed = await _pollyRetry.WaitUntil(
+                async () => !await _matchPredictionSubscription.HasMatchingNotification(searchId, search.SubmittedAtUtc),
+                _retry.FetchMessages, $"Wait for the Search function to read the matching results of search '{searchId}'");
+        processed.Should().BeTrue("the Search function should have read the matching results of search {0} from {1}",
+            searchId, subscription);
+
+        var deadLettered = await _matchPredictionSubscription.HasDeadLetteredMatchingNotification(searchId);
+        deadLettered.Should().BeFalse("the Search function should have processed the matching results of search {0}, " +
+            "not dead-lettered them in {1}", searchId, subscription);
+    }
+
+    private SubmittedSearch GetSubmittedSearch(string searchRequestId)
+    {
+        return _submittedSearches.TryGetValue(searchRequestId, out var search)
+            ? search
+            : throw new InvalidOperationException(
+                $"Search {searchRequestId} was not sent by {nameof(SubmitSearchRequest)} of this test, " +
+                "so the test does not know what search tracking should have stored.");
     }
 
     private async Task<MatchingResultsNotification> FetchMatchingResultsNotification(string searchRequestId)

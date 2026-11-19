@@ -1,3 +1,4 @@
+using Atlas.Auto.Tests.TestHelpers.Attributes;
 using Atlas.Auto.Tests.TestHelpers.Builders;
 using Atlas.DonorImport.FileSchema.Models;
 using System.Runtime.CompilerServices;
@@ -68,6 +69,49 @@ internal class SearchHappyPathTests : SearchTestBase
         var searchResponse = await steps.SubmitSearchRequest("search-request-donor-associated-antigen-10_10.json");
         await steps.MatchingShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
         await steps.SearchShouldReturnExpectedDonor(searchResponse.SearchIdentifier, expectedDonorCode);
+    }
+
+    /// <summary>
+    /// QA-2936: a successful search is tracked: the request as sent, one successful matching attempt, one successful
+    /// match prediction of the kind asked for, every event sent and none dead-lettered.
+    /// </summary>
+    /// <param name="parallelMatchPrediction">True: parallel (new), false: sequential (old).</param>
+    [TestCase(true, TestName = "{m} (new)")]
+    [TestCase(false, TestName = "{m} (old)")]
+    [ManualTest("QA-1888")]
+    [AutoTest("QA-2936")]
+    public async Task Search_Donor_10_10_TracksSuccessfulSearch(bool parallelMatchPrediction)
+    {
+        // No test-level retry: a search tracking failure that happens only sometimes is still a bug
+        var steps = GetSearchTestSteps(nameof(Search_Donor_10_10_TracksSuccessfulSearch));
+
+        // A donor the search finds, so matching scores it and match prediction runs for it
+        await steps.CreateDonor(ImportDonorType.Adult, ImportedHlaBuilder.SearchTestPhenotype);
+        var searchResponse = await steps.SubmitSearchRequest("search-request-donor-10_10.json", parallelMatchPrediction);
+        await steps.MatchingShouldHaveSucceeded(searchResponse.SearchIdentifier);
+        await steps.SearchShouldHaveSucceeded(searchResponse.SearchIdentifier);
+
+        await steps.SearchShouldHaveBeenTracked(searchResponse.SearchIdentifier, expectedSearchCriteria: "10/10");
+    }
+
+    /// <summary>
+    /// QA-2937: a search that asks for no match prediction is tracked: matching as for any search, no match prediction
+    /// and no final results.
+    /// </summary>
+    [Test]
+    [ManualTest("QA-1888")]
+    [AutoTest("QA-2937")]
+    public async Task Search_WithoutMatchPrediction_TracksMatchingOnly()
+    {
+        // No test-level retry: a search tracking failure that happens only sometimes is still a bug
+        var steps = GetSearchTestSteps(nameof(Search_WithoutMatchPrediction_TracksMatchingOnly));
+
+        // A donor the search finds, so matching scores it
+        await steps.CreateDonor(ImportDonorType.Adult, ImportedHlaBuilder.SearchTestPhenotype);
+        var searchResponse = await steps.SubmitSearchRequest("search-request-donor-10_10.json", runMatchPrediction: false);
+        await steps.MatchingShouldHaveSucceeded(searchResponse.SearchIdentifier);
+
+        await steps.MatchingOnlySearchShouldHaveBeenTracked(searchResponse.SearchIdentifier, expectedSearchCriteria: "10/10");
     }
 
     private async Task Search_Patient(
