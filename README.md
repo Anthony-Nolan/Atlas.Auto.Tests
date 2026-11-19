@@ -73,7 +73,8 @@ The test project connects directly to Atlas infrastructure rather than through d
   - `KeyVault.Name`, the environment's Atlas Key Vault, e.g. `an-dev-atlas-kv`
   - `AppInsights.WorkspaceId`
   - `PublicApi.BaseUrl`
-- The tests' Azure identity is a workload identity federation (WIF) service connection, e.g. "Atlas Dev WIF", listed against the pipeline's name in `azureServiceConnections` of `test-pipeline.yml`. It is not a variable: Azure DevOps only issues tokens for a service connection that a task of the stage names at compile time. The 'Azure identity of the tests' step (AzureCLI@2) names it and passes its IDs to the test steps.
+- The tests' Azure identity is a workload identity federation (WIF) service connection, e.g. "Atlas Dev WIF", listed against the pipeline's name in `azureServiceConnections` of `test-pipeline.yml`. It is the only per-environment value kept in this repo rather than in the variable group: Azure DevOps only issues tokens for a service connection that a task of the stage names at compile time, and a variable group is read at run time. The 'Azure identity of the tests' step (AzureCLI@2) names it and passes its IDs to the test steps.
+  - A new pipeline needs its line in `azureServiceConnections`, in each branch it runs (e.g. before a `release/x.y.z` branch is cut for it); without it its tests fail at once.
 
   The pipeline must be allowed to use the service connection (its "Pipeline permissions"). Its service principal needs Key Vault Secrets User on the Key Vault, and the rights to read and change function app settings and keys and to query the App Insights workspace.
 - The name/id of the Atlas artifacts feed must be set using the variable, `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.
