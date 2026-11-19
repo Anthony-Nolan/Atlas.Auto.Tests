@@ -23,7 +23,9 @@ internal static class SearchTrackingAssertions
     /// The request as matching got it, with ParallelMatchPrediction and UsePrecomputedGenotypeSets always set:
     /// the public API fills them in when the test leaves them empty.
     /// </returns>
-    public static SearchRequest ShouldHoldSubmittedSearch(this SearchTrackingRequest request, SubmittedSearch submitted)
+    /// <param name="expectedSearchCriteria">From the test, not worked out here: a copy of the Atlas formula would agree with a wrong one.</param>
+    public static SearchRequest ShouldHoldSubmittedSearch(
+        this SearchTrackingRequest request, SubmittedSearch submitted, string expectedSearchCriteria)
     {
         var sent = submitted.Request;
         var stored = JsonConvert.DeserializeObject<SearchRequest>(request.RequestJson)!;
@@ -37,7 +39,7 @@ internal static class SearchTrackingAssertions
             request.RepeatSearchCutOffDate.Should().BeNull();
 
             // Criteria as sent
-            request.SearchCriteria.Should().Be(ExpectedSearchCriteria(sent));
+            request.SearchCriteria.Should().Be(expectedSearchCriteria);
             request.DonorType.Should().Be(sent.SearchDonorType.ToString());
             storedRegistryCodes.Should().Equal(sent.DonorRegistryCodes);
             request.AreBetterMatchesIncluded.Should().Be(sent.MatchCriteria.IncludeBetterMatches);
@@ -194,19 +196,6 @@ internal static class SearchTrackingAssertions
             matchPrediction.FailureInfo_Message.Should().BeNull();
             matchPrediction.FailureInfo_ExceptionStacktrace.Should().BeNull();
         }
-    }
-
-    /// <summary>
-    /// Atlas SearchTrackingEventHelper.GetSearchCriteria: positions searched minus mismatches allowed, out of
-    /// positions searched (two per locus with mismatch criteria), e.g. "10/10" or "9/10".
-    /// </summary>
-    private static string ExpectedSearchCriteria(SearchRequest request)
-    {
-        var criteria = request.MatchCriteria.LocusMismatchCriteria;
-        var lociSearched = new[] { criteria.A, criteria.B, criteria.C, criteria.Dpb1, criteria.Dqb1, criteria.Drb1 }
-            .Count(mismatches => mismatches.HasValue);
-        var positionsSearched = lociSearched * 2;
-        return $"{positionsSearched - request.MatchCriteria.DonorMismatchCount}/{positionsSearched}";
     }
 
     /// <summary>

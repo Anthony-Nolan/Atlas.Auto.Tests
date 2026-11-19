@@ -12,7 +12,6 @@ using Azure.Messaging.ServiceBus;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace Atlas.Auto.Tests.TestHelpers.TestSteps;
 
@@ -21,8 +20,7 @@ internal class SearchTestSteps : SearchTestStepsBase
     private readonly NotificationFetcher<MatchingResultsNotification> _matchingNotificationFetcher;
     private readonly NotificationFetcher<SearchResultsNotification> _searchNotificationFetcher;
 
-    private readonly ServiceBusClient _sbClient;
-    private readonly ServiceBusSettings _sbSettings;
+    private readonly MatchPredictionSubscriptionReader _matchPredictionSubscription;
 
     /// <summary>Searches this test sent, by search ID.</summary>
     private readonly Dictionary<string, SubmittedSearch> _submittedSearches = new();
@@ -36,8 +34,7 @@ internal class SearchTestSteps : SearchTestStepsBase
     {
         var sbClient = provider.GetRequiredService<ServiceBusClient>();
         var sbSettings = provider.GetRequiredService<ServiceBusSettings>();
-        _sbClient = sbClient;
-        _sbSettings = sbSettings;
+        _matchPredictionSubscription = provider.GetRequiredService<MatchPredictionSubscriptionReader>();
         _matchingNotificationFetcher = new NotificationFetcher<MatchingResultsNotification>(
             sbClient, sbSettings.MatchingResultsTopic, sbSettings.Subscription,
             _pollyRetry, _retry.FetchMessages, "Fetch matching notification");
@@ -153,65 +150,51 @@ internal class SearchTestSteps : SearchTestStepsBase
     }
 
     /// <summary>
-    /// The Search function has read the search's matching results from its subscription and processed them: it is
-    /// then that it starts match prediction or, for a search without it, stops. A message that is no longer in the
-    /// subscription and not in its dead-letter queue was processed.
-    /// </summary>
-    public async Task MatchPredictionShouldHaveReadMatchingResults(string searchRequestId)
-    {
-        var search = GetSubmittedSearch(searchRequestId);
-        var subscription = $"{_sbSettings.MatchingResultsTopic}/{_sbSettings.MatchPredictionSubscription}";
-
-        var read = await _pollyRetry.WaitUntil(
-            async () => !await HasMatchingNotification(searchRequestId, deadLettered: false, search.SubmittedAtUtc),
-            _retry.FetchMessages, $"Wait for the Search function to read the matching results of search '{searchRequestId}'");
-        read.Should().BeTrue("the Search function should have read the matching results of search {0} from {1}",
-            searchRequestId, subscription);
-
-        var deadLettered = await HasMatchingNotification(searchRequestId, deadLettered: true, enqueuedSinceUtc: null);
-        deadLettered.Should().BeFalse("the Search function should have processed the matching results of search {0}, " +
-            "not dead-lettered them in {1}", searchRequestId, subscription);
-    }
-
-    /// <summary>
     /// For a search with match prediction: search tracking stored all of it (QA-1888).
     /// </summary>
-    public async Task SearchShouldHaveBeenTracked(string searchRequestId)
+    /// <param name="expectedSearchCriteria">As the request file asks for, e.g. "10/10".</param>
+    public async Task SearchShouldHaveBeenTracked(string searchRequestId, string expectedSearchCriteria)
     {
         var search = GetSubmittedSearch(searchRequestId);
         var matchingNotification = await FetchMatchingResultsNotification(searchRequestId);
-        await SearchTracking.SearchShouldHaveBeenTracked(search, matchingNotification);
+        await SearchTracking.SearchShouldHaveBeenTracked(search, expectedSearchCriteria, matchingNotification);
     }
 
     /// <summary>
-    /// For a search that does not run match prediction: search tracking stored matching only.
+    /// For a search that does not run match prediction: search tracking stored matching only. Waits first for the
+    /// Search function to process the matching results: until then match prediction could still start.
     /// </summary>
-    public async Task MatchingOnlySearchShouldHaveBeenTracked(string searchRequestId)
+    /// <param name="expectedSearchCriteria">As the request file asks for, e.g. "10/10".</param>
+    public async Task MatchingOnlySearchShouldHaveBeenTracked(string searchRequestId, string expectedSearchCriteria)
     {
         var search = GetSubmittedSearch(searchRequestId);
         var matchingNotification = await FetchMatchingResultsNotification(searchRequestId);
-        await SearchTracking.MatchingOnlySearchShouldHaveBeenTracked(search, matchingNotification);
+        await MatchPredictionShouldHaveProcessedMatchingResults(search);
+        await SearchTracking.MatchingOnlySearchShouldHaveBeenTracked(search, expectedSearchCriteria, matchingNotification);
     }
 
-    /// <param name="deadLettered">Read the dead-letter queue instead of the subscription.</param>
-    /// <param name="enqueuedSinceUtc">Not for the dead-letter queue: see <see cref="ServiceBusPeeker.PeekMessages"/>.</param>
-    private async Task<bool> HasMatchingNotification(string searchRequestId, bool deadLettered, DateTime? enqueuedSinceUtc)
+    /// <summary>
+    /// The Search function has processed the search's matching results: it is then that it starts match prediction
+    /// or, for a search without it, stops. A message that is no longer in its subscription and not in its dead-letter
+    /// queue was processed.
+    /// </summary>
+    private async Task MatchPredictionShouldHaveProcessedMatchingResults(SubmittedSearch search)
     {
-        await using var receiver = _sbClient.CreateReceiver(
-            _sbSettings.MatchingResultsTopic,
-            _sbSettings.MatchPredictionSubscription,
-            new ServiceBusReceiverOptions { SubQueue = deadLettered ? SubQueue.DeadLetter : SubQueue.None });
-        var enqueuedSince = enqueuedSinceUtc.HasValue ? new DateTimeOffset(enqueuedSinceUtc.Value, TimeSpan.Zero) : (DateTimeOffset?)null;
-        var messages = await ServiceBusPeeker.PeekMessages(receiver, enqueuedSince);
+        var searchId = search.SearchIdentifier;
+        var subscription = _matchPredictionSubscription.Subscription;
 
-        // A partly read queue may hide the notification, and "not there" would pass the check by mistake
-        var source = $"{_sbSettings.MatchingResultsTopic}/{_sbSettings.MatchPredictionSubscription}" +
-                     (deadLettered ? " dead-letter queue" : "");
-        ServiceBusPeeker.ShouldHaveReadAll(messages, source, $"the matching notification of search {searchRequestId}");
+        // Read once before the wait: a subscription too full to read fails here at once, not after the whole wait
+        var processed = !await _matchPredictionSubscription.HasMatchingNotification(searchId, search.SubmittedAtUtc);
+        if (!processed)
+            processed = await _pollyRetry.WaitUntil(
+                async () => !await _matchPredictionSubscription.HasMatchingNotification(searchId, search.SubmittedAtUtc),
+                _retry.FetchMessages, $"Wait for the Search function to read the matching results of search '{searchId}'");
+        processed.Should().BeTrue("the Search function should have read the matching results of search {0} from {1}",
+            searchId, subscription);
 
-        return messages
-            .Select(m => JsonConvert.DeserializeObject<MatchingResultsNotification>(m.Body.ToString()))
-            .Any(n => n?.SearchRequestId == searchRequestId);
+        var deadLettered = await _matchPredictionSubscription.HasDeadLetteredMatchingNotification(searchId);
+        deadLettered.Should().BeFalse("the Search function should have processed the matching results of search {0}, " +
+            "not dead-lettered them in {1}", searchId, subscription);
     }
 
     private SubmittedSearch GetSubmittedSearch(string searchRequestId)

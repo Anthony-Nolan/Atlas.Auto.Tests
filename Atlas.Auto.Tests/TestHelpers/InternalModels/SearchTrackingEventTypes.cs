@@ -27,7 +27,10 @@ internal static class SearchTrackingEventTypes
     /// </summary>
     public const string MatchPredictionRunningBatchesStarted = "MatchPredictionRunningBatchesStarted";
 
-    /// <summary>Sequential match prediction sends it once, parallel match prediction once per successful batch.</summary>
+    /// <summary>
+    /// Sequential match prediction sends it once, parallel match prediction at every successful try of a batch: once
+    /// per batch, more when a batch is redelivered after it failed to publish its result.
+    /// </summary>
     public const string MatchPredictionRunningBatchesEnded = "MatchPredictionRunningBatchesEnded";
 
     public const string MatchPredictionPersistingResultsStarted = "MatchPredictionPersistingResultsStarted";
@@ -76,7 +79,7 @@ internal static class SearchTrackingEventTypes
 
     /// <summary>
     /// Every event of a successful match prediction run, each batch tried once (a redelivered parallel batch sends
-    /// RunningBatchesStarted once more).
+    /// RunningBatchesStarted, and RunningBatchesEnded too if it failed to publish its result, once more).
     /// </summary>
     /// <param name="batchRuns">How many times the batches were run: 1 for sequential, the batch count for parallel.</param>
     public static IReadOnlyList<string> SuccessfulMatchPrediction(int batchRuns) =>

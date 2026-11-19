@@ -91,7 +91,7 @@ internal class SearchHappyPathTests : SearchTestBase
         await steps.MatchingShouldHaveSucceeded(searchResponse.SearchIdentifier);
         await steps.SearchShouldHaveSucceeded(searchResponse.SearchIdentifier);
 
-        await steps.SearchShouldHaveBeenTracked(searchResponse.SearchIdentifier);
+        await steps.SearchShouldHaveBeenTracked(searchResponse.SearchIdentifier, expectedSearchCriteria: "10/10");
     }
 
     /// <summary>
@@ -111,9 +111,7 @@ internal class SearchHappyPathTests : SearchTestBase
         var searchResponse = await steps.SubmitSearchRequest("search-request-donor-10_10.json", runMatchPrediction: false);
         await steps.MatchingShouldHaveSucceeded(searchResponse.SearchIdentifier);
 
-        // Match prediction could start only once the Search function has read the matching results
-        await steps.MatchPredictionShouldHaveReadMatchingResults(searchResponse.SearchIdentifier);
-        await steps.MatchingOnlySearchShouldHaveBeenTracked(searchResponse.SearchIdentifier);
+        await steps.MatchingOnlySearchShouldHaveBeenTracked(searchResponse.SearchIdentifier, expectedSearchCriteria: "10/10");
     }
 
     private async Task Search_Patient(

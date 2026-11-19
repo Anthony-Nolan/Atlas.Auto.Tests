@@ -69,6 +69,7 @@ internal static class ServiceConfiguration
         services.AddSingleton(sbSettings);
         services.AddSingleton(new ServiceBusClient(sbSettings.ConnectionString));
         services.AddSingleton<SearchTrackingEventReader>();
+        services.AddSingleton<MatchPredictionSubscriptionReader>();
 
         var blobSettings = configuration.GetSection("BlobStorage").Get<BlobStorageSettings>() ?? new BlobStorageSettings();
         services.AddSingleton(blobSettings);

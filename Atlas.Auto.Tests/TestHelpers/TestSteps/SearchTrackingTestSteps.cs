@@ -5,6 +5,7 @@ using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Settings;
 using Atlas.Client.Models.Search.Results.Matching;
+using Azure.Messaging.ServiceBus;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,17 +36,19 @@ internal class SearchTrackingTestSteps
     /// <summary>
     /// QA-1888: waits until search tracking has finished a search with match prediction, then checks everything it
     /// stored: the request as sent, one successful matching attempt, one successful match prediction, every event of
-    /// the search sent once (batch events once per batch run) and none dead-lettered.
+    /// the search sent (see <see cref="SearchEventsShouldHaveBeenSent"/>) and none dead-lettered.
     /// </summary>
+    /// <param name="expectedSearchCriteria">As the request file asks for, e.g. "10/10".</param>
     /// <param name="matchingNotification">Matching results notification of the search: the stored counts must match it.</param>
-    public async Task SearchShouldHaveBeenTracked(SubmittedSearch search, MatchingResultsNotification matchingNotification)
+    public async Task SearchShouldHaveBeenTracked(
+        SubmittedSearch search, string expectedSearchCriteria, MatchingResultsNotification matchingNotification)
     {
         var tracking = await WaitForTracking(search.SearchIdentifier, t => t.IsMatchPredictionFinished,
             "results sent, matching attempt and match prediction completed");
         var request = tracking.Request!;
 
         // Request row: the search as sent
-        var searchedRequest = request.ShouldHoldSubmittedSearch(search);
+        var searchedRequest = request.ShouldHoldSubmittedSearch(search, expectedSearchCriteria);
 
         // Matching: one successful attempt
         tracking.Attempts.Should().ContainSingle("matching should have run once for search {0}", search.SearchIdentifier);
@@ -58,31 +61,8 @@ internal class SearchTrackingTestSteps
         matchPrediction.ShouldHaveSucceeded(searchedRequest);
         request.MatchPredictionShouldHaveSucceeded(matchPrediction);
 
-        // Events: parallel match prediction runs every batch on its own, sequential runs them all in one go
-        var batchRuns = matchPrediction.IsParallelMatchPrediction ? request.MatchPrediction_TotalNumberOfBatches!.Value : 1;
-        List<string> expected =
-        [
-            ..SearchTrackingEventTypes.SuccessfulMatching,
-            ..SearchTrackingEventTypes.SuccessfulMatchPrediction(batchRuns)
-        ];
-        var sent = (await ReadEventsWithProperties(request, originalSearchId: null)).Select(e => e.EventType!).ToList();
-
-        // Every event except RunningBatchesStarted: exactly as listed, in any order
-        const string batchStarted = SearchTrackingEventTypes.MatchPredictionRunningBatchesStarted;
-        sent.Where(e => e != batchStarted).Should().BeEquivalentTo(expected.Where(e => e != batchStarted),
-            "search {0} should have sent exactly these search tracking events, each as many times as listed",
-            request.SearchIdentifier);
-
-        // RunningBatchesStarted: a parallel batch sends it at every try, so a redelivered batch that then succeeds
-        // sends it once more (RunningBatchesEnded only on success, checked above)
-        var batchStartedCount = sent.Count(e => e == batchStarted);
-        if (matchPrediction.IsParallelMatchPrediction)
-            batchStartedCount.Should().BeGreaterThanOrEqualTo(batchRuns,
-                "every batch of search {0} should have sent {1} at least once", request.SearchIdentifier, batchStarted);
-        else
-            batchStartedCount.Should().Be(batchRuns,
-                "sequential match prediction of search {0} should have sent {1} once", request.SearchIdentifier, batchStarted);
-
+        // Events and dead-letter queue
+        await SearchEventsShouldHaveBeenSent(request, matchPrediction.IsParallelMatchPrediction);
         await EventsShouldNotHaveBeenDeadLettered(request);
     }
 
@@ -91,15 +71,17 @@ internal class SearchTrackingTestSteps
     /// that only matching was stored and sent events. Call once the Search function has read the matching results:
     /// until then match prediction could still start.
     /// </summary>
+    /// <param name="expectedSearchCriteria">As the request file asks for, e.g. "10/10".</param>
     /// <param name="matchingNotification">Matching results notification of the search: the stored counts must match it.</param>
-    public async Task MatchingOnlySearchShouldHaveBeenTracked(SubmittedSearch search, MatchingResultsNotification matchingNotification)
+    public async Task MatchingOnlySearchShouldHaveBeenTracked(
+        SubmittedSearch search, string expectedSearchCriteria, MatchingResultsNotification matchingNotification)
     {
         var tracking = await WaitForTracking(search.SearchIdentifier, t => t.IsMatchingFinished,
             "matching results sent and matching attempt completed");
         var request = tracking.Request!;
 
         // Request row: the search as sent
-        request.ShouldHoldSubmittedSearch(search);
+        request.ShouldHoldSubmittedSearch(search, expectedSearchCriteria);
 
         // Matching: one successful attempt
         tracking.Attempts.Should().ContainSingle("matching should have run once for search {0}", search.SearchIdentifier);
@@ -204,6 +186,57 @@ internal class SearchTrackingTestSteps
             request.SearchIdentifier);
     }
 
+    /// <summary>
+    /// Every event of a search with match prediction, in any order. The running batches pair is counted on its own:
+    /// a parallel batch sends both at every try (Ended goes before its result is published, so a batch redelivered
+    /// after a failed publish sends both again), sequential match prediction sends them once around all batches.
+    /// </summary>
+    private async Task SearchEventsShouldHaveBeenSent(SearchTrackingRequest request, bool isParallel)
+    {
+        const string batchStarted = SearchTrackingEventTypes.MatchPredictionRunningBatchesStarted;
+        const string batchEnded = SearchTrackingEventTypes.MatchPredictionRunningBatchesEnded;
+        var batches = isParallel ? request.MatchPrediction_TotalNumberOfBatches!.Value : 1;
+
+        List<string> expected =
+        [
+            ..SearchTrackingEventTypes.SuccessfulMatching,
+            ..SearchTrackingEventTypes.SuccessfulMatchPrediction(batches)
+        ];
+        var sent = (await ReadEventsWithProperties(request, originalSearchId: null)).Select(e => e.EventType).ToList();
+
+        // Every event except the running batches pair: exactly as listed
+        bool IsBatchEvent(string? eventType) => eventType is batchStarted or batchEnded;
+        sent.Where(e => !IsBatchEvent(e)).Should().BeEquivalentTo(expected.Where(e => !IsBatchEvent(e)),
+            "search {0} should have sent exactly these search tracking events, each as many times as listed",
+            request.SearchIdentifier);
+
+        // Running batches pair
+        var startedCount = sent.Count(e => e == batchStarted);
+        var endedCount = sent.Count(e => e == batchEnded);
+        if (isParallel)
+        {
+            startedCount.Should().BeGreaterThanOrEqualTo(batches,
+                "every batch of search {0} should have sent {1} at least once", request.SearchIdentifier, batchStarted);
+            endedCount.Should().BeGreaterThanOrEqualTo(batches,
+                "every batch of search {0} should have sent {1} at least once", request.SearchIdentifier, batchEnded);
+            endedCount.Should().BeLessThanOrEqualTo(startedCount,
+                "a batch try of search {0} sends {1} only after its {2}", request.SearchIdentifier, batchEnded, batchStarted);
+
+            // Not a failure, but worth seeing in pipeline logs when a test turns flaky
+            if (startedCount > batches)
+                _logger.LogInformation(
+                    "Search {SearchId}: {Batches} batches sent {Started} {StartedEvent} and {Ended} {EndedEvent}: some were redelivered",
+                    request.SearchIdentifier, batches, startedCount, batchStarted, endedCount, batchEnded);
+        }
+        else
+        {
+            startedCount.Should().Be(1, "sequential match prediction of search {0} should have sent {1} once",
+                request.SearchIdentifier, batchStarted);
+            endedCount.Should().Be(1, "sequential match prediction of search {0} should have sent {1} once",
+                request.SearchIdentifier, batchEnded);
+        }
+    }
+
     private async Task<IReadOnlyCollection<SearchTrackingEventMessage>> ReadEventsWithProperties(
         SearchTrackingRequest request, string? originalSearchId)
     {
@@ -282,9 +315,10 @@ internal class SearchTrackingTestSteps
             var deadLettered = await _eventReader.GetDeadLetteredEvents(searchId);
             return $"[{string.Join(", ", deadLettered.Select(e => e.EventType))}]";
         }
-        catch (InvalidOperationException e)
+        catch (Exception e) when (e is InvalidOperationException or ServiceBusException)
         {
-            return $"not read ({e.Message})";
+            // Too full to read in full, or Service Bus failed just now: the stored state still goes into the message
+            return $"not read ({e.GetType().Name}: {e.Message})";
         }
     }
 
