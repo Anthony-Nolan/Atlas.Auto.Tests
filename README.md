@@ -23,6 +23,12 @@ The test project connects directly to Atlas infrastructure rather than through d
 ```dotnet user-secrets set "NameOfSecret" "ValueOfSecret"```
   - Or, in the Visual Studio IDE, right-click the project name, and select the context menu option: "Manage User Secrets".
   - All settings that must be overridden have the placeholder value of `"override-this"`.
+- The tests sign in to Azure as you: run `az login` first. If your default tenant is not the one Atlas is in, also set `Azure.TenantId`.
+  Your account needs:
+  - read access to the secrets in the environment's Atlas Key Vault (`KeyVault.Name`, e.g. `an-dev-atlas-kv`), e.g. through the "Atlas Key Vault Officers - DEV" group;
+  - the rights on the Atlas resource group to read and change function app settings and keys, and to query its App Insights workspace.
+- The secrets are not settings: the tests read the connection strings from the Key Vault (see `TestHelpers/Settings/KeyVaultSecrets.cs`) and the Public API key from the Public API function app.
+  A user secret with the same name, e.g. `Database.Sql` or `PublicApi.ApiKey`, still takes precedence.
 - Tests can be run in parallel to reduce overall execution time.
 
 ### Local Development
@@ -45,27 +51,34 @@ The test project connects directly to Atlas infrastructure rather than through d
 - Make sure to add a new Category of tests under its tag in `categories` of the appropriate test run.
 
 ### Pipeline Variables
-- Each pipeline instance must have pipeline variables that match those within `appsettings.json`.
-  - Use `.` for nested settings, e.g., var name `Azure.Authentication.ClientId` would be used for setting:
+- Each pipeline's variables live in a variable group named exactly like the pipeline, e.g. "[DEV-ATLAS] Atlas E2E Tests" (`test-pipeline.yml` links it by `Build.DefinitionName`), not in the pipeline itself.
+  - Allow the pipeline to use the group (the group's "Pipeline permissions").
+  - Renaming the pipeline breaks the link: rename the group too.
+- The group must have variables that match those within `appsettings.json`.
+  - Use `.` for nested settings, e.g., var name `Azure.FunctionApps.Search` would be used for setting:
 	```json
 	{
 		"Azure": {
-			"Authentication": {
-				"ClientId": "value"
+			"FunctionApps": {
+				"Search": "value"
 			}
 		}
 	}
 	```
-- Secret variables (mark as secret in Azure DevOps):
-  - `Azure.Authentication.ClientId`, `Azure.Authentication.ClientSecret`, `Azure.Authentication.TenantId`
-  - `BlobStorage.ConnectionString`, `ServiceBus.ConnectionString`
-  - `Database.Sql`, `Database.SqlA`, `Database.SqlB`
-  - `PublicApi.ApiKey`
-- Non-secret variables:
+- The pipeline holds no secrets, and `appsettings.json` has no secret settings, so none can end up in the published `dropTestSuite` artifact.
+  The tests read the connection strings from the environment's Atlas Key Vault and the Public API key through ARM, as the identity below.
+- Variables (none of them secret):
   - `Azure.SubscriptionId`, `Azure.ResourceGroupName`
-  - `Azure.FunctionApps.DonorImport`, `Azure.FunctionApps.Search`, `Azure.FunctionApps.RepeatSearch`, `Azure.FunctionApps.MatchingDonorManagement`, `Azure.FunctionApps.SearchTracking`
+  - `Azure.FunctionApps.DonorImport`, `Azure.FunctionApps.Search`, `Azure.FunctionApps.RepeatSearch`, `Azure.FunctionApps.MatchingDonorManagement`, `Azure.FunctionApps.SearchTracking`, `Azure.FunctionApps.PublicApi`
+  - `KeyVault.Name`, the environment's Atlas Key Vault, e.g. `an-dev-atlas-kv`
   - `AppInsights.WorkspaceId`
   - `PublicApi.BaseUrl`
+- The tests' Azure identity is a workload identity federation (WIF) service connection, e.g. "Atlas Dev WIF", given by:
+  - `E2E.ServiceConnectionId`: the service connection's ID;
+  - `E2E.ServicePrincipalClientId`: the client ID of its service principal;
+  - `E2E.TenantId`: its tenant.
+
+  The pipeline must be allowed to use the service connection (its "Pipeline permissions"). Its service principal needs Key Vault Secrets User on the Key Vault, and the rights to read and change function app settings and keys and to query the App Insights workspace.
 - The name/id of the Atlas artifacts feed must be set using the variable, `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.
   - String should be format of either `projectName/feedName` e.g., `Atlas/atlas-packages` or just `feedName`, as appropriate.
 

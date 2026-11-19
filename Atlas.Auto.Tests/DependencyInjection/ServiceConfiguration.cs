@@ -19,13 +19,20 @@ internal static class ServiceConfiguration
 {
     internal static IServiceProvider CreateProvider()
     {
-        var configuration = new ConfigurationBuilder()
+        var settings = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json")
             .AddUserSecrets(Assembly.GetExecutingAssembly())
             .Build();
 
-        ConfigurationValidator.Validate(configuration);
+        ConfigurationValidator.Validate(settings);
+
+        var credential = AzureCredentialFactory.Create(settings["Azure:TenantId"]);
+
+        var configuration = new ConfigurationBuilder()
+            .AddConfiguration(settings)
+            .AddInMemoryCollection(KeyVaultSecrets.Read(settings, credential))
+            .Build();
 
         var services = new ServiceCollection();
         var dbConfig = configuration.GetSection("Database").Get<DatabaseConfig>() ?? new DatabaseConfig();
@@ -42,13 +49,15 @@ internal static class ServiceConfiguration
 
         var publicApiSettings = configuration.GetSection("PublicApi").Get<PublicApiSettings>() ?? new PublicApiSettings();
         services.AddSingleton(publicApiSettings);
+        services.AddSingleton<PublicApiKeyProvider>();
+        services.AddTransient<PublicApiKeyHandler>();
         services.AddHttpClient<PublicApiClient>(client =>
-        {
-            client.BaseAddress = new Uri(publicApiSettings.BaseUrl);
-            client.Timeout = TimeSpan.FromMinutes(5);
-            client.DefaultRequestHeaders.Add("Accept", "application/json");
-            client.DefaultRequestHeaders.Add("x-functions-key", publicApiSettings.ApiKey);
-        });
+            {
+                client.BaseAddress = new Uri(publicApiSettings.BaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(5);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            })
+            .AddHttpMessageHandler<PublicApiKeyHandler>();
 
         services.AddDbContextFactory<AtlasContext>(options =>
         {
@@ -74,11 +83,6 @@ internal static class ServiceConfiguration
         services.AddSingleton(blobSettings);
         services.AddSingleton(new BlobServiceClient(blobSettings.ConnectionString));
         services.AddSingleton<BlobStorageHelper>();
-
-        var azureAuth = configuration.GetSection("Azure:Authentication").Get<AzureAuthSettings>() ?? new AzureAuthSettings();
-        services.AddSingleton(azureAuth);
-
-        var credential = azureAuth.CreateCredential();
 
         var azureResource = configuration.GetSection("Azure").Get<AzureResourceSettings>() ?? new AzureResourceSettings();
         services.AddSingleton(azureResource);

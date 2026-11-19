@@ -19,11 +19,16 @@ dotnet test --filter TestCategory=Search_HappyPathTests   # run one category (se
 dotnet test --filter FullyQualifiedName~Search_HappyPathTests.Search_Cord_4_8_ReturnsExpectedSearchResult   # single test
 ```
 
-Configuration (`Atlas.Auto.Tests/appsettings.json`) holds per-API `BaseUrl`/`ApiKey` sections (`DonorImport`, `MatchingAlgorithm`, `PublicApi`, `RepeatSearch`, `TopLevel`), database connection strings (`Database.Sql`/`SqlA`/`SqlB`), and Azure resource settings — all defaulted to `"override-this"`. Override locally with .NET user secrets from the `Atlas.Auto.Tests` project directory:
+Configuration (`Atlas.Auto.Tests/appsettings.json`) holds no secrets: the Public API `BaseUrl`, the Azure resources (subscription, resource group, function app names, App Insights workspace) and `KeyVault.Name`, the environment's Atlas Key Vault. Values that must be set default to `"override-this"`. Override locally with .NET user secrets from the `Atlas.Auto.Tests` project directory:
 ```
-dotnet user-secrets set "Database.Sql" "Server=..."
+dotnet user-secrets set "KeyVault.Name" "an-dev-atlas-kv"
 ```
-In the pipeline, the equivalent pipeline variables use `.` for nesting (e.g. `Database.Sql`) and are injected via `FileTransform@2` into `appsettings.json`. The NuGet feed for Atlas packages is set via `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.
+In the pipeline, the equivalent variables use `.` for nesting (e.g. `KeyVault.Name`) and are injected via `FileTransform@2` into `appsettings.json`. They live in a variable group named exactly like the pipeline (e.g. "[DEV-ATLAS] Atlas E2E Tests"), which `test-pipeline.yml` links through `Build.DefinitionName`, so each pipeline only ever gets its own environment's settings. The NuGet feed for Atlas packages is set via `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.
+
+Secrets are never settings, pipeline variables or part of the build artifact:
+- The connection strings (SQL, Service Bus, Blob) are read from the Atlas Key Vault at start-up (`TestHelpers/Settings/KeyVaultSecrets.cs` maps each setting to its secret). The Public API key is the Public API app's default host key, read through ARM (`PublicApiKeyProvider`). A user secret with the setting's name (e.g. `Database.Sql`, `PublicApi.ApiKey`) still wins.
+- Azure access (ARM, App Insights, Key Vault) uses `AzureCredentialFactory`: in the pipeline `AzurePipelinesCredential` for the WIF service connection given by the `E2E.*` variables (`azure-test-run-template.yml` maps them onto the test step), locally `AzureCliCredential` (`az login`; `Azure.TenantId` picks the tenant).
+- Don't add a secret to `appsettings.json` or a pipeline variable: FileTransform would write it into `appsettings.json`, which is published in the `dropTestSuite` artifact. Add it to the Key Vault mapping instead.
 
 ## Architecture
 
@@ -39,7 +44,7 @@ Each functional area (Search, RepeatSearch, Scoring, DonorImport) follows the sa
 3. **TestSteps** (`TestHelpers/TestSteps/*.cs`) — Gherkin-style, human-readable step methods (e.g. `CreateDonor`, `SubmitSearchRequest`, `MatchingShouldReturnExpectedDonor`) that combine one or more Workflow calls plus assertions. This is what test methods actually call. `DonorImportStepsForSearchTests` composes donor-import steps as a helper reused by search/scoring/repeat-search tests that need a donor set up first.
 4. **Tests** (`Tests/<Area>/*.cs`) — NUnit fixtures. Each area has a `*TestBase` (e.g. `DonorImportTestBase` extends `TestBase`) that wires up the relevant TestSteps, plus `*_HappyPathTests` / `*_ExceptionPathTests` fixtures containing the actual `[Test]`/`[TestCaseSource]` methods.
 
-Wiring: `ServiceConfiguration.CreateProvider()` (`DependencyInjection/ServiceConfiguration.cs`) builds the DI container — loads `appsettings.json` + user secrets, registers EF Core context factories (`AtlasContext`, `AtlasMatchingContextFactory`), Azure clients (Service Bus, Blob Storage, ARM), and all Service/Workflow helpers as singletons. `TestBase` exposes the singleton provider.
+Wiring: `ServiceConfiguration.CreateProvider()` (`DependencyInjection/ServiceConfiguration.cs`) builds the DI container — loads `appsettings.json` + user secrets, then the secrets from the Key Vault, registers EF Core context factories (`AtlasContext`, `AtlasMatchingContextFactory`), Azure clients (Service Bus, Blob Storage, ARM), and all Service/Workflow helpers as singletons. `TestBase` exposes the singleton provider.
 
 ### Search-family tests (Search, RepeatSearch, Scoring)
 

@@ -76,6 +76,13 @@ internal class FunctionAppHelper(
         return (await GetSite(functionAppName).GetAsync()).Value.Data.State;
     }
 
+    /// <returns>The app's default host key, which calls its functions; null if it has none.</returns>
+    public async Task<string?> GetDefaultHostKey(string functionAppName)
+    {
+        var keys = (await GetSite(functionAppName).GetHostKeysAsync()).Value.FunctionKeys;
+        return keys.TryGetValue("default", out var key) ? key : null;
+    }
+
     /// <summary>
     /// Asks the Functions host for its status (admin endpoint, master key from ARM).
     /// </summary>
