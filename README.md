@@ -23,12 +23,15 @@ The test project connects directly to Atlas infrastructure rather than through d
 ```dotnet user-secrets set "NameOfSecret" "ValueOfSecret"```
   - Or, in the Visual Studio IDE, right-click the project name, and select the context menu option: "Manage User Secrets".
   - All settings that must be overridden have the placeholder value of `"override-this"`.
-- The tests sign in to Azure as you: run `az login` first. If your default tenant is not the one Atlas is in, also set `Azure.TenantId`.
+  - Use `:` for nested settings, e.g. `dotnet user-secrets set "KeyVault:Name" "an-dev-atlas-kv"`. Unlike the pipeline variables, a user secret named with `.` (`KeyVault.Name`) overrides nothing.
+- The tests sign in to Azure as you: run `az login` first. If your default tenant is not the one Atlas is in, also set `Azure:TenantId`.
   Your account needs:
-  - read access to the secrets in the environment's Atlas Key Vault (`KeyVault.Name`, e.g. `an-dev-atlas-kv`), e.g. through the "Atlas Key Vault Officers - DEV" group;
+  - read access to the secrets in the environment's Atlas Key Vault (`KeyVault:Name`, e.g. `an-dev-atlas-kv`), e.g. through the "Atlas Key Vault Officers - DEV" group;
   - the rights on the Atlas resource group to read and change function app settings and keys, and to query its App Insights workspace.
+- Your IP address must be allowed by the firewall of the environment's Atlas SQL server.
 - The secrets are not settings: the tests read the connection strings from the Key Vault (see `TestHelpers/Settings/KeyVaultSecrets.cs`) and the Public API key from the Public API function app.
-  A user secret with the same name, e.g. `Database.Sql` or `PublicApi.ApiKey`, still takes precedence.
+  A user secret with the same name, e.g. `Database:Sql` or `PublicApi:ApiKey`, still takes precedence.
+- To leave the function apps as they are, set `Azure:ChangeFunctionAppSettings` to `false`: the tests that need a changed setting are then skipped.
 - Tests can be run in parallel to reduce overall execution time.
 
 ### Local Development

@@ -19,15 +19,16 @@ dotnet test --filter TestCategory=Search_HappyPathTests   # run one category (se
 dotnet test --filter FullyQualifiedName~Search_HappyPathTests.Search_Cord_4_8_ReturnsExpectedSearchResult   # single test
 ```
 
-Configuration (`Atlas.Auto.Tests/appsettings.json`) holds no secrets: the Public API `BaseUrl`, the Azure resources (subscription, resource group, function app names, App Insights workspace) and `KeyVault.Name`, the environment's Atlas Key Vault. Values that must be set default to `"override-this"`. Override locally with .NET user secrets from the `Atlas.Auto.Tests` project directory:
+Configuration (`Atlas.Auto.Tests/appsettings.json`) holds no secrets: the Public API `BaseUrl`, the Azure resources (subscription, resource group, function app names, App Insights workspace) and `KeyVault.Name`, the environment's Atlas Key Vault. Values that must be set default to `"override-this"`. Override locally with .NET user secrets from the `Atlas.Auto.Tests` project directory, nesting with `:` (a user secret named with `.` overrides nothing):
 ```
-dotnet user-secrets set "KeyVault.Name" "an-dev-atlas-kv"
+dotnet user-secrets set "KeyVault:Name" "an-dev-atlas-kv"
 ```
+A local run also needs your IP allowed by the firewall of the environment's Atlas SQL server.
 In the pipeline, the equivalent variables use `.` for nesting (e.g. `KeyVault.Name`) and are injected via `FileTransform@2` into `appsettings.json`. They live in a variable group named like the pipeline without its square brackets (pipeline "[DEV-ATLAS] Atlas E2E Tests", group "DEV-ATLAS Atlas E2E Tests"), which `test-pipeline.yml` links through `Build.DefinitionName`, so each pipeline only ever gets its own environment's settings. The NuGet feed for Atlas packages is set via `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.
 
 Secrets are never settings, pipeline variables or part of the build artifact:
-- The connection strings (SQL, Service Bus, Blob) are read from the Atlas Key Vault at start-up (`TestHelpers/Settings/KeyVaultSecrets.cs` maps each setting to its secret). The Public API key is the Public API app's default host key, read through ARM (`PublicApiKeyProvider`). A user secret with the setting's name (e.g. `Database.Sql`, `PublicApi.ApiKey`) still wins.
-- Azure access (ARM, App Insights, Key Vault) uses `AzureCredentialFactory`: in the pipeline `AzurePipelinesCredential` for the pipeline's WIF service connection (`azureServiceConnections` in `test-pipeline.yml`, by pipeline name: Azure DevOps only issues tokens for a connection a task of the stage names at compile time; the 'Azure identity of the tests' AzureCLI@2 step names it and passes its IDs to the test steps), locally `AzureCliCredential` (`az login`; `Azure.TenantId` picks the tenant).
+- The connection strings (SQL, Service Bus, Blob) are read from the Atlas Key Vault at start-up (`TestHelpers/Settings/KeyVaultSecrets.cs` maps each setting to its secret). The Public API key is the Public API app's default host key, read through ARM (`PublicApiKeyProvider`). A user secret with the setting's name (e.g. `Database:Sql`, `PublicApi:ApiKey`) still wins.
+- Azure access (ARM, App Insights, Key Vault) uses `AzureCredentialFactory`: in the pipeline `AzurePipelinesCredential` for the pipeline's WIF service connection (`azureServiceConnections` in `test-pipeline.yml`, by pipeline name: Azure DevOps only issues tokens for a connection a task of the stage names at compile time; the 'Azure identity of the tests' AzureCLI@2 step names it and passes its IDs to the test steps), locally `AzureCliCredential` (`az login`; `Azure:TenantId` picks the tenant).
 - Don't add a secret to `appsettings.json` or a pipeline variable: FileTransform would write it into `appsettings.json`, which is published in the `dropTestSuite` artifact. Add it to the Key Vault mapping instead.
 
 ## Architecture
