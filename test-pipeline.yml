@@ -10,10 +10,11 @@ parameters:
   default: true
 
 # The settings of the Atlas environment under test, none of them secret, come from the variable group named after this
-# pipeline, e.g. "[DEV-ATLAS] Atlas E2E Tests", which the pipeline must be allowed to use. Naming it after the pipeline
-# means a run can only target that pipeline's environment. Renaming the pipeline breaks the link: rename the group too.
+# pipeline without its square brackets, which group names can't contain: "[DEV-ATLAS] Atlas E2E Tests" reads the group
+# "DEV-ATLAS Atlas E2E Tests". The pipeline must be allowed to use it. Naming it after the pipeline means a run can only
+# target that pipeline's environment. Renaming the pipeline breaks the link: rename the group too.
 variables:
-- group: ${{ variables['Build.DefinitionName'] }}
+- group: ${{ replace(replace(variables['Build.DefinitionName'], '[', ''), ']', '') }}
 
 extends:
   template: azure-test-run-template.yml

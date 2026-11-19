@@ -51,7 +51,7 @@ The test project connects directly to Atlas infrastructure rather than through d
 - Make sure to add a new Category of tests under its tag in `categories` of the appropriate test run.
 
 ### Pipeline Variables
-- Each pipeline's variables live in a variable group named exactly like the pipeline, e.g. "[DEV-ATLAS] Atlas E2E Tests" (`test-pipeline.yml` links it by `Build.DefinitionName`), not in the pipeline itself.
+- Each pipeline's variables live in a variable group named like the pipeline without its square brackets, which group names can't contain, not in the pipeline itself: pipeline "[DEV-ATLAS] Atlas E2E Tests" reads group "DEV-ATLAS Atlas E2E Tests" (`test-pipeline.yml` links it by `Build.DefinitionName`).
   - Allow the pipeline to use the group (the group's "Pipeline permissions").
   - Renaming the pipeline breaks the link: rename the group too.
 - The group must have variables that match those within `appsettings.json`.

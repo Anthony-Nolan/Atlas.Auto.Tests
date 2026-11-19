@@ -23,7 +23,7 @@ Configuration (`Atlas.Auto.Tests/appsettings.json`) holds no secrets: the Public
 ```
 dotnet user-secrets set "KeyVault.Name" "an-dev-atlas-kv"
 ```
-In the pipeline, the equivalent variables use `.` for nesting (e.g. `KeyVault.Name`) and are injected via `FileTransform@2` into `appsettings.json`. They live in a variable group named exactly like the pipeline (e.g. "[DEV-ATLAS] Atlas E2E Tests"), which `test-pipeline.yml` links through `Build.DefinitionName`, so each pipeline only ever gets its own environment's settings. The NuGet feed for Atlas packages is set via `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.
+In the pipeline, the equivalent variables use `.` for nesting (e.g. `KeyVault.Name`) and are injected via `FileTransform@2` into `appsettings.json`. They live in a variable group named like the pipeline without its square brackets (pipeline "[DEV-ATLAS] Atlas E2E Tests", group "DEV-ATLAS Atlas E2E Tests"), which `test-pipeline.yml` links through `Build.DefinitionName`, so each pipeline only ever gets its own environment's settings. The NuGet feed for Atlas packages is set via `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.
 
 Secrets are never settings, pipeline variables or part of the build artifact:
 - The connection strings (SQL, Service Bus, Blob) are read from the Atlas Key Vault at start-up (`TestHelpers/Settings/KeyVaultSecrets.cs` maps each setting to its secret). The Public API key is the Public API app's default host key, read through ARM (`PublicApiKeyProvider`). A user secret with the setting's name (e.g. `Database.Sql`, `PublicApi.ApiKey`) still wins.
