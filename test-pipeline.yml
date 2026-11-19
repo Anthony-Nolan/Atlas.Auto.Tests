@@ -20,6 +20,11 @@ extends:
   template: azure-test-run-template.yml
   parameters:
     changeFunctionAppSettings: ${{ parameters.changeFunctionAppSettings }}
+    # Pipeline -> the Azure service connection (workload identity federation) its tests use for Azure: ARM, App Insights and
+    # the Atlas Key Vault. Azure DevOps only issues tokens for a service connection that a task of the stage names at
+    # compile time, so it can't come from the variable group. The tests of a pipeline not listed here fail at once.
+    azureServiceConnections:
+      '[DEV-ATLAS] Atlas E2E Tests': 'Atlas Dev WIF'
     # categories: tag -> its categories. Each category is published as its own test run, tagged with its tag.
     testRuns:
     - name: healthCheck

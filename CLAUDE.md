@@ -27,7 +27,7 @@ In the pipeline, the equivalent variables use `.` for nesting (e.g. `KeyVault.Na
 
 Secrets are never settings, pipeline variables or part of the build artifact:
 - The connection strings (SQL, Service Bus, Blob) are read from the Atlas Key Vault at start-up (`TestHelpers/Settings/KeyVaultSecrets.cs` maps each setting to its secret). The Public API key is the Public API app's default host key, read through ARM (`PublicApiKeyProvider`). A user secret with the setting's name (e.g. `Database.Sql`, `PublicApi.ApiKey`) still wins.
-- Azure access (ARM, App Insights, Key Vault) uses `AzureCredentialFactory`: in the pipeline `AzurePipelinesCredential` for the WIF service connection given by the `E2E.*` variables (`azure-test-run-template.yml` maps them onto the test step), locally `AzureCliCredential` (`az login`; `Azure.TenantId` picks the tenant).
+- Azure access (ARM, App Insights, Key Vault) uses `AzureCredentialFactory`: in the pipeline `AzurePipelinesCredential` for the pipeline's WIF service connection (`azureServiceConnections` in `test-pipeline.yml`, by pipeline name: Azure DevOps only issues tokens for a connection a task of the stage names at compile time; the 'Azure identity of the tests' AzureCLI@2 step names it and passes its IDs to the test steps), locally `AzureCliCredential` (`az login`; `Azure.TenantId` picks the tenant).
 - Don't add a secret to `appsettings.json` or a pipeline variable: FileTransform would write it into `appsettings.json`, which is published in the `dropTestSuite` artifact. Add it to the Key Vault mapping instead.
 
 ## Architecture

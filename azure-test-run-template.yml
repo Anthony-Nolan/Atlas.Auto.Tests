@@ -13,6 +13,10 @@ parameters:
 - name: changeFunctionAppSettings
   type: boolean
   default: true
+# Pipeline name -> its Azure service connection (see test-pipeline.yml).
+- name: azureServiceConnections
+  type: object
+  default: {}
 
 stages:
 - stage: build
@@ -102,6 +106,24 @@ stages:
       inputs:
         packageType: 'sdk'
         version: 10.0.x
+
+    # Names this pipeline's service connection, which Azure DevOps requires before it issues tokens for it, and passes its
+    # IDs on to the test steps (E2E.* variables -> AZURESUBSCRIPTION_*), where AzurePipelinesCredential asks for tokens.
+    # A pipeline missing from azureServiceConnections gets no service connection, and this step fails on the missing input.
+    - task: AzureCLI@2
+      displayName: 'Azure identity of the tests'
+      inputs:
+        azureSubscription: ${{ parameters.azureServiceConnections[variables['Build.DefinitionName']] }}
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          foreach ($name in 'TENANT_ID', 'CLIENT_ID', 'SERVICE_CONNECTION_ID') {
+              $value = [Environment]::GetEnvironmentVariable("AZURESUBSCRIPTION_$name")
+              if (-not $value) { throw "AzureCLI@2 did not set AZURESUBSCRIPTION_$name" }
+          }
+          Write-Host "##vso[task.setvariable variable=E2E.TenantId]$env:AZURESUBSCRIPTION_TENANT_ID"
+          Write-Host "##vso[task.setvariable variable=E2E.ServicePrincipalClientId]$env:AZURESUBSCRIPTION_CLIENT_ID"
+          Write-Host "##vso[task.setvariable variable=E2E.ServiceConnectionId]$env:AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"
 
     - ${{ each testRun in parameters.testRuns }}:
       # 'Rerun failed jobs' runs again only the categories that did not pass
