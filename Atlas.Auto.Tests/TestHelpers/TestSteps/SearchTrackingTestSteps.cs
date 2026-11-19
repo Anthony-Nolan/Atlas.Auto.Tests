@@ -4,6 +4,7 @@ using Atlas.Auto.Tests.TestHelpers.Data.Entities;
 using Atlas.Auto.Tests.TestHelpers.InternalModels;
 using Atlas.Auto.Tests.TestHelpers.Services;
 using Atlas.Auto.Tests.TestHelpers.Settings;
+using Atlas.Client.Models.Search.Results.Matching;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,69 @@ internal class SearchTrackingTestSteps
     }
 
     /// <summary>
+    /// QA-1888: waits until search tracking has finished a search with match prediction, then checks everything it
+    /// stored: the request as sent, one successful matching attempt, one successful match prediction, every event of
+    /// the search sent once (batch events once per batch run) and none dead-lettered.
+    /// </summary>
+    /// <param name="matchingNotification">Matching results notification of the search: the stored counts must match it.</param>
+    public async Task SearchShouldHaveBeenTracked(SubmittedSearch search, MatchingResultsNotification matchingNotification)
+    {
+        var tracking = await WaitForTracking(search.SearchIdentifier, t => t.IsMatchPredictionFinished,
+            "results sent, matching attempt and match prediction completed");
+        var request = tracking.Request!;
+
+        // Request row: the search as sent
+        var searchedRequest = request.ShouldHoldSubmittedSearch(search);
+
+        // Matching: one successful attempt
+        tracking.Attempts.Should().ContainSingle("matching should have run once for search {0}", search.SearchIdentifier);
+        tracking.Attempts.Single().ShouldHaveSucceeded();
+        request.MatchingShouldHaveSucceeded(matchingNotification);
+
+        // Match prediction: one successful run, then the final results were sent
+        tracking.MatchPredictions.Should().ContainSingle("match prediction should have run once for search {0}", search.SearchIdentifier);
+        var matchPrediction = tracking.MatchPredictions.Single();
+        matchPrediction.ShouldHaveSucceeded(searchedRequest);
+        request.MatchPredictionShouldHaveSucceeded(matchPrediction);
+
+        // Events: parallel match prediction runs every batch on its own, sequential runs them all in one go
+        var batchRuns = matchPrediction.IsParallelMatchPrediction ? request.MatchPrediction_TotalNumberOfBatches!.Value : 1;
+        await EventsShouldHaveBeenSentInAnyOrder(request,
+            [..SearchTrackingEventTypes.SuccessfulMatching, ..SearchTrackingEventTypes.SuccessfulMatchPrediction(batchRuns)]);
+        await EventsShouldNotHaveBeenDeadLettered(request);
+    }
+
+    /// <summary>
+    /// QA-1888, search with RunMatchPrediction false: waits until search tracking has finished matching, then checks
+    /// that only matching was stored and sent events. Call once the Search function has read the matching results:
+    /// until then match prediction could still start.
+    /// </summary>
+    /// <param name="matchingNotification">Matching results notification of the search: the stored counts must match it.</param>
+    public async Task MatchingOnlySearchShouldHaveBeenTracked(SubmittedSearch search, MatchingResultsNotification matchingNotification)
+    {
+        var tracking = await WaitForTracking(search.SearchIdentifier, t => t.IsMatchingFinished,
+            "matching results sent and matching attempt completed");
+        var request = tracking.Request!;
+
+        // Request row: the search as sent
+        request.ShouldHoldSubmittedSearch(search);
+
+        // Matching: one successful attempt
+        tracking.Attempts.Should().ContainSingle("matching should have run once for search {0}", search.SearchIdentifier);
+        tracking.Attempts.Single().ShouldHaveSucceeded();
+        request.MatchingShouldHaveSucceeded(matchingNotification);
+
+        // Match prediction: nothing stored, no final results
+        request.MatchPredictionShouldNotHaveRun();
+        var matchPredictions = await _sqlHelper.GetMatchPredictions(request.Id);
+        matchPredictions.Should().BeEmpty("match prediction should not run for search {0}", search.SearchIdentifier);
+
+        // Events: matching only
+        await EventsShouldHaveBeenSentInAnyOrder(request, SearchTrackingEventTypes.SuccessfulMatching);
+        await EventsShouldNotHaveBeenDeadLettered(request);
+    }
+
+    /// <summary>
     /// Waits until search tracking has finished the search (results sent, every attempt completed),
     /// then checks that it stored one failed attempt and the failure.
     /// </summary>
@@ -40,21 +104,14 @@ internal class SearchTrackingTestSteps
     public async Task<SearchTrackingRequest> MatchingFailureShouldHaveBeenTracked(
         string searchId, ExpectedMatchingFailure expected, string? originalSearchId)
     {
-        // Search request and attempts are stored by different events, so read both in one wait
-        var tracking = await _pollyRetry.ExecuteWithRetry(async () =>
-        {
-            var stored = await ReadTracking(searchId);
-            return stored.IsFinished ? stored : null;
-        }, _retry.CheckSearchTracking, $"Wait for search tracking to finish search '{searchId}'");
+        var tracking = await WaitForTracking(searchId, t => t.IsFinished, "results sent and every attempt completed");
 
-        if (tracking == null)
-            await SearchTrackingShouldHaveFinished(searchId);
+        var request = tracking.Request!;
 
-        _logger.LogInformation("Search tracking request id: {SearchTrackingRequestId}", tracking!.Request!.Id);
         tracking.Attempts.Should().ContainSingle("matching should have run once for search {0}", searchId);
-        tracking.Request.MatchingShouldHaveFailed(expected, originalSearchId);
+        request.MatchingShouldHaveFailed(expected, originalSearchId);
         tracking.Attempts.Single().ShouldHaveFailedBeforeMatching(expected);
-        return tracking.Request;
+        return request;
     }
 
     /// <summary>
@@ -90,7 +147,7 @@ internal class SearchTrackingTestSteps
     }
 
     /// <summary>
-    /// Every event of the search, in order, went through search-tracking-events with the custom properties
+    /// Every event of the search, in this order, went through search-tracking-events with the custom properties
     /// Atlas sets: EventType, SearchIdentifier, OriginalSearchIdentifier, and AttemptNumber on attempt events.
     /// </summary>
     /// <param name="originalSearchId">Null for a new search; the original search ID for a repeat search.</param>
@@ -98,11 +155,39 @@ internal class SearchTrackingTestSteps
     public async Task<IReadOnlyCollection<SearchTrackingEventMessage>> EventsShouldHaveBeenSent(
         SearchTrackingRequest request, string? originalSearchId, IReadOnlyList<string> expectedEventTypes)
     {
-        var events = await _eventReader.GetAuditedEvents(
-            request.SearchIdentifier, new DateTimeOffset(request.RequestTimeUtc, TimeSpan.Zero));
-
+        var events = await ReadEventsWithProperties(request, originalSearchId);
         events.Select(e => e.EventType).Should().Equal(expectedEventTypes,
             "search {0} should have sent exactly these search tracking events", request.SearchIdentifier);
+        return events;
+    }
+
+    /// <summary>
+    /// Call after search tracking has finished the search: until then an event may still be redelivered.
+    /// </summary>
+    public async Task EventsShouldNotHaveBeenDeadLettered(SearchTrackingRequest request)
+    {
+        var deadLettered = await _eventReader.GetDeadLetteredEvents(request.SearchIdentifier);
+        deadLettered.Select(e => e.EventType).Should().BeEmpty(
+            "search tracking should have processed every event of search {0}", request.SearchIdentifier);
+    }
+
+    /// <summary>
+    /// Like <see cref="EventsShouldHaveBeenSent"/>, but in any order: matching sends MatchingAlgorithmCompleted after
+    /// its results notification, so match prediction may have started before it.
+    /// </summary>
+    private async Task EventsShouldHaveBeenSentInAnyOrder(SearchTrackingRequest request, IReadOnlyList<string> expectedEventTypes)
+    {
+        var events = await ReadEventsWithProperties(request, originalSearchId: null);
+        events.Select(e => e.EventType).Should().BeEquivalentTo(expectedEventTypes,
+            "search {0} should have sent exactly these search tracking events, each as many times as listed",
+            request.SearchIdentifier);
+    }
+
+    private async Task<IReadOnlyCollection<SearchTrackingEventMessage>> ReadEventsWithProperties(
+        SearchTrackingRequest request, string? originalSearchId)
+    {
+        var events = await _eventReader.GetAuditedEvents(
+            request.SearchIdentifier, new DateTimeOffset(request.RequestTimeUtc, TimeSpan.Zero));
 
         using (new AssertionScope())
         {
@@ -114,49 +199,79 @@ internal class SearchTrackingTestSteps
     }
 
     /// <summary>
-    /// Call after <see cref="MatchingFailureShouldHaveBeenTracked"/>: until then an event may still be redelivered.
+    /// Search request, attempts and match prediction are stored by different events, so all are read in one wait.
     /// </summary>
-    public async Task EventsShouldNotHaveBeenDeadLettered(SearchTrackingRequest request)
+    /// <param name="waitingFor">What <paramref name="isDone"/> waits for, for the log and the failure message.</param>
+    private async Task<StoredTracking> WaitForTracking(string searchId, Func<StoredTracking, bool> isDone, string waitingFor)
     {
-        var deadLettered = await _eventReader.GetDeadLetteredEvents(request.SearchIdentifier);
-        deadLettered.Select(e => e.EventType).Should().BeEmpty(
-            "search tracking should have processed every event of search {0}", request.SearchIdentifier);
+        var tracking = await _pollyRetry.ExecuteWithRetry(async () =>
+        {
+            var stored = await ReadTracking(searchId);
+            return isDone(stored) ? stored : null;
+        }, _retry.CheckSearchTracking, $"Wait for search tracking of search '{searchId}': {waitingFor}");
+
+        if (tracking == null)
+            await SearchTrackingShouldHaveFinished(searchId, isDone, waitingFor);
+
+        _logger.LogInformation("Search tracking request id: {SearchTrackingRequestId}", tracking!.Request!.Id);
+        return tracking;
     }
 
     private async Task<StoredTracking> ReadTracking(string searchId)
     {
         var request = await _sqlHelper.GetSearchRequest(searchId);
-        var attempts = request == null ? [] : await _sqlHelper.GetMatchingAlgorithmAttempts(request.Id);
-        return new StoredTracking(request, attempts);
+        if (request == null)
+            return new StoredTracking(null, [], []);
+
+        var attempts = await _sqlHelper.GetMatchingAlgorithmAttempts(request.Id);
+        var matchPredictions = await _sqlHelper.GetMatchPredictions(request.Id);
+        return new StoredTracking(request, attempts, matchPredictions);
     }
 
     /// <summary>
     /// Fails with what search tracking stored and which events of the search it dead-lettered:
     /// a dead-lettered event is the usual reason a search never finishes.
     /// </summary>
-    private async Task SearchTrackingShouldHaveFinished(string searchId)
+    private async Task SearchTrackingShouldHaveFinished(string searchId, Func<StoredTracking, bool> isDone, string waitingFor)
     {
         var stored = await ReadTracking(searchId);
         var deadLettered = await _eventReader.GetDeadLetteredEvents(searchId);
 
-        stored.IsFinished.Should().BeTrue(
-            "search tracking should have finished search {0}; stored: request {1}, results sent {2}, " +
-            "attempts {3} ({4} completed); dead-lettered events: [{5}]",
+        isDone(stored).Should().BeTrue(
+            "search tracking should have finished search {0} ({1}); stored: request {2}, matching results sent {3}, " +
+            "results sent {4}, attempts {5} ({6} completed), match predictions {7} ({8} completed); dead-lettered events: [{9}]",
             searchId,
+            waitingFor,
             stored.Request?.Id.ToString() ?? "none",
+            stored.Request?.MatchingAlgorithm_ResultsSent,
             stored.Request?.ResultsSent,
             stored.Attempts.Count,
             stored.Attempts.Count(a => a.CompletionTimeUtc != null),
+            stored.MatchPredictions.Count,
+            stored.MatchPredictions.Count(p => p.CompletionTimeUtc != null),
             string.Join(", ", deadLettered.Select(e => e.EventType)));
     }
 
-    /// <summary>What search tracking stored about a search: its request row and its matching algorithm attempts.</summary>
+    /// <summary>What search tracking stored about a search: its request row, matching attempts and match predictions.</summary>
     private record StoredTracking(
-        SearchTrackingRequest? Request, IReadOnlyCollection<SearchTrackingMatchingAlgorithmAttempt> Attempts)
+        SearchTrackingRequest? Request,
+        IReadOnlyCollection<SearchTrackingMatchingAlgorithmAttempt> Attempts,
+        IReadOnlyCollection<SearchTrackingMatchPrediction> MatchPredictions)
     {
         /// <summary>The last event (results sent) is stored and every attempt has completed.</summary>
-        public bool IsFinished =>
-            Request?.ResultsSent == true && Attempts.Count > 0 && Attempts.All(a => a.CompletionTimeUtc != null);
+        public bool IsFinished => Request?.ResultsSent == true && AttemptsCompleted;
+
+        /// <summary>Matching sent its results and every attempt has completed.</summary>
+        public bool IsMatchingFinished => Request?.MatchingAlgorithm_ResultsSent == true && AttemptsCompleted;
+
+        /// <summary>
+        /// Like <see cref="IsFinished"/>, and match prediction has completed too:
+        /// parallel match prediction sends its completion after the results.
+        /// </summary>
+        public bool IsMatchPredictionFinished =>
+            IsFinished && MatchPredictions.Count > 0 && MatchPredictions.All(p => p.CompletionTimeUtc != null);
+
+        private bool AttemptsCompleted => Attempts.Count > 0 && Attempts.All(a => a.CompletionTimeUtc != null);
     }
 
     private static void EventShouldHaveProperties(SearchTrackingEventMessage trackingEvent, string? originalSearchId)

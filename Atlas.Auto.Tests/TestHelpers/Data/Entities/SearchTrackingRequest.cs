@@ -17,6 +17,24 @@ public class SearchTrackingRequest
 
     public string? OriginalSearchIdentifier { get; set; }
 
+    public DateTime? RepeatSearchCutOffDate { get; set; }
+
+    /// <summary>The request as matching got it: the public API has already filled in its defaults.</summary>
+    public string RequestJson { get; set; } = null!;
+
+    /// <summary>E.g. "10/10": loci searched x 2 minus the mismatches allowed, out of loci searched x 2.</summary>
+    public string SearchCriteria { get; set; } = null!;
+
+    /// <summary>Adult or Cord.</summary>
+    public string DonorType { get; set; } = null!;
+
+    /// <summary>JSON array, e.g. ["AN"].</summary>
+    public string? DonorRegistryCodes { get; set; }
+
+    public bool AreBetterMatchesIncluded { get; set; }
+
+    public bool IsMatchPredictionRun { get; set; }
+
     public DateTime RequestTimeUtc { get; set; }
 
     public bool? MatchingAlgorithm_IsSuccessful { get; set; }
@@ -30,6 +48,12 @@ public class SearchTrackingRequest
     public byte? MatchingAlgorithm_TotalAttemptsNumber { get; set; }
 
     public int? MatchingAlgorithm_NumberOfResults { get; set; }
+
+    public int? MatchingAlgorithm_RepeatSearch_AddedResultCount { get; set; }
+
+    public int? MatchingAlgorithm_RepeatSearch_RemovedResultCount { get; set; }
+
+    public int? MatchingAlgorithm_RepeatSearch_UpdatedResultCount { get; set; }
 
     public string? MatchingAlgorithm_HlaNomenclatureVersion { get; set; }
 
