@@ -29,7 +29,7 @@ The test project connects directly to Atlas infrastructure rather than through d
   - read access to the secrets in the environment's Atlas Key Vault (`KeyVault:Name`, e.g. `an-dev-atlas-kv`), e.g. through the "Atlas Key Vault Officers - DEV" group;
   - the rights on the Atlas resource group to read and change function app settings and keys, and to query its App Insights workspace.
 - Your IP address must be allowed by the firewall of the environment's Atlas SQL server.
-- The secrets are not settings: the tests read the connection strings from the Key Vault (see `TestHelpers/Settings/KeyVaultSecrets.cs`) and the Public API key from the Public API function app.
+- The secrets are not settings: at start-up, the tests read the connection strings from the Key Vault and the Public API key from the Public API function app (see `TestHelpers/Settings/StartupSecrets.cs`). If one can't be read, the run stops before the first test, listing every secret that failed and why.
   A user secret with the same name, e.g. `Database:Sql` or `PublicApi:ApiKey`, still takes precedence.
 - To leave the function apps as they are, set `Azure:ChangeFunctionAppSettings` to `false`: the tests that need a changed setting are then skipped.
 - Tests can be run in parallel to reduce overall execution time.

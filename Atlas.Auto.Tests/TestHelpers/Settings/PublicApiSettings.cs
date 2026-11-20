@@ -5,7 +5,8 @@ internal class PublicApiSettings
     public string BaseUrl { get; set; } = "override-this";
 
     /// <summary>
-    /// Optional: unset, the tests read the default host key of the Public API function app (Azure:FunctionApps:PublicApi).
+    /// Read at start-up (<see cref="StartupSecrets"/>): the default host key of the Public API function app
+    /// (Azure:FunctionApps:PublicApi), unless set, e.g. in user secrets.
     /// </summary>
-    public string? ApiKey { get; set; }
+    public string ApiKey { get; set; } = string.Empty;
 }

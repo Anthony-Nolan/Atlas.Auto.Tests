@@ -28,14 +28,27 @@ internal static class ServiceConfiguration
         ConfigurationValidator.Validate(settings);
 
         var credential = AzureCredentialFactory.Create(settings["Azure:TenantId"]);
+        var armClient = new ArmClient(credential);
 
         var configuration = new ConfigurationBuilder()
             .AddConfiguration(settings)
-            .AddInMemoryCollection(KeyVaultSecrets.Read(settings, credential))
+            .AddInMemoryCollection(StartupSecrets.Read(settings, credential, armClient))
             .Build();
 
-        var services = new ServiceCollection();
         var dbConfig = configuration.GetSection("Database").Get<DatabaseConfig>() ?? new DatabaseConfig();
+        var publicApiSettings = configuration.GetSection("PublicApi").Get<PublicApiSettings>() ?? new PublicApiSettings();
+        var sbSettings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>() ?? new ServiceBusSettings();
+        var blobSettings = configuration.GetSection("BlobStorage").Get<BlobStorageSettings>() ?? new BlobStorageSettings();
+
+        ConfigurationValidator.ValidateSet(
+            ("Database:Sql", dbConfig.Sql),
+            ("Database:SqlA", dbConfig.SqlA),
+            ("Database:SqlB", dbConfig.SqlB),
+            ("ServiceBus:ConnectionString", sbSettings.ConnectionString),
+            ("BlobStorage:ConnectionString", blobSettings.ConnectionString),
+            ("PublicApi:ApiKey", publicApiSettings.ApiKey));
+
+        var services = new ServiceCollection();
 
         services.AddLogging(builder =>
         {
@@ -47,17 +60,14 @@ internal static class ServiceConfiguration
                 dbConfig.DebugPrint ? LogLevel.Information : LogLevel.Error);
         });
 
-        var publicApiSettings = configuration.GetSection("PublicApi").Get<PublicApiSettings>() ?? new PublicApiSettings();
         services.AddSingleton(publicApiSettings);
-        services.AddSingleton<PublicApiKeyProvider>();
-        services.AddTransient<PublicApiKeyHandler>();
         services.AddHttpClient<PublicApiClient>(client =>
-            {
-                client.BaseAddress = new Uri(publicApiSettings.BaseUrl);
-                client.Timeout = TimeSpan.FromMinutes(5);
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-            })
-            .AddHttpMessageHandler<PublicApiKeyHandler>();
+        {
+            client.BaseAddress = new Uri(publicApiSettings.BaseUrl);
+            client.Timeout = TimeSpan.FromMinutes(5);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.DefaultRequestHeaders.Add("x-functions-key", publicApiSettings.ApiKey);
+        });
 
         services.AddDbContextFactory<AtlasContext>(options =>
         {
@@ -74,19 +84,17 @@ internal static class ServiceConfiguration
         services.AddSingleton<IDonorStoreSqlHelper, DonorStoreSqlHelper>();
         services.AddSingleton<SearchTrackingSqlHelper>();
 
-        var sbSettings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>() ?? new ServiceBusSettings();
         services.AddSingleton(sbSettings);
         services.AddSingleton(new ServiceBusClient(sbSettings.ConnectionString));
         services.AddSingleton<SearchTrackingEventReader>();
 
-        var blobSettings = configuration.GetSection("BlobStorage").Get<BlobStorageSettings>() ?? new BlobStorageSettings();
         services.AddSingleton(blobSettings);
         services.AddSingleton(new BlobServiceClient(blobSettings.ConnectionString));
         services.AddSingleton<BlobStorageHelper>();
 
         var azureResource = configuration.GetSection("Azure").Get<AzureResourceSettings>() ?? new AzureResourceSettings();
         services.AddSingleton(azureResource);
-        services.AddSingleton(new ArmClient(credential));
+        services.AddSingleton(armClient);
         services.AddSingleton<FunctionAppHelper>();
 
         var appInsightsSettings = configuration.GetSection("AppInsights").Get<AppInsightsSettings>() ?? new AppInsightsSettings();
