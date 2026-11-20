@@ -8,7 +8,7 @@ namespace Atlas.Auto.Tests.TestHelpers.Settings;
 /// </summary>
 internal static class AzureCredentialFactory
 {
-    // Set to True on every Azure DevOps agent
+    // Predefined by Azure DevOps: True on every agent
     private const string AzureDevOpsAgentVariable = "TF_BUILD";
 
     // Set by azure-test-run-template.yml on the steps that run the tests, for the pipeline's workload identity federation
@@ -26,7 +26,6 @@ internal static class AzureCredentialFactory
     /// </param>
     public static TokenCredential Create(string? localTenantId)
     {
-        // Locally: whoever ran `az login`
         if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(AzureDevOpsAgentVariable)))
             return new AzureCliCredential(new AzureCliCredentialOptions { TenantId = localTenantId });
 

@@ -17,10 +17,6 @@ namespace Atlas.Auto.Tests.TestHelpers.Settings;
 /// - the Public API key: the default host key of the Public API function app (Azure:FunctionApps:PublicApi), through ARM.
 /// A setting already set, e.g. in user secrets, is not read, so a local value still wins.
 /// </summary>
-/// <remarks>
-/// Every secret that can't be read is reported in one exception, with the first line of the Azure error, which says what
-/// is wrong. A failed sign-in is not collected: it is the same for every secret, so it is thrown as it is.
-/// </remarks>
 internal static class StartupSecrets
 {
     /// <summary>
@@ -42,9 +38,6 @@ internal static class StartupSecrets
     private const string PublicApiKeySetting = "PublicApi:ApiKey";
     private const string DefaultHostKeyName = "default";
 
-    /// <param name="hostKeyRetry">
-    /// How long to wait for the Public API host to list its keys: right after a deployment it is still starting.
-    /// </param>
     /// <returns>The secrets of the settings not set already.</returns>
     public static IReadOnlyDictionary<string, string?> Read(
         IConfiguration configuration, TokenCredential credential, ArmClient armClient, RetryPolicy hostKeyRetry)
@@ -60,6 +53,7 @@ internal static class StartupSecrets
             {
                 secrets[setting] = read();
             }
+            // A failed sign-in is the same for every secret: thrown as it is, not collected
             catch (Exception e) when (e is not AuthenticationFailedException)
             {
                 // After the Azure SDK's retries, e.g. for a vault name that doesn't resolve: the last attempt's error

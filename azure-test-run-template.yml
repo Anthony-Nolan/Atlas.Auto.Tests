@@ -13,7 +13,7 @@ parameters:
 - name: changeFunctionAppSettings
   type: boolean
   default: true
-# Pipeline name -> its environment: variableGroup and serviceConnection (see test-pipeline.yml).
+# See test-pipeline.yml.
 - name: environments
   type: object
   default: {}
@@ -46,8 +46,7 @@ stages:
       - task: FileTransform@2
         # The pipeline's variable group must have variables that match those in appsettings.json.
         # Use `.` to retrieve nested values, e.g., var name `Azure.FunctionApps.Search` maps to `{ "Azure": { "FunctionApps": { "Search": "value" } } }`
-        # appsettings.json holds no secrets, so none end up in the dropTestSuite artifact: the tests read them from the
-        # environment's Atlas Key Vault (KeyVault.Name) and the Public API key through ARM.
+        # Never add a secret variable: FileTransform writes it into appsettings.json, which is published in dropTestSuite.
         displayName: 'Set environment variables'
         inputs:
           folderPath: '$(System.DefaultWorkingDirectory)'
