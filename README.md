@@ -23,6 +23,15 @@ The test project connects directly to Atlas infrastructure rather than through d
 ```dotnet user-secrets set "NameOfSecret" "ValueOfSecret"```
   - Or, in the Visual Studio IDE, right-click the project name, and select the context menu option: "Manage User Secrets".
   - All settings that must be overridden have the placeholder value of `"override-this"`.
+  - Use `:` for nested settings, e.g. `dotnet user-secrets set "KeyVault:Name" "an-dev-atlas-kv"`. Unlike the pipeline variables, a user secret named with `.` (`KeyVault.Name`) overrides nothing.
+- The tests sign in to Azure as you: run `az login` first. If your default tenant is not the one Atlas is in, also set `Azure:TenantId`.
+  Your account needs:
+  - read access to the secrets in the environment's Atlas Key Vault (`KeyVault:Name`, e.g. `an-dev-atlas-kv`), e.g. through the "Atlas Key Vault Officers - DEV" group;
+  - the rights on the Atlas resource group to read and change function app settings and keys, and to query its App Insights workspace.
+- Your IP address must be allowed by the firewall of the environment's Atlas SQL server.
+- The secrets are not settings: at start-up, the tests read the connection strings from the Key Vault and the Public API key from the Public API function app (see `TestHelpers/Settings/StartupSecrets.cs`). If one can't be read, the run stops before the first test, listing every secret that failed with the Azure error. While the Public API app is starting, e.g. right after a deployment, reading its key is retried (`Retry:FunctionAppRestart`).
+  A user secret with the same name, e.g. `Database:Sql` or `PublicApi:ApiKey`, still takes precedence.
+- To leave the function apps as they are, set `Azure:ChangeFunctionAppSettings` to `false`: the tests that need a changed setting are then skipped.
 - Tests can be run in parallel to reduce overall execution time.
 
 ### Local Development
@@ -45,27 +54,36 @@ The test project connects directly to Atlas infrastructure rather than through d
 - Make sure to add a new Category of tests under its tag in `categories` of the appropriate test run.
 
 ### Pipeline Variables
-- Each pipeline instance must have pipeline variables that match those within `appsettings.json`.
-  - Use `.` for nested settings, e.g., var name `Azure.Authentication.ClientId` would be used for setting:
+- Each pipeline's settings live in a variable group, not in the pipeline itself, and its tests sign in to Azure as a service connection. `environments` in `test-pipeline.yml` names both, by pipeline name:
+  ```yaml
+  environments:
+    '[DEV-ATLAS] Atlas E2E Tests':
+      variableGroup: 'DEV-ATLAS Atlas E2E Tests'
+      serviceConnection: 'Atlas Dev WIF'
+  ```
+  - A new pipeline needs its entry, in each branch it runs (e.g. before a `release/x.y.z` branch is cut for it). Without one, the run fails at once on the group line of `azure-test-run-template.yml`: "Unexpected value ''". Renaming a pipeline needs its entry renamed too.
+  - Allow the pipeline to use both, in the group's and the service connection's "Pipeline permissions". Looking them up by the pipeline's own name means a run can only target its pipeline's environment.
+  - Why the service connection is in the repo and not in the group: Azure DevOps only issues tokens for a service connection that a task of the stage names at compile time, and a variable group is read at run time. The 'Azure identity of the tests' step (AzureCLI@2) names it and passes its IDs to the test steps, where `AzurePipelinesCredential` asks for tokens (`AzureCredentialFactory.cs`). On an agent (`TF_BUILD` set), a test step without those variables (its `env:`) fails at once, naming the missing ones.
+- The group must have variables that match those within `appsettings.json`.
+  - Use `.` for nested settings, e.g., var name `Azure.FunctionApps.Search` would be used for setting:
 	```json
 	{
 		"Azure": {
-			"Authentication": {
-				"ClientId": "value"
+			"FunctionApps": {
+				"Search": "value"
 			}
 		}
 	}
 	```
-- Secret variables (mark as secret in Azure DevOps):
-  - `Azure.Authentication.ClientId`, `Azure.Authentication.ClientSecret`, `Azure.Authentication.TenantId`
-  - `BlobStorage.ConnectionString`, `ServiceBus.ConnectionString`
-  - `Database.Sql`, `Database.SqlA`, `Database.SqlB`
-  - `PublicApi.ApiKey`
-- Non-secret variables:
+- The pipeline holds no secrets, and `appsettings.json` has no secret settings, so none can end up in the published `dropTestSuite` artifact.
+  The tests read the connection strings from the environment's Atlas Key Vault and the Public API key through ARM, as the service connection.
+- Variables (none of them secret):
   - `Azure.SubscriptionId`, `Azure.ResourceGroupName`
-  - `Azure.FunctionApps.DonorImport`, `Azure.FunctionApps.Search`, `Azure.FunctionApps.RepeatSearch`, `Azure.FunctionApps.MatchingDonorManagement`, `Azure.FunctionApps.SearchTracking`
+  - `Azure.FunctionApps.DonorImport`, `Azure.FunctionApps.Search`, `Azure.FunctionApps.RepeatSearch`, `Azure.FunctionApps.MatchingDonorManagement`, `Azure.FunctionApps.SearchTracking`, `Azure.FunctionApps.PublicApi`
+  - `KeyVault.Name`, the environment's Atlas Key Vault, e.g. `an-dev-atlas-kv`
   - `AppInsights.WorkspaceId`
   - `PublicApi.BaseUrl`
+- The service connection is a workload identity federation (WIF) one, e.g. "Atlas Dev WIF". Its service principal needs Key Vault Secrets User on the Key Vault, and the rights to read and change function app settings and keys and to query the App Insights workspace.
 - The name/id of the Atlas artifacts feed must be set using the variable, `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.
   - String should be format of either `projectName/feedName` e.g., `Atlas/atlas-packages` or just `feedName`, as appropriate.
 

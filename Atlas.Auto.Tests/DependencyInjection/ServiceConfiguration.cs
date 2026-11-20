@@ -19,16 +19,38 @@ internal static class ServiceConfiguration
 {
     internal static IServiceProvider CreateProvider()
     {
-        var configuration = new ConfigurationBuilder()
+        var settings = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json")
             .AddUserSecrets(Assembly.GetExecutingAssembly())
             .Build();
 
-        ConfigurationValidator.Validate(configuration);
+        ConfigurationValidator.Validate(settings);
+
+        var credential = AzureCredentialFactory.Create(settings["Azure:TenantId"]);
+        var armClient = new ArmClient(credential);
+        var retrySettings = settings.GetSection("Retry").Get<RetrySettings>() ?? new RetrySettings();
+
+        var configuration = new ConfigurationBuilder()
+            .AddConfiguration(settings)
+            .AddInMemoryCollection(StartupSecrets.Read(settings, credential, armClient, retrySettings.FunctionAppRestart))
+            .Build();
+
+        var dbConfig = configuration.GetSection("Database").Get<DatabaseConfig>() ?? new DatabaseConfig();
+        var publicApiSettings = configuration.GetSection("PublicApi").Get<PublicApiSettings>() ?? new PublicApiSettings();
+        var sbSettings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>() ?? new ServiceBusSettings();
+        var blobSettings = configuration.GetSection("BlobStorage").Get<BlobStorageSettings>() ?? new BlobStorageSettings();
+
+        // Every setting StartupSecrets reads
+        ConfigurationValidator.ValidateSet(
+            ("Database:Sql", dbConfig.Sql),
+            ("Database:SqlA", dbConfig.SqlA),
+            ("Database:SqlB", dbConfig.SqlB),
+            ("ServiceBus:ConnectionString", sbSettings.ConnectionString),
+            ("BlobStorage:ConnectionString", blobSettings.ConnectionString),
+            ("PublicApi:ApiKey", publicApiSettings.ApiKey));
 
         var services = new ServiceCollection();
-        var dbConfig = configuration.GetSection("Database").Get<DatabaseConfig>() ?? new DatabaseConfig();
 
         services.AddLogging(builder =>
         {
@@ -40,7 +62,6 @@ internal static class ServiceConfiguration
                 dbConfig.DebugPrint ? LogLevel.Information : LogLevel.Error);
         });
 
-        var publicApiSettings = configuration.GetSection("PublicApi").Get<PublicApiSettings>() ?? new PublicApiSettings();
         services.AddSingleton(publicApiSettings);
         services.AddHttpClient<PublicApiClient>(client =>
         {
@@ -65,24 +86,17 @@ internal static class ServiceConfiguration
         services.AddSingleton<IDonorStoreSqlHelper, DonorStoreSqlHelper>();
         services.AddSingleton<SearchTrackingSqlHelper>();
 
-        var sbSettings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>() ?? new ServiceBusSettings();
         services.AddSingleton(sbSettings);
         services.AddSingleton(new ServiceBusClient(sbSettings.ConnectionString));
         services.AddSingleton<SearchTrackingEventReader>();
 
-        var blobSettings = configuration.GetSection("BlobStorage").Get<BlobStorageSettings>() ?? new BlobStorageSettings();
         services.AddSingleton(blobSettings);
         services.AddSingleton(new BlobServiceClient(blobSettings.ConnectionString));
         services.AddSingleton<BlobStorageHelper>();
 
-        var azureAuth = configuration.GetSection("Azure:Authentication").Get<AzureAuthSettings>() ?? new AzureAuthSettings();
-        services.AddSingleton(azureAuth);
-
-        var credential = azureAuth.CreateCredential();
-
         var azureResource = configuration.GetSection("Azure").Get<AzureResourceSettings>() ?? new AzureResourceSettings();
         services.AddSingleton(azureResource);
-        services.AddSingleton(new ArmClient(credential));
+        services.AddSingleton(armClient);
         services.AddSingleton<FunctionAppHelper>();
 
         var appInsightsSettings = configuration.GetSection("AppInsights").Get<AppInsightsSettings>() ?? new AppInsightsSettings();
@@ -94,7 +108,7 @@ internal static class ServiceConfiguration
         services.AddSingleton<AppInsightsHelper>();
         services.AddSingleton<AppInsightsIngestionCheck>();
 
-        services.AddSingleton(configuration.GetSection("Retry").Get<RetrySettings>() ?? new RetrySettings());
+        services.AddSingleton(retrySettings);
 
         services.AddSingleton<PollyRetry>();
 
