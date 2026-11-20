@@ -5,6 +5,7 @@ using Azure.ResourceManager;
 using Azure.ResourceManager.AppService;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Configuration;
+using NUnit.Framework;
 
 namespace Atlas.Auto.Tests.TestHelpers.Settings;
 
@@ -17,17 +18,20 @@ namespace Atlas.Auto.Tests.TestHelpers.Settings;
 /// A setting already set, e.g. in user secrets, is not read, so a local value still wins.
 /// </summary>
 /// <remarks>
-/// Every secret that can't be read is reported in one exception, so one run shows all that is wrong. A failed sign-in
-/// is reported once: no secret can be read then. No retries beyond the Azure SDK's own (transient errors): a 403 or 404
-/// fails at once.
+/// Every secret that can't be read is reported in one exception, with the first line of the Azure error, which says what
+/// is wrong. A failed sign-in is not collected: it is the same for every secret, so it is thrown as it is.
 /// </remarks>
 internal static class StartupSecrets
 {
-    /// <summary>Setting -> name of the secret in the Atlas Key Vault.</summary>
+    /// <summary>
+    /// Setting -> name of the secret in the Atlas Key Vault. A setting added here also needs its line in
+    /// <see cref="ConfigurationValidator.ValidateSet"/> in ServiceConfiguration.
+    /// </summary>
     private static readonly IReadOnlyDictionary<string, string> KeyVaultSecretNamesBySetting = new Dictionary<string, string>
     {
         ["BlobStorage:ConnectionString"] = "azure-storage-connection-string",
-        // Listen only: the tests peek, so they never take a message away from Atlas or other subscribers
+        // Listen. The tests must only peek, so they never take a message away from Atlas or other subscribers: Listen
+        // would also let them receive and complete.
         ["ServiceBus:ConnectionString"] = "servicebus-read-only-connection-string",
         // The shared Atlas database: donors, search tracking, repeat search and match prediction
         ["Database:Sql"] = "match-prediction-sql-connection-string",
@@ -38,22 +42,45 @@ internal static class StartupSecrets
     private const string PublicApiKeySetting = "PublicApi:ApiKey";
     private const string DefaultHostKeyName = "default";
 
+    /// <param name="hostKeyRetry">
+    /// How long to wait for the Public API host to list its keys: right after a deployment it is still starting.
+    /// </param>
     /// <returns>The secrets of the settings not set already.</returns>
-    public static IReadOnlyDictionary<string, string?> Read(IConfiguration configuration, TokenCredential credential, ArmClient armClient)
+    public static IReadOnlyDictionary<string, string?> Read(
+        IConfiguration configuration, TokenCredential credential, ArmClient armClient, RetryPolicy hostKeyRetry)
     {
         var secrets = new Dictionary<string, string?>();
         var failures = new List<string>();
 
-        try
+        void TryRead(string setting, string source, Func<string> read)
         {
-            ReadFromKeyVault(configuration, credential, secrets, failures);
-            ReadPublicApiKey(configuration, armClient, secrets, failures);
+            if (!string.IsNullOrEmpty(configuration[setting]))
+                return;
+            try
+            {
+                secrets[setting] = read();
+            }
+            catch (Exception e) when (e is not AuthenticationFailedException)
+            {
+                failures.Add($"{setting}: {source}: {FirstLine(e.Message)}");
+            }
         }
-        catch (AuthenticationFailedException e)
+
+        var vaultName = configuration["KeyVault:Name"];
+        var secretClient = new SecretClient(new Uri($"https://{vaultName}.vault.azure.net/"), credential);
+        foreach (var (setting, secretName) in KeyVaultSecretNamesBySetting)
         {
-            throw new InvalidOperationException(
-                $"Could not sign in to Azure as the identity running the tests, so no secret could be read: {e.Message}", e);
+            TryRead(setting, $"secret '{secretName}' in Key Vault '{vaultName}'",
+                () => secretClient.GetSecret(secretName).Value.Value);
         }
+
+        var appName = configuration["Azure:FunctionApps:PublicApi"]!;
+        TryRead(PublicApiKeySetting, $"the default host key of function app '{appName}'", () =>
+        {
+            var siteId = WebSiteResource.CreateResourceIdentifier(
+                configuration["Azure:SubscriptionId"]!, configuration["Azure:ResourceGroupName"]!, appName);
+            return ReadDefaultHostKey(armClient.GetWebSiteResource(siteId), appName, hostKeyRetry);
+        });
 
         if (failures.Count > 0)
         {
@@ -64,102 +91,27 @@ internal static class StartupSecrets
         return secrets;
     }
 
-    private static void ReadFromKeyVault(
-        IConfiguration configuration, TokenCredential credential, Dictionary<string, string?> secrets, List<string> failures)
+    /// <summary>
+    /// While its host is starting, e.g. right after a deployment, a function app fails to list its keys, often with a
+    /// 400 ("error ... from host runtime"), which the Azure SDK doesn't retry. A wrong name or a missing role fails at once.
+    /// </summary>
+    private static string ReadDefaultHostKey(WebSiteResource site, string appName, RetryPolicy retry)
     {
-        var toRead = KeyVaultSecretNamesBySetting.Where(s => IsUnset(configuration, s.Key)).ToList();
-        if (toRead.Count == 0)
-            return;
-
-        var vaultName = configuration["KeyVault:Name"];
-        var client = new SecretClient(new Uri($"https://{vaultName}.vault.azure.net/"), credential);
-
-        foreach (var (setting, secretName) in toRead)
+        for (var attempt = 1; ; attempt++)
         {
             try
             {
-                secrets[setting] = client.GetSecret(secretName).Value.Value;
+                return site.GetHostKeys().Value.FunctionKeys[DefaultHostKeyName];
             }
-            catch (Exception e) when (IsUnreachable(e))
+            catch (RequestFailedException e) when (attempt <= retry.RetryCount && e.Status is not (0 or 401 or 403 or 404))
             {
-                // The same for every secret: report the vault once
-                failures.Add($"{string.Join(", ", toRead.Select(s => s.Key))}: Key Vault '{vaultName}' can't be reached " +
-                             $"({InnermostMessage(e)}). Check KeyVault:Name.");
-                return;
-            }
-            catch (RequestFailedException e)
-            {
-                failures.Add($"{setting}: secret '{secretName}' in Key Vault '{vaultName}': {Describe(e)}. {KeyVaultHint(e.Status)}");
+                TestContext.Progress.WriteLine(
+                    $"Function app '{appName}' can't list its keys yet ({FirstLine(e.Message)}); " +
+                    $"retry {attempt} of {retry.RetryCount} in {retry.IntervalSeconds} s");
+                Thread.Sleep(TimeSpan.FromSeconds(retry.IntervalSeconds));
             }
         }
     }
 
-    private static void ReadPublicApiKey(
-        IConfiguration configuration, ArmClient armClient, Dictionary<string, string?> secrets, List<string> failures)
-    {
-        if (!IsUnset(configuration, PublicApiKeySetting))
-            return;
-
-        var appName = configuration["Azure:FunctionApps:PublicApi"]!;
-        var source = $"the default host key of function app '{appName}'";
-        try
-        {
-            var siteId = WebSiteResource.CreateResourceIdentifier(
-                configuration["Azure:SubscriptionId"]!, configuration["Azure:ResourceGroupName"]!, appName);
-            var keys = armClient.GetWebSiteResource(siteId).GetHostKeys().Value.FunctionKeys;
-
-            if (keys.TryGetValue(DefaultHostKeyName, out var key))
-                secrets[PublicApiKeySetting] = key;
-            else
-                failures.Add($"{PublicApiKeySetting}: function app '{appName}' has no default host key.");
-        }
-        catch (Exception e) when (IsUnreachable(e))
-        {
-            failures.Add($"{PublicApiKeySetting}: {source}: Azure Resource Manager can't be reached ({InnermostMessage(e)}).");
-        }
-        catch (RequestFailedException e)
-        {
-            failures.Add($"{PublicApiKeySetting}: {source}: {Describe(e)}. {ArmHint(e.Status)}");
-        }
-    }
-
-    private static bool IsUnset(IConfiguration configuration, string setting) => string.IsNullOrEmpty(configuration[setting]);
-
-    /// <summary>
-    /// No response: e.g. a vault name that doesn't resolve. The Azure SDK throws an AggregateException when every retry failed.
-    /// </summary>
-    private static bool IsUnreachable(Exception e) => e switch
-    {
-        RequestFailedException { Status: 0 } => true,
-        AggregateException aggregate => aggregate.InnerExceptions.All(IsUnreachable),
-        _ => false
-    };
-
-    private static string InnermostMessage(Exception e)
-    {
-        while (e is AggregateException { InnerExceptions.Count: > 0 } aggregate)
-            e = aggregate.InnerExceptions[^1];
-        while (e.InnerException != null)
-            e = e.InnerException;
-        return e.Message.Split('\n')[0].Trim();
-    }
-
-    private static string Describe(RequestFailedException e) =>
-        string.IsNullOrEmpty(e.ErrorCode) ? $"HTTP {e.Status}" : $"HTTP {e.Status} {e.ErrorCode}";
-
-    private static string KeyVaultHint(int status) => status switch
-    {
-        401 => "The token is for another tenant: set Azure:TenantId to the vault's tenant.",
-        403 => "The identity running the tests needs Key Vault Secrets User on the vault, or the vault's firewall blocks this client.",
-        404 => "The vault has no secret of that name.",
-        _ => ""
-    };
-
-    private static string ArmHint(int status) => status switch
-    {
-        401 => "The token is for another tenant: set Azure:TenantId to the subscription's tenant.",
-        403 => "The identity running the tests needs to list the app's keys (Microsoft.Web/sites/host/listkeys/action), e.g. as Website Contributor.",
-        404 => "No such function app: check Azure:SubscriptionId, Azure:ResourceGroupName and Azure:FunctionApps:PublicApi.",
-        _ => ""
-    };
+    private static string FirstLine(string message) => message.Split('\n')[0].Trim();
 }

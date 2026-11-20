@@ -29,10 +29,11 @@ internal static class ServiceConfiguration
 
         var credential = AzureCredentialFactory.Create(settings["Azure:TenantId"]);
         var armClient = new ArmClient(credential);
+        var retrySettings = settings.GetSection("Retry").Get<RetrySettings>() ?? new RetrySettings();
 
         var configuration = new ConfigurationBuilder()
             .AddConfiguration(settings)
-            .AddInMemoryCollection(StartupSecrets.Read(settings, credential, armClient))
+            .AddInMemoryCollection(StartupSecrets.Read(settings, credential, armClient, retrySettings.FunctionAppRestart))
             .Build();
 
         var dbConfig = configuration.GetSection("Database").Get<DatabaseConfig>() ?? new DatabaseConfig();
@@ -40,6 +41,7 @@ internal static class ServiceConfiguration
         var sbSettings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>() ?? new ServiceBusSettings();
         var blobSettings = configuration.GetSection("BlobStorage").Get<BlobStorageSettings>() ?? new BlobStorageSettings();
 
+        // Every setting StartupSecrets reads
         ConfigurationValidator.ValidateSet(
             ("Database:Sql", dbConfig.Sql),
             ("Database:SqlA", dbConfig.SqlA),
@@ -106,7 +108,7 @@ internal static class ServiceConfiguration
         services.AddSingleton<AppInsightsHelper>();
         services.AddSingleton<AppInsightsIngestionCheck>();
 
-        services.AddSingleton(configuration.GetSection("Retry").Get<RetrySettings>() ?? new RetrySettings());
+        services.AddSingleton(retrySettings);
 
         services.AddSingleton<PollyRetry>();
 

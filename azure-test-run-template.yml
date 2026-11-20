@@ -13,10 +13,14 @@ parameters:
 - name: changeFunctionAppSettings
   type: boolean
   default: true
-# Pipeline name -> its Azure service connection (see test-pipeline.yml).
-- name: azureServiceConnections
+# Pipeline name -> its environment: variableGroup and serviceConnection (see test-pipeline.yml).
+- name: environments
   type: object
   default: {}
+
+# The settings of the environment under test. A pipeline with no entry in environments fails here, on this group name.
+variables:
+- group: ${{ coalesce(parameters.environments[variables['Build.DefinitionName']].variableGroup, 'no-environment-for-this-pipeline-in-test-pipeline-yml') }}
 
 stages:
 - stage: build
@@ -39,7 +43,7 @@ stages:
           version: 10.0.x
 
       - task: FileTransform@2
-        # Pipeline must have variables that match those in appsettings.json.
+        # The pipeline's variable group must have variables that match those in appsettings.json.
         # Use `.` to retrieve nested values, e.g., var name `Azure.FunctionApps.Search` maps to `{ "Azure": { "FunctionApps": { "Search": "value" } } }`
         # appsettings.json holds no secrets, so none end up in the dropTestSuite artifact: the tests read them from the
         # environment's Atlas Key Vault (KeyVault.Name) and the Public API key through ARM.
@@ -107,13 +111,12 @@ stages:
         packageType: 'sdk'
         version: 10.0.x
 
-    # Names this pipeline's service connection, which Azure DevOps requires before it issues tokens for it, and passes its
-    # IDs on to the test steps (E2E.* variables -> AZURESUBSCRIPTION_*), where AzurePipelinesCredential asks for tokens.
-    # A pipeline missing from azureServiceConnections gets no service connection, and this step fails on the missing input.
+    # Names the pipeline's service connection and passes its IDs to the test steps (E2E.* -> AZURESUBSCRIPTION_*): see
+    # "Pipeline Variables" in README.md.
     - task: AzureCLI@2
       displayName: 'Azure identity of the tests'
       inputs:
-        azureSubscription: ${{ parameters.azureServiceConnections[variables['Build.DefinitionName']] }}
+        azureSubscription: ${{ parameters.environments[variables['Build.DefinitionName']].serviceConnection }}
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
@@ -173,8 +176,7 @@ stages:
             --results-directory "$(Agent.TempDirectory)/TestResults/${{ testRun.name }}"
             ${{ coalesce(testRun.extraTestArguments, '') }}
             -- NUnit.TestOutputXml="$(Agent.TempDirectory)/TestResults/${{ testRun.name }}/nunit"
-        # The tests' Azure identity: the workload identity federation service connection named by the E2E.* pipeline
-        # variables, through AzurePipelinesCredential (AzureCredentialFactory.cs). The pipeline must be allowed to use it.
+        # The tests' Azure identity (AzureCredentialFactory.cs): required on an agent, see "Pipeline Variables" in README.md
         env:
           AZURESUBSCRIPTION_TENANT_ID: $(E2E.TenantId)
           AZURESUBSCRIPTION_CLIENT_ID: $(E2E.ServicePrincipalClientId)

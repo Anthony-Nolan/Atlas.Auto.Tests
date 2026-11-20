@@ -29,7 +29,7 @@ The test project connects directly to Atlas infrastructure rather than through d
   - read access to the secrets in the environment's Atlas Key Vault (`KeyVault:Name`, e.g. `an-dev-atlas-kv`), e.g. through the "Atlas Key Vault Officers - DEV" group;
   - the rights on the Atlas resource group to read and change function app settings and keys, and to query its App Insights workspace.
 - Your IP address must be allowed by the firewall of the environment's Atlas SQL server.
-- The secrets are not settings: at start-up, the tests read the connection strings from the Key Vault and the Public API key from the Public API function app (see `TestHelpers/Settings/StartupSecrets.cs`). If one can't be read, the run stops before the first test, listing every secret that failed and why.
+- The secrets are not settings: at start-up, the tests read the connection strings from the Key Vault and the Public API key from the Public API function app (see `TestHelpers/Settings/StartupSecrets.cs`). If one can't be read, the run stops before the first test, listing every secret that failed with the Azure error. While the Public API app is starting, e.g. right after a deployment, reading its key is retried (`Retry:FunctionAppRestart`).
   A user secret with the same name, e.g. `Database:Sql` or `PublicApi:ApiKey`, still takes precedence.
 - To leave the function apps as they are, set `Azure:ChangeFunctionAppSettings` to `false`: the tests that need a changed setting are then skipped.
 - Tests can be run in parallel to reduce overall execution time.
@@ -54,9 +54,16 @@ The test project connects directly to Atlas infrastructure rather than through d
 - Make sure to add a new Category of tests under its tag in `categories` of the appropriate test run.
 
 ### Pipeline Variables
-- Each pipeline's variables live in a variable group named like the pipeline without its square brackets, which group names can't contain, not in the pipeline itself: pipeline "[DEV-ATLAS] Atlas E2E Tests" reads group "DEV-ATLAS Atlas E2E Tests" (`test-pipeline.yml` links it by `Build.DefinitionName`).
-  - Allow the pipeline to use the group (the group's "Pipeline permissions").
-  - Renaming the pipeline breaks the link: rename the group too.
+- Each pipeline's settings live in a variable group, not in the pipeline itself, and its tests sign in to Azure as a service connection. `environments` in `test-pipeline.yml` names both, by pipeline name:
+  ```yaml
+  environments:
+    '[DEV-ATLAS] Atlas E2E Tests':
+      variableGroup: 'DEV-ATLAS Atlas E2E Tests'
+      serviceConnection: 'Atlas Dev WIF'
+  ```
+  - A new pipeline needs its entry, in each branch it runs (e.g. before a `release/x.y.z` branch is cut for it). Without one, the run fails at once on a variable group named `no-environment-for-this-pipeline-in-test-pipeline-yml`. Renaming a pipeline needs its entry renamed too.
+  - Allow the pipeline to use both, in the group's and the service connection's "Pipeline permissions". Looking them up by the pipeline's own name means a run can only target its pipeline's environment.
+  - Why the service connection is in the repo and not in the group: Azure DevOps only issues tokens for a service connection that a task of the stage names at compile time, and a variable group is read at run time. The 'Azure identity of the tests' step (AzureCLI@2) names it and passes its IDs to the test steps, where `AzurePipelinesCredential` asks for tokens (`AzureCredentialFactory.cs`). On an agent (`TF_BUILD` set), a test step without those variables (its `env:`) fails at once, naming the missing ones.
 - The group must have variables that match those within `appsettings.json`.
   - Use `.` for nested settings, e.g., var name `Azure.FunctionApps.Search` would be used for setting:
 	```json
@@ -69,17 +76,14 @@ The test project connects directly to Atlas infrastructure rather than through d
 	}
 	```
 - The pipeline holds no secrets, and `appsettings.json` has no secret settings, so none can end up in the published `dropTestSuite` artifact.
-  The tests read the connection strings from the environment's Atlas Key Vault and the Public API key through ARM, as the identity below.
+  The tests read the connection strings from the environment's Atlas Key Vault and the Public API key through ARM, as the service connection.
 - Variables (none of them secret):
   - `Azure.SubscriptionId`, `Azure.ResourceGroupName`
   - `Azure.FunctionApps.DonorImport`, `Azure.FunctionApps.Search`, `Azure.FunctionApps.RepeatSearch`, `Azure.FunctionApps.MatchingDonorManagement`, `Azure.FunctionApps.SearchTracking`, `Azure.FunctionApps.PublicApi`
   - `KeyVault.Name`, the environment's Atlas Key Vault, e.g. `an-dev-atlas-kv`
   - `AppInsights.WorkspaceId`
   - `PublicApi.BaseUrl`
-- The tests' Azure identity is a workload identity federation (WIF) service connection, e.g. "Atlas Dev WIF", listed against the pipeline's name in `azureServiceConnections` of `test-pipeline.yml`. It is the only per-environment value kept in this repo rather than in the variable group: Azure DevOps only issues tokens for a service connection that a task of the stage names at compile time, and a variable group is read at run time. The 'Azure identity of the tests' step (AzureCLI@2) names it and passes its IDs to the test steps.
-  - A new pipeline needs its line in `azureServiceConnections`, in each branch it runs (e.g. before a `release/x.y.z` branch is cut for it); without it its tests fail at once.
-
-  The pipeline must be allowed to use the service connection (its "Pipeline permissions"). Its service principal needs Key Vault Secrets User on the Key Vault, and the rights to read and change function app settings and keys and to query the App Insights workspace.
+- The service connection is a workload identity federation (WIF) one, e.g. "Atlas Dev WIF". Its service principal needs Key Vault Secrets User on the Key Vault, and the rights to read and change function app settings and keys and to query the App Insights workspace.
 - The name/id of the Atlas artifacts feed must be set using the variable, `ATLAS_AZURE_ARTIFACTS_FEED_NAME_OR_ID`.
   - String should be format of either `projectName/feedName` e.g., `Atlas/atlas-packages` or just `feedName`, as appropriate.
 

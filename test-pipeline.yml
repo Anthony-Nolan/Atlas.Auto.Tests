@@ -9,26 +9,16 @@ parameters:
   type: boolean
   default: true
 
-# The settings of the Atlas environment under test, none of them secret, come from the variable group named after this
-# pipeline without its square brackets, which group names can't contain: "[DEV-ATLAS] Atlas E2E Tests" reads the group
-# "DEV-ATLAS Atlas E2E Tests". The pipeline must be allowed to use it. Naming it after the pipeline means a run can only
-# target that pipeline's environment. Renaming the pipeline breaks the link: rename the group too.
-# The one setting of an environment that lives here instead is its service connection: see azureServiceConnections.
-variables:
-- group: ${{ replace(replace(variables['Build.DefinitionName'], '[', ''), ']', '') }}
-
 extends:
   template: azure-test-run-template.yml
   parameters:
     changeFunctionAppSettings: ${{ parameters.changeFunctionAppSettings }}
-    # Pipeline -> the Azure service connection (workload identity federation) its tests use for Azure: ARM, App Insights and
-    # the Atlas Key Vault. It is the only per-environment value kept in this repo: Azure DevOps only issues tokens for a
-    # service connection that a task of the stage names at compile time, and the variable group is read at run time, so it
-    # can't hold it. The existing connections' names follow no rule a pipeline name could be turned into, hence a map.
-    # A new pipeline needs its line here, in every branch it runs, before it can run: the tests of a pipeline not listed
-    # here fail at once.
-    azureServiceConnections:
-      '[DEV-ATLAS] Atlas E2E Tests': 'Atlas Dev WIF'
+    # Pipeline name -> its environment: the variable group with its settings and the Azure service connection its tests
+    # use. A pipeline needs its entry here before it can run. See "Pipeline Variables" in README.md.
+    environments:
+      '[DEV-ATLAS] Atlas E2E Tests':
+        variableGroup: 'DEV-ATLAS Atlas E2E Tests'
+        serviceConnection: 'Atlas Dev WIF'
     # categories: tag -> its categories. Each category is published as its own test run, tagged with its tag.
     testRuns:
     - name: healthCheck

@@ -8,6 +8,9 @@ namespace Atlas.Auto.Tests.TestHelpers.Settings;
 /// </summary>
 internal static class AzureCredentialFactory
 {
+    // Set to True on every Azure DevOps agent
+    private const string AzureDevOpsAgentVariable = "TF_BUILD";
+
     // Set by azure-test-run-template.yml on the steps that run the tests, for the pipeline's workload identity federation
     // service connection. The names are the ones the Azure SDK documents for AzurePipelinesCredential.
     private const string TenantIdVariable = "AZURESUBSCRIPTION_TENANT_ID";
@@ -23,6 +26,10 @@ internal static class AzureCredentialFactory
     /// </param>
     public static TokenCredential Create(string? localTenantId)
     {
+        // Locally: whoever ran `az login`
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(AzureDevOpsAgentVariable)))
+            return new AzureCliCredential(new AzureCliCredentialOptions { TenantId = localTenantId });
+
         var values = PipelineVariables.ToDictionary(name => name, Environment.GetEnvironmentVariable);
         // An undefined pipeline variable reaches the step as its literal macro, e.g. "$(E2E.TenantId)"
         var missing = values
@@ -30,14 +37,11 @@ internal static class AzureCredentialFactory
             .Select(v => v.Key)
             .ToList();
 
-        // Locally: whoever ran `az login`
-        if (missing.Count == PipelineVariables.Length)
-            return new AzureCliCredential(new AzureCliCredentialOptions { TenantId = localTenantId });
-
         if (missing.Count > 0)
         {
             throw new InvalidOperationException(
-                "The pipeline sets only some of the variables for its Azure service connection. Missing:\n" +
+                "On an Azure DevOps agent, the tests sign in to Azure as the pipeline's service connection, and the step " +
+                "that runs them must set these variables (its env: in azure-test-run-template.yml). Missing:\n" +
                 string.Join("\n", missing.Select(name => $"  - {name}")));
         }
 
