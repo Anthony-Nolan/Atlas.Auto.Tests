@@ -18,11 +18,9 @@ parameters:
   type: object
   default: {}
 
-# The settings of the environment under test. A pipeline with no entry in environments fails here, naming the missing
-# template below (Azure DevOps doesn't name a variable group it can't find).
+# The settings of the environment under test. A pipeline with no entry in environments fails here: "Variable group  was
+# not found", with the name blank.
 variables:
-- ${{ if not(parameters.environments[variables['Build.DefinitionName']]) }}:
-  - template: this-pipeline-has-no-entry-in-environments-of-test-pipeline.yml
 - group: ${{ parameters.environments[variables['Build.DefinitionName']].variableGroup }}
 
 stages:
