@@ -18,8 +18,8 @@ parameters:
   type: object
   default: {}
 
-# The settings of the environment under test. A pipeline with no entry in environments fails here: "Variable group  was
-# not found", with the name blank.
+# The settings of the environment under test. A pipeline with no entry in environments fails here, on this line:
+# "Unexpected value ''".
 variables:
 - group: ${{ parameters.environments[variables['Build.DefinitionName']].variableGroup }}
 

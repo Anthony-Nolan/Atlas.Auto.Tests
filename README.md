@@ -61,7 +61,7 @@ The test project connects directly to Atlas infrastructure rather than through d
       variableGroup: 'DEV-ATLAS Atlas E2E Tests'
       serviceConnection: 'Atlas Dev WIF'
   ```
-  - A new pipeline needs its entry, in each branch it runs (e.g. before a `release/x.y.z` branch is cut for it). Without one, the run fails at once with "Variable group  was not found or is not authorized for use", with the name blank: Azure DevOps doesn't name a group it can't find. Renaming a pipeline needs its entry renamed too.
+  - A new pipeline needs its entry, in each branch it runs (e.g. before a `release/x.y.z` branch is cut for it). Without one, the run fails at once on the group line of `azure-test-run-template.yml`: "Unexpected value ''". Renaming a pipeline needs its entry renamed too.
   - Allow the pipeline to use both, in the group's and the service connection's "Pipeline permissions". Looking them up by the pipeline's own name means a run can only target its pipeline's environment.
   - Why the service connection is in the repo and not in the group: Azure DevOps only issues tokens for a service connection that a task of the stage names at compile time, and a variable group is read at run time. The 'Azure identity of the tests' step (AzureCLI@2) names it and passes its IDs to the test steps, where `AzurePipelinesCredential` asks for tokens (`AzureCredentialFactory.cs`). On an agent (`TF_BUILD` set), a test step without those variables (its `env:`) fails at once, naming the missing ones.
 - The group must have variables that match those within `appsettings.json`.
