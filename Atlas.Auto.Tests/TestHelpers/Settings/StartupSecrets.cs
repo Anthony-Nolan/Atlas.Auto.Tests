@@ -62,7 +62,9 @@ internal static class StartupSecrets
             }
             catch (Exception e) when (e is not AuthenticationFailedException)
             {
-                failures.Add($"{setting}: {source}: {FirstLine(e.Message)}");
+                // After the Azure SDK's retries, e.g. for a vault name that doesn't resolve: the last attempt's error
+                var error = e is AggregateException { InnerExceptions.Count: > 0 } retries ? retries.InnerExceptions[^1] : e;
+                failures.Add($"{setting}: {source}: {FirstLine(error.Message)}");
             }
         }
 
