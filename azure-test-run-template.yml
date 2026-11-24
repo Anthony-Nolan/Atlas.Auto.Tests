@@ -13,6 +13,15 @@ parameters:
 - name: changeFunctionAppSettings
   type: boolean
   default: true
+# See test-pipeline.yml.
+- name: environments
+  type: object
+  default: {}
+
+# The settings of the environment under test. A pipeline with no entry in environments fails here, on this line:
+# "Unexpected value ''".
+variables:
+- group: ${{ parameters.environments[variables['Build.DefinitionName']].variableGroup }}
 
 stages:
 - stage: build
@@ -35,8 +44,9 @@ stages:
           version: 10.0.x
 
       - task: FileTransform@2
-        # Pipeline must have variables that match those in appsettings.json.
-        # Use `.` to retrieve nested values, e.g., var name `Azure.Authentication.ClientId` maps to `{ "Azure": { "Authentication": { "ClientId": "value" } } }`
+        # The pipeline's variable group must have variables that match those in appsettings.json.
+        # Use `.` to retrieve nested values, e.g., var name `Azure.FunctionApps.Search` maps to `{ "Azure": { "FunctionApps": { "Search": "value" } } }`
+        # Never add a secret variable: FileTransform writes it into appsettings.json, which is published in dropTestSuite.
         displayName: 'Set environment variables'
         inputs:
           folderPath: '$(System.DefaultWorkingDirectory)'
@@ -101,6 +111,23 @@ stages:
         packageType: 'sdk'
         version: 10.0.x
 
+    # Names the pipeline's service connection and passes its IDs to the test steps (E2E.* -> AZURESUBSCRIPTION_*): see
+    # "Pipeline Variables" in README.md.
+    - task: AzureCLI@2
+      displayName: 'Azure identity of the tests'
+      inputs:
+        azureSubscription: ${{ parameters.environments[variables['Build.DefinitionName']].serviceConnection }}
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          foreach ($name in 'TENANT_ID', 'CLIENT_ID', 'SERVICE_CONNECTION_ID') {
+              $value = [Environment]::GetEnvironmentVariable("AZURESUBSCRIPTION_$name")
+              if (-not $value) { throw "AzureCLI@2 did not set AZURESUBSCRIPTION_$name" }
+          }
+          Write-Host "##vso[task.setvariable variable=E2E.TenantId]$env:AZURESUBSCRIPTION_TENANT_ID"
+          Write-Host "##vso[task.setvariable variable=E2E.ServicePrincipalClientId]$env:AZURESUBSCRIPTION_CLIENT_ID"
+          Write-Host "##vso[task.setvariable variable=E2E.ServiceConnectionId]$env:AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"
+
     - ${{ each testRun in parameters.testRuns }}:
       # 'Rerun failed jobs' runs again only the categories that did not pass
       - task: DownloadPipelineArtifact@2
@@ -149,6 +176,12 @@ stages:
             --results-directory "$(Agent.TempDirectory)/TestResults/${{ testRun.name }}"
             ${{ coalesce(testRun.extraTestArguments, '') }}
             -- NUnit.TestOutputXml="$(Agent.TempDirectory)/TestResults/${{ testRun.name }}/nunit"
+        # The tests' Azure identity (AzureCredentialFactory.cs): required on an agent, see "Pipeline Variables" in README.md
+        env:
+          AZURESUBSCRIPTION_TENANT_ID: $(E2E.TenantId)
+          AZURESUBSCRIPTION_CLIENT_ID: $(E2E.ServicePrincipalClientId)
+          AZURESUBSCRIPTION_SERVICE_CONNECTION_ID: $(E2E.ServiceConnectionId)
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
       - task: PowerShell@2
         displayName: '${{ testRun.displayName }}: CPU and memory'

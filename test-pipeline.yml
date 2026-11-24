@@ -13,6 +13,12 @@ extends:
   template: azure-test-run-template.yml
   parameters:
     changeFunctionAppSettings: ${{ parameters.changeFunctionAppSettings }}
+    # Pipeline name -> its environment: the variable group with its settings and the Azure service connection its tests
+    # use. A pipeline needs its entry here before it can run. See "Pipeline Variables" in README.md.
+    environments:
+      '[DEV-ATLAS] Atlas E2E Tests':
+        variableGroup: 'DEV-ATLAS Atlas E2E Tests'
+        serviceConnection: 'Atlas Dev WIF'
     # categories: tag -> its categories. Each category is published as its own test run, tagged with its tag.
     testRuns:
     - name: healthCheck
