@@ -118,22 +118,6 @@ internal class SearchTrackingTestSteps
     }
 
     /// <summary>
-    /// The attempt starts when matching runs; its initiation time is the first request of the search.
-    /// Call after <see cref="MatchingFailureShouldHaveBeenTracked"/>, which checks there is one attempt.
-    /// </summary>
-    public async Task AttemptShouldHaveStartedAfterWait(SearchTrackingRequest request, TimeSpan minWait, TimeSpan maxWait)
-    {
-        var attempt = (await _sqlHelper.GetMatchingAlgorithmAttempts(request.Id)).Single();
-        var waited = attempt.StartTimeUtc - attempt.InitiationTimeUtc;
-        _logger.LogInformation("Search {SearchId} waited {Waited} before matching", request.SearchIdentifier, waited);
-
-        waited.Should().BeGreaterThanOrEqualTo(minWait,
-            "matching should have waited for the original results before it ran for search {0}", request.SearchIdentifier);
-        waited.Should().BeLessThanOrEqualTo(maxWait,
-            "matching should have run once the maximum wait was over for search {0}", request.SearchIdentifier);
-    }
-
-    /// <summary>
     /// Only a MatchPredictionStarted event makes search tracking store a match prediction. The events the search sent
     /// have none, so the table is checked when it can no longer change.
     /// </summary>
